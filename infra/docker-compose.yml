@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # 1. NBank - основной сервис для тестирования
+  # ============================================
+  nbank:
+    image: margof25/nbank-tests:latest
+    platform: linux/amd64
+    container_name: nbank-local
+    ports:
+      - "4111:4111"          # API бэкенда
+      - "5432:5432"          # PostgreSQL (если внутри образа)
+    environment:
+      # Переменные для работы NBank (если требуются)
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/nbank
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+    volumes:
+      # Монтируем папку для Allure результатов (чтобы забирать отчеты)
+      - ./allure-results:/app/target/allure-results
+      - ./allure-report:/app/target/allure-report
+    networks:
+      - test-network
+    restart: unless-stopped
+    # Если в образе нет авто-запуска тестов, можно добавить:
+    # command: ["mvn", "clean", "test"]
+
+  # ============================================
+  # 2. TeamCity Server
+  # ============================================
+  teamcity-server:
+    image: jetbrains/teamcity-server:2026.1.1
+    container_name: teamcity-server
+    ports:
+      - "8111:8111"          # Веб-интерфейс TeamCity
+    volumes:
+      - ./teamcity-server/data:/data/teamcity_server/datadir
+      - ./teamcity-server/logs:/opt/teamcity/logs
+    environment:
+      - TEAMCITY_SERVER_MEM_OPTS=-Xmx2g -XX:ReservedCodeCacheSize=512m
+    networks:
+      - test-network
+    restart: unless-stopped
+
+  # ============================================
+  # 3. TeamCity Agent (выполняет билды)
+  # ============================================
+  teamcity-agent:
+    image: jetbrains/teamcity-agent:2026.1.1-linux-sudo
+    container_name: teamcity-agent
+    depends_on:
+      - teamcity-server
+    volumes:
+      - ./teamcity-agent/conf:/data/teamcity_agent/conf
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./allure-results:/opt/allure-results
+      - ./teamcity-agent/work:/opt/teamcity-agent/work
+    environment:
+      - SERVER_URL=http://teamcity-server:8111
+      - AGENT_NAME=nbank-agent
+      - DOCKER_IN_DOCKER=start
+    networks:
+      - test-network
+      - nbank-network
+    restart: unless-stopped
+    user: root
+    privileged: true
+
+  # ============================================
+  # 4. Allure Server (просмотр отчетов)
+  # ============================================
+  allure:
+    image: frankescobar/allure-docker-service:latest
+    container_name: allure-server
+    ports:
+      - "5050:5050"          # Веб-интерфейс Allure
+    environment:
+      - CHECK_RESULTS_EVERY_SECONDS=3
+      - KEEP_HISTORY=1
+    volumes:
+      - ./allure-results:/app/allure-results
+      - ./allure-reports-history:/app/default-reports
+    networks:
+      - test-network
+    restart: unless-stopped
+
+# ============================================
+# Сети и тома
+# ============================================
+networks:
+  test-network:
+    name: test-network
+    driver: bridge
+  nbank-network:
+    name: nbank-network
+    external: true
+
+volumes:
+  allure-results:
+    driver: local
+  allure-reports-history:
+    driver: local
