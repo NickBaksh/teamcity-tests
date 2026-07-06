@@ -55,7 +55,7 @@ services:
   # ============================================
   selenoid:
     image: aerokube/selenoid:latest
-    container_name: selenoid
+    container_name: selenoid-teamcity
     ports:
       - "4444:4444"
     volumes:
@@ -83,7 +83,7 @@ services:
   # ============================================
   selenoid-ui:
     image: aerokube/selenoid-ui:latest
-    container_name: selenoid-ui
+    container_name: selenoid-ui-teamcity
     ports:
       - "8080:8080"
     links:
