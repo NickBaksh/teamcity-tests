@@ -1,5 +1,8 @@
 package com.teamcity.core.steps;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.teamcity.core.client.RestClient;
 import com.teamcity.core.models.Build;
 import com.teamcity.core.models.BuildConfig;
@@ -8,11 +11,15 @@ import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 public class BuildSteps {
     private final RestClient client;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     public BuildSteps(RestClient client) {
         this.client = client;
@@ -38,6 +45,33 @@ public class BuildSteps {
         assertEquals(200, response.statusCode(), "Failed to get build config");
 
         return response.as(BuildConfig.class);
+    }
+
+    @Step("Get all build configs")
+    public List<BuildConfig> getAllBuildConfigs() {
+        Response response = client.get("/app/rest/buildTypes");
+        assertEquals(200, response.statusCode(), "Failed to get all build configs");
+
+        try {
+            JsonNode root = mapper.readTree(response.getBody().asString());
+            JsonNode configsNode = root.get("buildType");
+            if (configsNode == null || !configsNode.isArray()) {
+                return new ArrayList<>();
+            }
+            return mapper.convertValue(configsNode, new TypeReference<List<BuildConfig>>() {});
+        } catch (Exception e) {
+            log.error("Failed to parse build configs list", e);
+            return new ArrayList<>();
+        }
+    }
+
+    @Step("Update build config: {configId} to name: {newName}")
+    public BuildConfig updateBuildConfig(String configId, String newName) {
+        // PUT /app/rest/buildTypes/{btLocator}/name
+        Response response = client.put("/app/rest/buildTypes/{btLocator}/name", newName, configId);
+        assertEquals(200, response.statusCode(), "Failed to update build config");
+
+        return getBuildConfig(configId);
     }
 
     @Step("Delete build config: {configId}")
@@ -75,6 +109,13 @@ public class BuildSteps {
         assertEquals(200, response.statusCode(), "Failed to get build");
 
         return response.as(Build.class);
+    }
+
+    @Step("Pause build config: {configId} = {paused}")
+    public void pauseBuildConfig(String configId, boolean paused) {
+        Response response = client.put("/app/rest/buildTypes/{btLocator}/paused", paused, configId);
+        assertEquals(200, response.statusCode(), "Failed to pause/unpause build config");
+        log.info("Build config {}: {}", configId, paused ? "paused" : "resumed");
     }
 
     @Step("Cancel build: {buildId}")

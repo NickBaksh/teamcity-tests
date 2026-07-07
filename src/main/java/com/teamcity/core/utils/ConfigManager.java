@@ -64,4 +64,8 @@ public class ConfigManager {
     public static boolean isHeadless() {
         return Boolean.parseBoolean(properties.getProperty("browser.headless", "false"));
     }
+
+    public static String getApiToken() {
+        return properties.getProperty("api.token", "");
+    }
 }

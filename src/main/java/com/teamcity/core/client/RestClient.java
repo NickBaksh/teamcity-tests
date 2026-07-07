@@ -76,6 +76,8 @@ public class RestClient {
     public Response put(String endpoint, Object body, Object... pathParams) {
         log.info("PUT request to: {}", endpoint);
         return requestSpec
+                .contentType("text/plain")
+                .accept(ContentType.JSON)
                 .body(body)
                 .when()
                 .put(endpoint, pathParams)

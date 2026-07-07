@@ -88,6 +88,14 @@ public class ProjectSteps {
         log.info("Project deleted: ID={}", projectId);
     }
 
+    @Step("Update project description: {projectId} to {newDescription}")
+    public Project updateProjectDescription(String projectId, String newDescription) {
+        Response response = client.put("/app/rest/projects/{projectLocator}/description", newDescription, projectId);
+        assertEquals(200, response.statusCode(), "Failed to update project description");
+
+        return getProject(projectId);
+    }
+
     @Step("Check if project exists: {projectId}")
     public boolean projectExists(String projectId) {
         Response response = client.get("/app/rest/projects/{projectLocator}", projectId);
