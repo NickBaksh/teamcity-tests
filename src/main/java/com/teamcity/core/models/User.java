@@ -2,14 +2,10 @@ package com.teamcity.core.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.teamcity.core.models.Groups;
-import com.teamcity.core.models.RoleAssignments;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.Properties;
 
 @Data
 @Builder
@@ -27,7 +23,7 @@ public class User {
     private Boolean hasPassword;
     private String realm;
     private String href;
-    private Properties properties;
+    private PropertiesContainer properties;
     private RoleAssignments roles;
     private Groups groups;
     private String locator;
