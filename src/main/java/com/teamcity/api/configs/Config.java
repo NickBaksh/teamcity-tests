@@ -8,6 +8,10 @@ public class Config {
     private static final Config INSTANCE = new Config();
     private final Properties properties = new Properties();
 
+    public static final String API_BASE_URL = "apiBaseUrl";
+    public static final String ADMIN_LOGIN = "admin.username";
+    public static final String ADMIN_PASSWORD = "admin.password";
+
     private Config() {
         try (InputStream input = getClass().getClassLoader().getResourceAsStream("config.properties")) {
             if (input == null) {

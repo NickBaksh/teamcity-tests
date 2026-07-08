@@ -22,4 +22,9 @@ public class BuildConfig {
     private String href;
     private String webUrl;
     private Boolean paused;
+    private String internalId;
+    private Boolean templateFlag;
+    private String type;
+    private String uuid;
+    private String projectInternalId;
 }
