@@ -227,28 +227,45 @@ public class SmokeTest extends BaseApiTest {
     @Order(9)
     @Tag("builds")
     @DisplayName("✅ [SMOKE] Get build status → 200")
-    @Description("Verifies build status retrieval")
+    @Description("Verifies build status retrieval. Waits for build to finish.")
     @Severity(SeverityLevel.BLOCKER)
     @Story("Build")
     void shouldGetBuildStatus() {
+        // 1. Создаем проект
         Project project = dataFactory.createRandomProject();
         Project createdProject = projectSteps.createProject(project);
         trackProject(createdProject.getId());
 
+        // 2. Создаем build config
         BuildConfig config = dataFactory.createRandomBuildConfig(createdProject.getId());
         BuildConfig createdConfig = buildSteps.createBuildConfig(config);
         trackBuildConfig(createdConfig.getId());
 
+        // 3. Запускаем билд
         Build build = buildSteps.runBuild(createdConfig.getId());
+        log.info("Build started: ID={}, State={}", build.getId(), build.getState());
 
-        Build retrievedBuild = buildSteps.getBuild(String.valueOf(build.getId()));
+        // 4. Ждем, пока билд завершится (максимум 60 секунд)
+        Build finishedBuild = buildSteps.waitForBuildFinish(String.valueOf(build.getId()), 60);
 
+        // 5. Проверяем
         SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(retrievedBuild.getStatus()).isNotNull();
-        softly.assertThat(retrievedBuild.getState()).isNotNull();
+        softly.assertThat(finishedBuild)
+                .as("Build should not be null")
+                .isNotNull();
+        softly.assertThat(finishedBuild.getId())
+                .as("Build ID should match")
+                .isEqualTo(build.getId());
+        softly.assertThat(finishedBuild.getStatus())
+                .as("Build status should not be null after finish")
+                .isNotNull();
+        softly.assertThat(finishedBuild.getState())
+                .as("Build state should be finished")
+                .isIn("finished", "failed", "cancelled");
         softly.assertAll();
 
-        log.info("✅ Build status retrieved: {}", retrievedBuild.getStatus());
+        log.info("✅ Build status retrieved: ID={}, Status={}, State={}",
+                finishedBuild.getId(), finishedBuild.getStatus(), finishedBuild.getState());
     }
 
 

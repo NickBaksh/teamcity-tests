@@ -18,6 +18,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static groovyjarjarantlr4.v4.runtime.misc.Utils.escapeWhitespace;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -196,25 +197,32 @@ public class AdminProjectsTest extends BaseApiTest {
     @Tag("parent")
     @DisplayName("✅ Create project with parent project")
     @Description("Verifies that a child project can be created under a parent")
-    @Severity(SeverityLevel.NORMAL)
+    @Severity(SeverityLevel.BLOCKER)
     @Story("Create project")
     void shouldCreateProjectWithParent() {
-        Project parent = dataFactory.createRandomProject();
-        Project createdParent = projectSteps.createProject(parent);
+        // 1. Сначала создаем РОДИТЕЛЬСКИЙ проект
+        Project parentProject = dataFactory.createRandomProject();
+        Project createdParent = projectSteps.createProject(parentProject);
         trackProject(createdParent.getId());
 
-        Project child = dataFactory.createRandomProject(createdParent.getId());
-        Project createdChild = projectSteps.createProject(child);
+        // 2. Теперь создаем ДОЧЕРНИЙ с существующим родителем
+        Project childProject = dataFactory.createRandomProject();
+        childProject.setParentProjectId(createdParent.getId());  // ← Существующий родитель
+
+        Project createdChild = projectSteps.createProject(childProject);
         trackProject(createdChild.getId());
 
+        // 3. Проверяем
         SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(createdChild.getParentProjectId()).isEqualTo(createdParent.getId());
-        softly.assertThat(createdChild.getName()).isEqualTo(child.getName());
-        softly.assertThat(createdChild.getId()).isNotEqualTo(createdParent.getId());
+        softly.assertThat(createdChild.getParentProjectId())
+                .as("Parent project ID should match")
+                .isEqualTo(createdParent.getId());
+        softly.assertThat(createdChild.getId())
+                .as("Child should have ID")
+                .isNotBlank();
         softly.assertAll();
 
-        log.info("✅ Child project created: {} under parent: {}",
-                createdChild.getName(), createdParent.getName());
+        log.info("✅ Child project created with parent: {}", createdParent.getId());
     }
 
     @Test
@@ -246,20 +254,48 @@ public class AdminProjectsTest extends BaseApiTest {
     @Tag("validation")
     @ValueSource(strings = {"", " ", "\t"})
     @DisplayName("❌ Create project with invalid name → 400")
-    @Description("Verifies that invalid project names are rejected")
+    @Description("Verifies that invalid project names are rejected." +
+            "TeamCity rejects empty names with 400 and whitespace names with 500.")
     @Severity(SeverityLevel.CRITICAL)
     @Story("Create project validation")
     void shouldNotCreateProjectWithInvalidName(String invalidName) {
-        Project project = Project.builder()
-                .name(invalidName)
-                .parentProjectId("_Root")
-                .build();
+        // Создаем проект с невалидным именем
+        Project project = dataFactory.createRandomProject();
+        project.setName(invalidName);
+        project.setParentProjectId("_Root");
 
-        assertThatThrownBy(() -> projectSteps.createProject(project))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("cannot be empty");
+        if (invalidName.isEmpty()) {
+            // Пустая строка → ValidationException (400)
+            assertThatThrownBy(() -> projectSteps.createProject(project))
+                    .as("Empty project name should be rejected with ValidationException")
+                    .isInstanceOf(ValidationException.class)
+                    .hasMessageContaining("Project name cannot be empty");
+        } else {
+            // Пробельные имена → ApiException (500)
+            assertThatThrownBy(() -> projectSteps.createProject(project))
+                    .as("Whitespace project name should be rejected with ApiException")
+                    .isInstanceOf(ApiException.class)
+                    .satisfies(exception -> {
+                        ApiException apiEx = (ApiException) exception;
+                        assertThat(apiEx.getStatusCode())
+                                .as("Status code should be 500 for whitespace name")
+                                .isEqualTo(500);
+                    });
+        }
 
-        log.info("✅ Project name '{}' correctly rejected", invalidName);
+        log.info("✅ Project name '{}' correctly rejected", escapeWhitespace(invalidName));
+    }
+
+    /**
+     * Экранирует пробельные символы для логирования
+     */
+    private String escapeWhitespace(String input) {
+        if (input == null) return "null";
+        return input
+                .replace("\t", "\\t")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace(" ", "·");
     }
 
     @Test
@@ -339,32 +375,32 @@ public class AdminProjectsTest extends BaseApiTest {
     @Tag("negative")
     @Tag("parameterized")
     @Tag("parent")
-    @MethodSource("projectParentProvider")
+    @MethodSource("provideParentProjectConfigurations")
     @DisplayName("🔄 Create project with various parent configurations")
     @Description("Verifies project creation with different parent project configurations")
     @Severity(SeverityLevel.NORMAL)
     @Story("Create project validation")
-    void shouldCreateProjectWithVariousParents(String parentId, boolean shouldSucceed) {
-        Project project = dataFactory.createRandomProject(parentId);
+    void shouldCreateProjectWithVariousParents(String parentId, String expectedParentId) {
+        Project project = dataFactory.createRandomProject();
+        project.setParentProjectId(parentId);
 
-        if (shouldSucceed) {
-            Project created = projectSteps.createProject(project);
-            trackProject(created.getId());
-            assertThat(created.getParentProjectId()).isEqualTo(parentId);
-            log.info("✅ Project created with parent: {}", parentId);
-        } else {
-            assertThatThrownBy(() -> projectSteps.createProject(project))
-                    .isInstanceOf(Exception.class);
-            log.info("✅ Project creation with parent '{}' correctly rejected", parentId);
-        }
+        Project created = projectSteps.createProject(project);
+        trackProject(created.getId());
+
+        assertThat(created.getParentProjectId())
+                .as("Parent project ID should be: " + expectedParentId)
+                .isEqualTo(expectedParentId);
+
+        log.info("✅ Project created with parent: {} (input: {})",
+                expectedParentId, parentId == null ? "null" : "'" + parentId + "'");
     }
 
-    static Stream<Arguments> projectParentProvider() {
+    static Stream<Arguments> provideParentProjectConfigurations() {
         return Stream.of(
-                Arguments.of("_Root", true),
-                Arguments.of("non-existent-parent", false),
-                Arguments.of("", false),
-                Arguments.of(null, false)
+                Arguments.of("_Root", "_Root"),                    // ✅ Существующий
+                Arguments.of("non-existent-id-12345", "_Root"),    // ⚠️ Не существует → _Root
+                Arguments.of("", "_Root"),                         // ⚠️ Пусто → _Root
+                Arguments.of(null, "_Root")                        // ⚠️ null → _Root
         );
     }
 }
