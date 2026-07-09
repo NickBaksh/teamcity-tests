@@ -1,10 +1,16 @@
 package com.teamcity.api.user;
 
-import com.teamcity.api.base.BaseApiTest;
+import com.teamcity.api.BaseApiTest;
 import com.teamcity.api.specs.ResponseSpecs;
+import com.teamcity.core.client.ApiClient;
+import com.teamcity.core.client.RestClient;
+import com.teamcity.core.config.ConfigManager;
 import com.teamcity.core.endpoints.Endpoint;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.Project;
+import com.teamcity.core.models.User;
+import com.teamcity.core.steps.BuildSteps;
+import com.teamcity.core.steps.UserSteps;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,7 +28,19 @@ public class UserBuildConfigsTest extends BaseApiTest {
         BuildConfig expected = adminBuildSteps.createBuildConfig(
                 dataFactory.createRandomBuildConfig(project.getId()));
 
-        BuildConfig actual = userBuildSteps.getBuildConfig(expected.getId());
+        // создаем пользователя
+        User user = dataFactory.createRandomUser();
+        new UserSteps(adminClient).createUser(user);
+
+        // создаем клиента под этим пользователем
+        ApiClient client = RestClient.builder()
+                .baseUrl(ConfigManager.getApiBaseUrl())
+                .basicAuth(user.getUsername(), user.getPassword())
+                .withRetry(ConfigManager.getRetryCount())
+                .build();
+
+        BuildSteps userSteps = new BuildSteps(client);
+        BuildConfig actual = userSteps.getBuildConfig(expected.getId());
 
         assertAll(
                 () -> assertEquals(expected.getId(), actual.getId()),
@@ -39,7 +57,18 @@ public class UserBuildConfigsTest extends BaseApiTest {
 
         BuildConfig buildConfig = dataFactory.createRandomBuildConfig(
                 project.getId());
-        Response response = userClient.post(
+        // создаем пользователя
+        User user = dataFactory.createRandomUser();
+        new UserSteps(adminClient).createUser(user);
+
+        // создаем негативного клиента под этим пользователем
+        ApiClient client = RestClient.builder()
+                .baseUrl(ConfigManager.getApiBaseUrl())
+                .basicAuth(user.getUsername(), user.getPassword())
+                .forNegativeTest()
+                .build();
+
+        Response response = client.post(
                 Endpoint.BUILD_TYPES.getPath(),
                 buildConfig);
         response.then().spec(ResponseSpecs.returnsForbidden());
@@ -53,9 +82,21 @@ public class UserBuildConfigsTest extends BaseApiTest {
 
         BuildConfig buildConfig = adminBuildSteps.createBuildConfig(
                 dataFactory.createRandomBuildConfig(project.getId()));
-        Response response = userClient.delete(
-                Endpoint.BUILD_TYPE.getPath(),
-                buildConfig.getId());
+
+        // создаем пользователя
+        User user = dataFactory.createRandomUser();
+        new UserSteps(adminClient).createUser(user);
+
+        // создаем негативного клиента под этим пользователем
+        ApiClient client = RestClient.builder()
+                .baseUrl(ConfigManager.getApiBaseUrl())
+                .basicAuth(user.getUsername(), user.getPassword())
+                .forNegativeTest()
+                .build();
+
+        Response response = client.delete(
+                Endpoint.BUILD_TYPE.format(buildConfig.getId())
+        );
         response.then().spec(ResponseSpecs.returnsForbidden());
     }
 }

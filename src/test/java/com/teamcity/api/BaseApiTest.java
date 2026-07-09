@@ -4,6 +4,8 @@ import com.teamcity.core.client.ApiClient;
 import com.teamcity.core.client.RestClient;
 import com.teamcity.core.config.ConfigManager;
 import com.teamcity.core.exceptions.ApiException;
+import com.teamcity.core.steps.BuildSteps;
+import com.teamcity.core.steps.ProjectSteps;
 import com.teamcity.core.utils.TestDataFactory;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +24,10 @@ public abstract class BaseApiTest {
 
     protected ApiClient adminClient;
     protected ApiClient userClient;
+    protected ProjectSteps adminProjectSteps;
+    protected BuildSteps adminBuildSteps;
+    protected ProjectSteps userProjectSteps;
+    protected BuildSteps userBuildSteps;
     protected TestDataFactory dataFactory;
 
     private final List<String> createdProjects = new ArrayList<>();
@@ -32,6 +38,9 @@ public abstract class BaseApiTest {
     @Step("Initialize API test environment")
     public void setUp() {
         log.info("Setting up API test...");
+        log.info("Admin login = {}", ConfigManager.getAdminLogin());
+        log.info("Admin password = {}", ConfigManager.getAdminPassword());
+        dataFactory = new TestDataFactory();
 
         adminClient = RestClient.builder()
                 .baseUrl(ConfigManager.getApiBaseUrl())
@@ -45,7 +54,10 @@ public abstract class BaseApiTest {
                 .withRetry(ConfigManager.getRetryCount())
                 .build();
 
-        dataFactory = new TestDataFactory();
+        adminProjectSteps = new ProjectSteps(adminClient);
+        adminBuildSteps = new BuildSteps(adminClient);
+        userProjectSteps = new ProjectSteps(userClient);
+        userBuildSteps = new BuildSteps(userClient);
     }
 
     @AfterEach

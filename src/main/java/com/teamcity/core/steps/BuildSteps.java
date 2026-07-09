@@ -103,8 +103,11 @@ public class BuildSteps {
 
         // ✅ Используем метод с RequestType.JSON
         Response response = client.get(
-                Endpoint.BUILD_TYPE.format(configId),
-                RequestType.JSON
+
+                Endpoint.BUILD_TYPE.format(configId)
+//        Response response = client.get(
+//                Endpoint.BUILD_TYPE.format(configId),
+//                RequestType.JSON
         );
         BuildConfig config = validator.validate(response, BuildConfig.class);
 
@@ -220,6 +223,17 @@ public class BuildSteps {
         BuildConfig updated = getBuildConfig(configId);
         log.info("Build config description updated: ID={}", updated.getId());
         return updated;
+    }
+    // =========================================================================
+    // 4. DELETE — Удаление билд
+    // =========================================================================
+
+    @Step("Delete build: {buildId}")
+    public void deleteBuild(String buildId) {
+        Response response = client.delete(
+                Endpoint.BUILD.format(buildId)
+        );
+        validator.validateStatus(response);
     }
 
     // =========================================================================
@@ -857,5 +871,26 @@ public class BuildSteps {
             return QUEUED.value.equalsIgnoreCase(state) ||
                     RUNNING.value.equalsIgnoreCase(state);
         }
+    }
+//временно методы, возможно удалю
+    @Step("Cancel build (negative): {buildId}")
+    public Response cancelBuildForbidden(String buildId) {
+        BuildCancelRequest request = new BuildCancelRequest();
+        request.setComment("Canceled by API test");
+        return client.post(
+                Endpoint.BUILD.format(buildId),
+                request
+        );
+    }
+    /**
+     * Удаляет билд с для негативного сценария
+     * @param buildId
+     * @return
+     */
+    @Step("Delete build (negative): {buildId}")
+    public Response deleteBuildForbidden(String buildId) {
+        return client.delete(
+                Endpoint.BUILD.format(buildId)
+        );
     }
 }

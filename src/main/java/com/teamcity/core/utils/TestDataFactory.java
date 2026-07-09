@@ -1,6 +1,5 @@
 package com.teamcity.core.utils;
 
-import com.teamcity.core.models.Build;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.Project;
 import com.teamcity.core.models.User;
@@ -73,6 +72,13 @@ public class TestDataFactory {
      */
     public String generateUniqueBuildConfigName() {
         return "BuildConfig_" + System.currentTimeMillis();
+    }
+
+    /**
+     * Генерирует уникальное имя для несуществующего Build.
+     */
+    public String generateNotExistingBuildConfigId() {
+        return "NotExisting_" + UUID.randomUUID();
     }
 
     /**
