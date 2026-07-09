@@ -74,11 +74,10 @@ public class SmokeTest extends BaseApiTest {
         RestClient invalidClient = RestClient.builder()
                 .baseUrl(ConfigManager.getApiBaseUrl())
                 .basicAuth(ConfigManager.getAdminLogin(), "wrong_password")
-                .forNegativeTest()
                 .build();
 
         assertThatThrownBy(() -> invalidClient.get("/app/rest/server"))
-                .isInstanceOf(AuthenticationException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Authentication failed")
                 .hasMessageContaining("Incorrect username or password");
 

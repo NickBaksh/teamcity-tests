@@ -34,16 +34,14 @@ public class RestClient implements ApiClient {
     private final ResponseValidator responseValidator;
     private final int maxRetries;
     private final long retryDelay;
-    private final boolean isNegativeTest;
     private final HeaderConfig defaultHeaders;
 
     private RestClient(Builder builder) {
         RestAssured.baseURI = builder.baseUrl;
         RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
-        this.maxRetries = builder.isNegativeTest ? 1 : builder.retryCount;
+        this.maxRetries = builder.retryCount;
         this.retryDelay = builder.retryDelay;
-        this.isNegativeTest = builder.isNegativeTest;
         this.responseValidator = new ResponseValidator();
 
         HeaderConfig defaultHeaders = HeaderConfig.defaultHeaders();
@@ -101,9 +99,102 @@ public class RestClient implements ApiClient {
         return executeWithRetry(() -> requestSpec.body(body).put(endpoint, pathParams));
     }
 
+    /**
+     * DELETE запрос с path параметрами.
+     * Пример: delete("/app/rest/projects/{id}", "project123")
+     */
     @Override
     public Response delete(String endpoint, Object... pathParams) {
+        // Проверяем, что endpoint содержит плейсхолдеры
+        boolean hasPlaceholders = endpoint.contains("{") && endpoint.contains("}");
+
+        // Если плейсхолдеров нет, но параметры переданы - это ошибка
+        if (!hasPlaceholders && pathParams != null && pathParams.length > 0) {
+            throw new IllegalArgumentException(
+                    String.format("Endpoint '%s' has no placeholders but %d parameters provided. " +
+                                    "Either add placeholders (e.g., '/projects/{id}') or " +
+                                    "construct the full URL (e.g., '/projects/123')",
+                            endpoint, pathParams.length)
+            );
+        }
+
+        // Если плейсхолдеры есть, проверяем количество параметров
+        if (hasPlaceholders) {
+            int expected = countPlaceholders(endpoint);
+            int actual = pathParams != null ? pathParams.length : 0;
+
+            if (actual != expected) {
+                throw new IllegalArgumentException(
+                        String.format("Endpoint '%s' expects %d parameter(s) but got %d",
+                                endpoint, expected, actual)
+                );
+            }
+        }
+
         return executeWithRetry(() -> requestSpec.delete(endpoint, pathParams));
+    }
+
+    // ===== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ =====
+
+    /**
+     * Подсчитывает количество плейсхолдеров {param} в строке endpoint
+     *
+     * @param endpoint URL с возможными плейсхолдерами вида {param}
+     * @return количество плейсхолдеров
+     * @throws IllegalArgumentException если формат endpoint некорректен
+     */
+    private int countPlaceholders(String endpoint) {
+        if (endpoint == null || endpoint.isEmpty()) {
+            return 0;
+        }
+
+        int count = 0;
+        int index = 0;
+
+        while ((index = endpoint.indexOf("{", index)) != -1) {
+            count++;
+
+            // Ищем закрывающую скобку
+            int endIndex = endpoint.indexOf("}", index);
+            if (endIndex == -1) {
+                throw new IllegalArgumentException(
+                        String.format("Invalid endpoint: '%s' - unclosed placeholder starting at position %d",
+                                endpoint, index)
+                );
+            }
+
+            // Проверяем, что внутри плейсхолдера есть имя
+            String placeholderName = endpoint.substring(index + 1, endIndex);
+            if (placeholderName.trim().isEmpty()) {
+                throw new IllegalArgumentException(
+                        String.format("Invalid endpoint: '%s' - empty placeholder at position %d",
+                                endpoint, index)
+                );
+            }
+
+            index = endIndex + 1;
+        }
+
+        return count;
+    }
+
+    /**
+     * Удаление по полному URL (без плейсхолдеров)
+     */
+    public Response delete(String endpoint) {
+        if (endpoint == null || endpoint.trim().isEmpty()) {
+            throw new IllegalArgumentException("Endpoint cannot be null or empty");
+        }
+
+        // Проверяем, что нет плейсхолдеров
+        if (endpoint.contains("{") && endpoint.contains("}")) {
+            throw new IllegalArgumentException(
+                    String.format("Endpoint '%s' contains placeholders. " +
+                            "Use delete(endpoint, params) instead.", endpoint)
+            );
+        }
+
+        return executeWithRetry(() -> requestSpec.delete(endpoint));
     }
 
     // ===== МЕТОДЫ С КАСТОМНЫМИ ЗАГОЛОВКАМИ (НОВЫЕ) =====
@@ -223,10 +314,6 @@ public class RestClient implements ApiClient {
                 long startTime = System.nanoTime();
                 Response response = request.get();
 
-                if (isNegativeTest && response.statusCode() == 401) {
-                    return response;
-                }
-
                 responseValidator.validateStatus(response);
                 logRequestDetails(response, System.nanoTime() - startTime);
                 return response;
@@ -327,7 +414,6 @@ public class RestClient implements ApiClient {
         private Map<String, String> headers;
         private int retryCount = DEFAULT_RETRY_COUNT;
         private long retryDelay = DEFAULT_RETRY_DELAY_MS;
-        private boolean isNegativeTest = false;
 
         public Builder baseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
@@ -393,13 +479,6 @@ public class RestClient implements ApiClient {
 
         public Builder withRetry(int retryCount) {
             return retryCount(retryCount);
-        }
-
-        public Builder forNegativeTest() {
-            this.isNegativeTest = true;
-            this.retryCount = 1;
-            log.debug("Negative test mode enabled, retry count set to 1");
-            return this;
         }
 
         public RestClient build() {
