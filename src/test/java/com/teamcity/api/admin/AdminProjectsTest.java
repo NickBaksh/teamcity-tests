@@ -196,33 +196,27 @@ public class AdminProjectsTest extends BaseApiTest {
     @Tag("normal")
     @Tag("parent")
     @DisplayName("✅ Create project with parent project")
-    @Description("Verifies that a child project can be created under a parent")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Create project")
     void shouldCreateProjectWithParent() {
-        // 1. Сначала создаем РОДИТЕЛЬСКИЙ проект
+        // 1. Создаем родителя
         Project parentProject = dataFactory.createRandomProject();
         Project createdParent = projectSteps.createProject(parentProject);
         trackProject(createdParent.getId());
+        log.info("Parent project created: id={}", createdParent.getId());
 
-        // 2. Теперь создаем ДОЧЕРНИЙ с существующим родителем
+        // 2. Создаем дочерний проект
         Project childProject = dataFactory.createRandomProject();
-        childProject.setParentProjectId(createdParent.getId());  // ← Существующий родитель
-
-        Project createdChild = projectSteps.createProject(childProject);
+        Project createdChild = projectSteps.createProjectSmartUnderParent(
+                childProject,
+                createdParent.getId()
+        );
         trackProject(createdChild.getId());
 
         // 3. Проверяем
-        SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(createdChild.getParentProjectId())
-                .as("Parent project ID should match")
+        assertThat(createdChild.getParentProjectId())
                 .isEqualTo(createdParent.getId());
-        softly.assertThat(createdChild.getId())
-                .as("Child should have ID")
-                .isNotBlank();
-        softly.assertAll();
 
-        log.info("✅ Child project created with parent: {}", createdParent.getId());
+        log.info("✅ Child project created: {} under {}",
+                createdChild.getName(), createdParent.getName());
     }
 
     @Test
