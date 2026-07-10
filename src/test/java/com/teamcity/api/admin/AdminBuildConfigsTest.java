@@ -24,22 +24,6 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Тесты для управления Build Configurations в TeamCity API.
- * <p>
- * Покрывает CRUD операции, валидацию, негативные сценарии и edge cases.
- * Все тесты изолированы и используют cleanup для удаления созданных ресурсов.
- * <p>
- * Иерархия тестов:
- * <ul>
- *   <li>P0 (BLOCKER) — Smoke тесты: создание, получение, удаление</li>
- *   <li>P1 (CRITICAL) — Основной функционал: обновление, пауза, валидация</li>
- *   <li>P2 (NORMAL) — Параметризованные тесты</li>
- *   <li>P3 (MINOR) — Edge cases</li>
- * </ul>
- *
- * @see <a href="https://www.jetbrains.com/help/teamcity/rest-api.html">TeamCity REST API</a>
- */
 @Slf4j
 @Epic("Admin API")
 @Feature("Build Configuration Management")
@@ -400,10 +384,6 @@ public class AdminBuildConfigsTest extends BaseApiTest {
         log.info("✅ Empty build config name correctly rejected");
     }
 
-    // ============================================================
-    // ТЕСТ 2: Пробельные имена → 200 (поведение системы)
-    // ============================================================
-
     @ParameterizedTest
     @Order(10)
     @Tag("positive")
@@ -608,7 +588,6 @@ public class AdminBuildConfigsTest extends BaseApiTest {
     @Severity(SeverityLevel.MINOR)
     @Story("Build config validation")
     void shouldHandleNonExistentDeletion() {
-        // Should not throw exception
         buildSteps.deleteBuildConfigIfExists(NON_EXISTENT_ID);
         buildSteps.deleteBuildConfigIfExists(NON_EXISTENT_ID); // Повторный вызов тоже безопасен
 

@@ -18,7 +18,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static groovyjarjarantlr4.v4.runtime.misc.Utils.escapeWhitespace;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -107,9 +106,7 @@ public class AdminProjectsTest extends BaseApiTest {
         Project created = projectSteps.createProject(project);
 
         projectSteps.deleteProject(created.getId());
-
         assertThat(projectSteps.projectExists(created.getId())).isFalse();
-
         log.info("✅ Project deleted: {}", created.getName());
     }
 
@@ -203,24 +200,18 @@ public class AdminProjectsTest extends BaseApiTest {
     @Story("Create project")
     void shouldCreateProjectWithParent() {
 
-// 1. Создаем родительский проект
-
         Project parentProject = dataFactory.createRandomProject();
         Project createdParent = projectSteps.createProject(parentProject);
         trackProject(createdParent.getId());
-
-// 2. Создаем дочерний проект
 
         Project childProject = dataFactory.createRandomProject();
         childProject.setParentProjectId(createdParent.getId());
         Project createdChild = projectSteps.createProject(childProject);
         trackProject(createdChild.getId());
 
-// 3. Перечитываем из TeamCity
 
         Project reloadedChild = projectSteps.getProject(createdChild.getId());
 
-// 4. Проверяем фактическое состояние
 
         SoftAssertions softly = new SoftAssertions();
         List<Project> children = projectSteps.getChildProjects(createdParent.getId());
@@ -232,9 +223,6 @@ public class AdminProjectsTest extends BaseApiTest {
                 .as("Parent should contain created child project")
 
                 .contains(createdChild.getId());
-//        softly.assertThat(reloadedChild.getParentProjectId())
-//                .as("Parent project ID should match")
-//                .isEqualTo(createdParent.getId());
         softly.assertThat(reloadedChild.getId())
                 .as("Child should have ID")
                 .isNotBlank();
@@ -284,13 +272,11 @@ public class AdminProjectsTest extends BaseApiTest {
         project.setParentProjectId("_Root");
 
         if (invalidName.isEmpty()) {
-            // Пустая строка → ValidationException (400)
             assertThatThrownBy(() -> projectSteps.createProject(project))
                     .as("Empty project name should be rejected with ValidationException")
                     .isInstanceOf(ValidationException.class)
                     .hasMessageContaining("Project name cannot be empty");
         } else {
-            // Пробельные имена → ApiException (500)
             assertThatThrownBy(() -> projectSteps.createProject(project))
                     .as("Whitespace project name should be rejected with ApiException")
                     .isInstanceOf(ApiException.class)
@@ -305,9 +291,6 @@ public class AdminProjectsTest extends BaseApiTest {
         log.info("✅ Project name '{}' correctly rejected", escapeWhitespace(invalidName));
     }
 
-    /**
-     * Экранирует пробельные символы для логирования
-     */
     private String escapeWhitespace(String input) {
         if (input == null) return "null";
         return input
