@@ -75,11 +75,6 @@ public class AdminBuildConfigsTest extends BaseApiTest {
         log.debug("Test setup completed. Project ID: {}", testProjectId);
     }
 
-//    @AfterEach
-//    void tearDown() {
-//        cleanupResources();
-//    }
-
     private void cleanupResources() {
         try {
             List<BuildConfig> configs = buildSteps.getAllBuildConfigs();
@@ -212,102 +207,46 @@ public class AdminBuildConfigsTest extends BaseApiTest {
     }
 
     @Test
-
     @Order(5)
-
     @Tag("positive")
-
     @Tag("normal")
-
     @Tag("crud")
-
     @DisplayName("✅ Update build config name")
-
     @Description("Verifies that build configuration name can be updated")
-
     @Severity(SeverityLevel.CRITICAL)
-
     @Story("Update build config")
 
     void shouldUpdateBuildConfigName() {
 
         BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
-
         BuildConfig created = buildSteps.createBuildConfig(config);
-
         trackBuildConfig(created.getId());
-
         String newName = dataFactory.generateUniqueBuildConfigName();
-
-// Обновляем build config
-
         buildSteps.updateBuildConfig(created.getId(), newName);
 
-// Читаем build config заново из TeamCity
-
         BuildConfig reloaded = buildSteps.getBuildConfig(created.getId());
-
-// Проверяем фактическое состояние системы
-
         SoftAssertions softly = new SoftAssertions();
-
         softly.assertThat(reloaded)
-
                 .as("Reloaded config should not be null")
-
                 .isNotNull();
 
         softly.assertThat(reloaded.getId())
-
                 .as("ID should remain the same")
-
                 .isEqualTo(created.getId());
 
         softly.assertThat(reloaded.getName())
-
                 .as("Name should be updated")
-
                 .isEqualTo(newName);
 
         softly.assertThat(reloaded.getProjectId())
-
                 .as("Project ID should remain the same")
-
                 .isEqualTo(testProjectId);
-
         softly.assertAll();
 
         log.info("✅ Build config updated: {} → {}", config.getName(), newName);
 
     }
 
-//    @Test
-//    @Order(5)
-//    @Tag("positive")
-//    @Tag("normal")
-//    @Tag("crud")
-//    @DisplayName("✅ Update build config name")
-//    @Description("Verifies that build configuration name can be updated")
-//    @Severity(SeverityLevel.CRITICAL)
-//    @Story("Update build config")
-//    void shouldUpdateBuildConfigName() {
-//
-//        BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
-//        BuildConfig created = buildSteps.createBuildConfig(config);
-//        trackBuildConfig(created.getId());
-//
-//        String newName = dataFactory.generateUniqueBuildConfigName();
-//
-//        BuildConfig updated = buildSteps.updateBuildConfig(created.getId(), newName);
-//
-//        SoftAssertions softly = new SoftAssertions();
-//        softly.assertThat(updated).as("Updated config should not be null").isNotNull();
-//        softly.assertThat(updated.getId()).as("ID should remain the same").isEqualTo(created.getId());
-//        softly.assertThat(updated.getName()).as("Name should be updated").isEqualTo(newName);
-//        softly.assertAll();
-//
-//        log.info("✅ Build config updated: {} → {}", config.getName(), newName);
-//    }
 
     @Test
     @Order(6)
@@ -358,18 +297,11 @@ public class AdminBuildConfigsTest extends BaseApiTest {
         SoftAssertions softly = new SoftAssertions();
 
         BuildConfig initialConfig = buildSteps.getBuildConfig(createdConfig.getId());
-//        softly.assertThat(initialConfig.getPaused())
-//                .as("Build config should NOT be paused initially")
-//                .isFalse();
-
         softly.assertThat(Boolean.TRUE.equals(initialConfig.getPaused()));
-
         buildSteps.pauseBuildConfig(createdConfig.getId());
-        //BuildConfig pausedConfig = buildSteps.getBuildConfig(createdConfig.getId());
         BuildConfig pausedConfig = buildSteps.waitUntilPaused(createdConfig.getId());
 
 
-        //softly.assertThat(pausedConfig.getPaused())
         softly.assertThat(Boolean.TRUE.equals(pausedConfig.getPaused()))
                 .as("Build config should be paused after pause() call")
                 .isTrue();
@@ -385,9 +317,6 @@ public class AdminBuildConfigsTest extends BaseApiTest {
 
         buildSteps.resumeBuildConfig(createdConfig.getId());
         BuildConfig resumedConfig = buildSteps.waitUntilResumed(createdConfig.getId());
-        //BuildConfig resumedConfig = buildSteps.getBuildConfig(createdConfig.getId());
-
-        //softly.assertThat(resumedConfig.getPaused())
         softly.assertThat(Boolean.TRUE.equals(resumedConfig.getPaused()))
                 .as("Build config should be resumed after resume() call")
                 .isFalse();
@@ -451,14 +380,12 @@ public class AdminBuildConfigsTest extends BaseApiTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Create build config validation")
     void shouldNotCreateBuildConfigWithEmptyName() {
-        // Arrange
         BuildConfig invalidConfig = BuildConfig.builder()
                 .name("")
                 .projectId(testProjectId)
                 .description("Should be rejected")
                 .build();
 
-        // Act & Assert
         assertThatThrownBy(() -> buildSteps.createBuildConfig(invalidConfig))
                 .as("Build config with empty name should be rejected")
                 .isInstanceOfAny(ValidationException.class, ApiException.class)
@@ -499,13 +426,10 @@ public class AdminBuildConfigsTest extends BaseApiTest {
                 .description(description)
                 .build();
 
-        // Act
         BuildConfig created = buildSteps.createBuildConfig(config);
         trackBuildConfig(created.getId());
 
-        // Assert
         SoftAssertions softly = new SoftAssertions();
-
         softly.assertThat(created)
                 .as("Build config should be created despite whitespace name")
                 .isNotNull();
@@ -660,12 +584,10 @@ public class AdminBuildConfigsTest extends BaseApiTest {
     @Severity(SeverityLevel.MINOR)
     @Story("Build config validation")
     void shouldVerifyBuildConfigExists() {
-        // Given — non-existent
         assertThat(buildSteps.buildConfigExists(NON_EXISTENT_ID))
                 .as("Non-existent config should return false")
                 .isFalse();
 
-        // Given — exists
         BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
         BuildConfig created = buildSteps.createBuildConfig(config);
         trackBuildConfig(created.getId());
