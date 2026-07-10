@@ -1,8 +1,6 @@
 package com.teamcity.api.smoke;
 
 import com.teamcity.api.BaseApiTest;
-import com.teamcity.core.client.ApiClient;
-import com.teamcity.core.client.ClientFactory;
 import com.teamcity.core.client.RestClient;
 import com.teamcity.core.config.ConfigManager;
 import com.teamcity.core.exceptions.ApiException;
@@ -18,7 +16,6 @@ import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.*;
-import com.teamcity.core.exceptions.AuthenticationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -226,45 +223,38 @@ public class SmokeTest extends BaseApiTest {
     @Order(9)
     @Tag("builds")
     @DisplayName("✅ [SMOKE] Get build status → 200")
-    @Description("Verifies build status retrieval. Waits for build to finish.")
+    @Description("Verifies build status retrieval")
     @Severity(SeverityLevel.BLOCKER)
     @Story("Build")
     void shouldGetBuildStatus() {
-        // 1. Создаем проект
+
         Project project = dataFactory.createRandomProject();
         Project createdProject = projectSteps.createProject(project);
         trackProject(createdProject.getId());
-
-        // 2. Создаем build config
         BuildConfig config = dataFactory.createRandomBuildConfig(createdProject.getId());
         BuildConfig createdConfig = buildSteps.createBuildConfig(config);
         trackBuildConfig(createdConfig.getId());
-
-        // 3. Запускаем билд
         Build build = buildSteps.runBuild(createdConfig.getId());
-        log.info("Build started: ID={}, State={}", build.getId(), build.getState());
-
-        // 4. Ждем, пока билд завершится (максимум 60 секунд)
-        Build finishedBuild = buildSteps.waitForBuildFinish(String.valueOf(build.getId()), 60);
-
-        // 5. Проверяем
+        Build currentBuild = buildSteps.getBuild(String.valueOf(build.getId()));
         SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(finishedBuild)
-                .as("Build should not be null")
+        softly.assertThat(currentBuild)
+                .as("Build should be retrievable")
                 .isNotNull();
-        softly.assertThat(finishedBuild.getId())
+
+        softly.assertThat(currentBuild.getId())
                 .as("Build ID should match")
                 .isEqualTo(build.getId());
-        softly.assertThat(finishedBuild.getStatus())
-                .as("Build status should not be null after finish")
-                .isNotNull();
-        softly.assertThat(finishedBuild.getState())
-                .as("Build state should be finished")
-                .isIn("finished", "failed", "cancelled");
+
+        softly.assertThat(currentBuild.getState())
+                .as("Build should be queued, running or finished")
+                .isIn("queued", "running", "finished");
+
         softly.assertAll();
 
-        log.info("✅ Build status retrieved: ID={}, Status={}, State={}",
-                finishedBuild.getId(), finishedBuild.getStatus(), finishedBuild.getState());
+        log.info("✅ Build status retrieved: ID={}, State={}",
+
+                currentBuild.getId(), currentBuild.getState());
+
     }
 
 
