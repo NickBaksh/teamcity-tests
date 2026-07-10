@@ -21,11 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Slf4j
-@Epic("Smoke Tests")
-@Feature("Critical Path")
-@Tag("smoke")
-@Tag("critical")
-@Tag("positive")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class SmokeTest extends BaseApiTest {
 
@@ -41,13 +36,8 @@ public class SmokeTest extends BaseApiTest {
     }
 
     @Test
-    @Order(1)
-    @Tag("auth")
-    @Tag("security")
-    @DisplayName("✅ [SMOKE] Auth with valid credentials → 200")
     @Description("Verifies that admin can authenticate")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Authentication")
     void shouldAuthenticateWithValidCredentials() {
         Response response = adminClient.get("/app/rest/server");
 
@@ -55,18 +45,11 @@ public class SmokeTest extends BaseApiTest {
                 .as("Admin should be authenticated")
                 .isEqualTo(200);
 
-        log.info("✅ Authentication successful");
     }
 
     @Test
-    @Order(2)
-    @Tag("auth")
-    @Tag("security")
-    @Tag("negative")
-    @DisplayName("❌ [SMOKE] Auth with invalid credentials → 401")
     @Description("Verifies that invalid credentials are rejected")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Authentication")
     public void shouldRejectInvalidCredentials() {
         RestClient invalidClient = RestClient.builder()
                 .baseUrl(ConfigManager.getApiBaseUrl())
@@ -81,13 +64,8 @@ public class SmokeTest extends BaseApiTest {
     }
 
     @Test
-    @Order(3)
-    @Tag("projects")
-    @Tag("crud")
-    @DisplayName("✅ [SMOKE] Create project → 200")
     @Description("Verifies project creation — critical path")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Project")
     void shouldCreateProject() {
         Project project = dataFactory.createRandomProject();
         Project created = projectSteps.createProject(project);
@@ -98,18 +76,11 @@ public class SmokeTest extends BaseApiTest {
         softly.assertThat(created.getName()).isEqualTo(project.getName());
         softly.assertThat(created.getHref()).isNotBlank();
         softly.assertAll();
-
-        log.info("✅ Project created: {}", created.getName());
     }
 
     @Test
-    @Order(4)
-    @Tag("projects")
-    @Tag("crud")
-    @DisplayName("✅ [SMOKE] Get project by ID → 200")
     @Description("Verifies project retrieval by ID — critical path")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Project")
     void shouldGetProjectById() {
         Project project = dataFactory.createRandomProject();
         Project created = projectSteps.createProject(project);
@@ -122,17 +93,11 @@ public class SmokeTest extends BaseApiTest {
         softly.assertThat(retrieved.getName()).isEqualTo(created.getName());
         softly.assertAll();
 
-        log.info("✅ Project retrieved: {}", retrieved.getName());
     }
 
     @Test
-    @Order(5)
-    @Tag("projects")
-    @Tag("crud")
-    @DisplayName("✅ [SMOKE] Delete project → 200")
     @Description("Verifies project deletion — critical path")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Project")
     void shouldDeleteProject() {
         Project project = dataFactory.createRandomProject();
         Project created = projectSteps.createProject(project);
@@ -141,17 +106,11 @@ public class SmokeTest extends BaseApiTest {
 
         assertThat(projectSteps.projectExists(created.getId())).isFalse();
 
-        log.info("✅ Project deleted: {}", created.getName());
     }
 
     @Test
-    @Order(6)
-    @Tag("build-configs")
-    @Tag("crud")
-    @DisplayName("✅ [SMOKE] Create build config → 200")
     @Description("Verifies build configuration creation — critical path")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Build Config")
     void shouldCreateBuildConfig() {
         Project project = dataFactory.createRandomProject();
         Project createdProject = projectSteps.createProject(project);
@@ -166,17 +125,11 @@ public class SmokeTest extends BaseApiTest {
         softly.assertThat(created.getName()).isEqualTo(config.getName());
         softly.assertAll();
 
-        log.info("✅ Build config created: {}", created.getName());
     }
 
     @Test
-    @Order(7)
-    @Tag("build-configs")
-    @Tag("crud")
-    @DisplayName("✅ [SMOKE] Delete build config → 200")
     @Description("Verifies build configuration deletion — critical path")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Build Config")
     void shouldDeleteBuildConfig() {
         Project project = dataFactory.createRandomProject();
         Project createdProject = projectSteps.createProject(project);
@@ -189,17 +142,12 @@ public class SmokeTest extends BaseApiTest {
 
         assertThat(buildSteps.buildConfigExists(created.getId())).isFalse();
 
-        log.info("✅ Build config deleted: {}", created.getName());
     }
 
 
     @Test
-    @Order(8)
-    @Tag("builds")
-    @DisplayName("✅ [SMOKE] Run build → 200")
     @Description("Verifies build execution — critical path")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Build")
     void shouldRunBuild() {
         Project project = dataFactory.createRandomProject();
         Project createdProject = projectSteps.createProject(project);
@@ -216,16 +164,11 @@ public class SmokeTest extends BaseApiTest {
         softly.assertThat(build.getBuildTypeId()).isNotBlank();
         softly.assertAll();
 
-        log.info("✅ Build started: {}", build.getId());
     }
 
     @Test
-    @Order(9)
-    @Tag("builds")
-    @DisplayName("✅ [SMOKE] Get build status → 200")
     @Description("Verifies build status retrieval")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Build")
     void shouldGetBuildStatus() {
 
         Project project = dataFactory.createRandomProject();
@@ -259,13 +202,8 @@ public class SmokeTest extends BaseApiTest {
 
 
     @Test
-    @Order(10)
-    @Tag("users")
-    @Tag("auth")
-    @DisplayName("✅ [SMOKE] Create user → 200")
     @Description("Verifies user creation — critical path")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("User")
     void shouldCreateUser() {
         User user = dataFactory.createRandomUser();
         User created = userSteps.createUser(user);
@@ -276,17 +214,11 @@ public class SmokeTest extends BaseApiTest {
         softly.assertThat(created.getUsername()).isEqualTo(user.getUsername());
         softly.assertAll();
 
-        log.info("✅ User created: {}", created.getUsername());
     }
 
     @Test
-    @Order(11)
-    @Tag("users")
-    @Tag("auth")
-    @DisplayName("✅ [SMOKE] Get user by username → 200")
     @Description("Verifies user retrieval by username — critical path")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("User")
     void shouldGetUserByUsername() {
         User user = dataFactory.createRandomUser();
         User created = userSteps.createUser(user);
@@ -296,17 +228,11 @@ public class SmokeTest extends BaseApiTest {
 
         assertThat(retrieved.getUsername()).isEqualTo(created.getUsername());
 
-        log.info("✅ User retrieved: {}", retrieved.getUsername());
     }
 
     @Test
-    @Order(12)
-    @Tag("users")
-    @Tag("auth")
-    @DisplayName("✅ [SMOKE] Delete user → 200")
     @Description("Verifies user deletion — critical path")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("User")
     void shouldDeleteUser() {
         User user = dataFactory.createRandomUser();
         User created = userSteps.createUser(user);
@@ -318,6 +244,5 @@ public class SmokeTest extends BaseApiTest {
                 .extracting("statusCode")
                 .isEqualTo(404);
 
-        log.info("✅ User deleted: {}", created.getUsername());
     }
 }

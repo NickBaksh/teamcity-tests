@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
-@Tag("api")
 @ExtendWith(TestListener.class)
 public abstract class BaseApiTest {
 

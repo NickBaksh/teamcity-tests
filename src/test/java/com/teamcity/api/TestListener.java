@@ -13,13 +13,13 @@ public class TestListener implements TestWatcher {
 
     @Override
     public void testSuccessful(ExtensionContext context) {
-        log.info("✅ Test passed: {}", context.getDisplayName());
+        log.info("Test passed: {}", context.getDisplayName());
         Allure.addAttachment("Test Result", "text/plain", "PASSED");
     }
 
     @Override
     public void testFailed(ExtensionContext context, Throwable cause) {
-        log.error("❌ Test failed: {}", context.getDisplayName(), cause);
+        log.error("Test failed: {}", context.getDisplayName(), cause);
 
         if (cause instanceof ApiException) {
             ApiException apiEx = (ApiException) cause;
@@ -37,7 +37,7 @@ public class TestListener implements TestWatcher {
 
     @Override
     public void testAborted(ExtensionContext context, Throwable cause) {
-        log.warn("⚠️ Test aborted: {}", context.getDisplayName(), cause);
+        log.warn("Test aborted: {}", context.getDisplayName(), cause);
         Allure.addAttachment("Test Result", "text/plain", "ABORTED");
     }
 }

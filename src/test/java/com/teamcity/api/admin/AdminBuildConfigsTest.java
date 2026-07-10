@@ -25,12 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Slf4j
-@Epic("Admin API")
 @Feature("Build Configuration Management")
-@Tag("admin")
-@Tag("build-configs")
-@Tag("api-tests")
-@DisplayName("Build Configuration Management Tests")
 public class AdminBuildConfigsTest extends BaseApiTest {
 
     private static final String NON_EXISTENT_ID = "non-existent-id-12345";
@@ -56,7 +51,6 @@ public class AdminBuildConfigsTest extends BaseApiTest {
         testProjectId = created.getId();
         trackProject(testProjectId);
 
-        log.debug("Test setup completed. Project ID: {}", testProjectId);
     }
 
     private void cleanupResources() {
@@ -83,20 +77,12 @@ public class AdminBuildConfigsTest extends BaseApiTest {
             }
 
         } catch (Exception e) {
-            log.warn("Error during cleanup: {}", e.getMessage());
         }
     }
 
     @Test
-    @Order(1)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("crud")
-    @Tag("positive")
-    @DisplayName("✅ [SMOKE] Create build config with valid data")
     @Description("Verifies that a build configuration can be created with valid data")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Create build config")
     void shouldCreateBuildConfigWithValidData() {
 
         BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
@@ -112,19 +98,11 @@ public class AdminBuildConfigsTest extends BaseApiTest {
         softly.assertThat(created.getHref()).as("Href should not be empty").isNotBlank();
         softly.assertAll();
 
-        log.info("✅ Build config created: ID={}, Name={}", created.getId(), created.getName());
     }
 
     @Test
-    @Order(2)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("crud")
-    @Tag("positive")
-    @DisplayName("✅ [SMOKE] Get build config by ID")
     @Description("Verifies that a build configuration can be retrieved by ID")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Get build config")
     void shouldGetBuildConfigById() {
 
         BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
@@ -140,19 +118,11 @@ public class AdminBuildConfigsTest extends BaseApiTest {
         softly.assertThat(retrieved.getProjectId()).as("Project ID should match").isEqualTo(testProjectId);
         softly.assertAll();
 
-        log.info("✅ Build config retrieved: ID={}, Name={}", retrieved.getId(), retrieved.getName());
     }
 
     @Test
-    @Order(3)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("crud")
-    @Tag("positive")
-    @DisplayName("✅ [SMOKE] Delete build config")
     @Description("Verifies that a build configuration can be deleted")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Delete build config")
     void shouldDeleteBuildConfig() {
         BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
         BuildConfig created = buildSteps.createBuildConfig(config);
@@ -163,19 +133,12 @@ public class AdminBuildConfigsTest extends BaseApiTest {
                 .as("Build config should not exist after deletion")
                 .isFalse();
 
-        log.info("✅ Build config deleted: ID={}", created.getId());
     }
 
 
     @Test
-    @Order(4)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("crud")
-    @DisplayName("✅ Get all build configs")
     @Description("Verifies that all build configurations can be retrieved")
     @Severity(SeverityLevel.CRITICAL)
-    @Story("Get build config")
     void shouldGetAllBuildConfigs() {
 
         createMultipleBuildConfigs(2);
@@ -186,20 +149,11 @@ public class AdminBuildConfigsTest extends BaseApiTest {
         softly.assertThat(configs).as("Build configs list should not be null").isNotNull();
         softly.assertThat(configs).as("Should have at least 2 configs").hasSizeGreaterThanOrEqualTo(2);
         softly.assertAll();
-
-        log.info("✅ Retrieved {} build configs", configs.size());
     }
 
     @Test
-    @Order(5)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("crud")
-    @DisplayName("✅ Update build config name")
     @Description("Verifies that build configuration name can be updated")
     @Severity(SeverityLevel.CRITICAL)
-    @Story("Update build config")
-
     void shouldUpdateBuildConfigName() {
 
         BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
@@ -227,20 +181,12 @@ public class AdminBuildConfigsTest extends BaseApiTest {
                 .isEqualTo(testProjectId);
         softly.assertAll();
 
-        log.info("✅ Build config updated: {} → {}", config.getName(), newName);
-
     }
 
 
     @Test
-    @Order(6)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("crud")
-    @DisplayName("✅ Pause build config")
     @Description("Verifies that a build configuration can be paused")
     @Severity(SeverityLevel.CRITICAL)
-    @Story("Pause build config")
     void shouldPauseBuildConfig() {
 
         BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
@@ -254,20 +200,13 @@ public class AdminBuildConfigsTest extends BaseApiTest {
                 .as("Build config should be paused")
                 .isTrue();
 
-        log.info("✅ Build config paused: {}", created.getName());
     }
 
-    @Order(7)
     @Test
-    @Tag("known-issue")
-    @Tag("build-configs")
-    @Tag("pause-resume")
-    @DisplayName("✅ Resume build config → 200")
     @Disabled("TC-API-001: TeamCity pause endpoint does not persist paused state")
     @Description("Verifies that build config can be paused and resumed. " +
             "Tests idempotency: pausing already paused config, resuming already resumed config.")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Build Config")
     void shouldResumeBuildConfig() {
 
         Project project = dataFactory.createRandomProject();
@@ -323,19 +262,11 @@ public class AdminBuildConfigsTest extends BaseApiTest {
                 .isEqualTo(createdConfig.getName());
 
         softly.assertAll();
-
-        log.info("✅ Build config pause/resume verified: {}", createdConfig.getName());
     }
 
     @Test
-    @Order(8)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("crud")
-    @DisplayName("✅ Create build config with description")
     @Description("Verifies that a build configuration can be created with description")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Create build config")
     void shouldCreateBuildConfigWithDescription() {
 
         String description = "This is a test build config";
@@ -351,18 +282,11 @@ public class AdminBuildConfigsTest extends BaseApiTest {
                 .as("Description should match")
                 .isEqualTo(description);
 
-        log.info("✅ Build config with description created: {}", created.getName());
     }
 
     @Test
-    @Order(9)
-    @Tag("negative")
-    @Tag("critical")
-    @Tag("validation")
-    @DisplayName("❌ Create build config with empty name → 400")
     @Description("Verifies that build config with empty name is rejected with 400 Bad Request")
     @Severity(SeverityLevel.CRITICAL)
-    @Story("Create build config validation")
     void shouldNotCreateBuildConfigWithEmptyName() {
         BuildConfig invalidConfig = BuildConfig.builder()
                 .name("")
@@ -380,23 +304,14 @@ public class AdminBuildConfigsTest extends BaseApiTest {
                                 .isEqualTo(400);
                     }
                 });
-
-        log.info("✅ Empty build config name correctly rejected");
     }
 
     @ParameterizedTest
-    @Order(10)
-    @Tag("positive")
-    @Tag("whitespace")
-    @Tag("system-behavior")
     @ValueSource(strings = {" ", "\t", "\n", "\r", "  ", " \t "})
-    @DisplayName("⚠️ Create build config with whitespace name → 200 (system behavior)")
     @Description("Verifies that TeamCity accepts whitespace names. " +
             "This is system behavior, not a bug. Includes description validation.")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Create build config with whitespace")
     void shouldCreateBuildConfigWithWhitespaceName(String whitespaceName) {
-        // Arrange
         String escapedName = escapeWhitespace(whitespaceName);
         String description = "Auto-generated build config with whitespace name: " + escapedName;
 
@@ -432,12 +347,8 @@ public class AdminBuildConfigsTest extends BaseApiTest {
 
         softly.assertAll();
 
-        log.info("⚠️ Build config created with whitespace name: '{}'", escapedName);
     }
 
-    /**
-     * Экранирует пробельные символы для логирования
-     */
     private String escapeWhitespace(String input) {
         if (input == null) return "null";
         return input
@@ -448,14 +359,8 @@ public class AdminBuildConfigsTest extends BaseApiTest {
     }
 
     @Test
-    @Order(11)
-    @Tag("negative")
-    @Tag("critical")
-    @Tag("conflict")
-    @DisplayName("❌ Create build config with duplicate name → 409")
     @Description("Verifies that duplicate build config names are rejected")
     @Severity(SeverityLevel.CRITICAL)
-    @Story("Create build config validation")
     void shouldNotCreateBuildConfigWithDuplicateName() {
 
         BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
@@ -468,18 +373,11 @@ public class AdminBuildConfigsTest extends BaseApiTest {
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("already exists");
 
-        log.info("✅ Duplicate build config name correctly rejected");
     }
 
     @Test
-    @Order(12)
-    @Tag("negative")
-    @Tag("validation")
-    @Tag("not-found")
-    @DisplayName("❌ Create build config with invalid project ID → 400")
     @Description("Verifies that invalid project ID is rejected")
     @Severity(SeverityLevel.CRITICAL)
-    @Story("Create build config validation")
     void shouldNotCreateBuildConfigWithInvalidProjectId() {
 
         BuildConfig invalidConfig = BuildConfig.builder()
@@ -493,17 +391,11 @@ public class AdminBuildConfigsTest extends BaseApiTest {
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Cannot find project");
 
-        log.info("✅ Invalid project ID correctly rejected");
     }
 
     @Test
-    @Order(13)
-    @Tag("negative")
-    @Tag("not-found")
-    @DisplayName("❌ Get non-existent build config → 404")
     @Description("Verifies that non-existent build config returns 404")
     @Severity(SeverityLevel.CRITICAL)
-    @Story("Get build config validation")
     void shouldReturn404ForNonExistentBuildConfig() {
 
         assertThatThrownBy(() -> buildSteps.getBuildConfig(NON_EXISTENT_ID))
@@ -512,19 +404,12 @@ public class AdminBuildConfigsTest extends BaseApiTest {
                 .extracting("statusCode")
                 .isEqualTo(404);
 
-        log.info("✅ Non-existent build config correctly rejected");
     }
 
     @ParameterizedTest
-    @Order(14)
-    @Tag("negative")
-    @Tag("parameterized")
-    @Tag("validation")
     @MethodSource("provideProjectConfigurations")
-    @DisplayName("🔄 Create build config with various project configurations")
     @Description("Verifies build config creation with different project configurations")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Create build config validation")
     void shouldCreateBuildConfigWithVariousProjects(String projectId, boolean shouldSucceed, String expectedError) {
         BuildConfig config = dataFactory.createRandomBuildConfig(projectId);
 
@@ -536,13 +421,12 @@ public class AdminBuildConfigsTest extends BaseApiTest {
             assertThat(created.getProjectId())
                     .as("Project ID should match")
                     .isEqualTo(projectId);
-            log.info("✅ Build config created with project: {}", projectId);
+            log.info("Build config created with project: {}", projectId);
         } else {
 
             assertThatThrownBy(() -> buildSteps.createBuildConfig(config))
                     .as("Should fail with appropriate exception for project: " + projectId)
                     .isInstanceOfAny(ValidationException.class, ApiException.class);
-            log.info("✅ Build config creation with project '{}' correctly rejected", projectId);
         }
     }
 
@@ -556,13 +440,8 @@ public class AdminBuildConfigsTest extends BaseApiTest {
     }
 
     @Test
-    @Order(15)
-    @Tag("edge")
-    @Tag("positive")
-    @DisplayName("🔍 Verify build config exists")
     @Description("Verifies that buildConfigExists method works correctly")
     @Severity(SeverityLevel.MINOR)
-    @Story("Build config validation")
     void shouldVerifyBuildConfigExists() {
         assertThat(buildSteps.buildConfigExists(NON_EXISTENT_ID))
                 .as("Non-existent config should return false")
@@ -576,22 +455,16 @@ public class AdminBuildConfigsTest extends BaseApiTest {
                 .as("Existing config should return true")
                 .isTrue();
 
-        log.info("✅ Build config existence verification successful");
     }
 
     @Test
-    @Order(16)
-    @Tag("edge")
-    @Tag("negative")
-    @DisplayName("🔍 Delete non-existent build config (idempotent)")
     @Description("Verifies that deleting non-existent build config is safe")
     @Severity(SeverityLevel.MINOR)
-    @Story("Build config validation")
     void shouldHandleNonExistentDeletion() {
         buildSteps.deleteBuildConfigIfExists(NON_EXISTENT_ID);
         buildSteps.deleteBuildConfigIfExists(NON_EXISTENT_ID); // Повторный вызов тоже безопасен
 
-        log.info("✅ Non-existent build config deletion handled correctly");
+        log.info("Non-existent build config deletion handled correctly");
     }
 
     private void createMultipleBuildConfigs(int count) {
@@ -600,6 +473,5 @@ public class AdminBuildConfigsTest extends BaseApiTest {
             BuildConfig created = buildSteps.createBuildConfig(config);
             trackBuildConfig(created.getId());
         }
-        log.debug("Created {} build configs", count);
     }
 }

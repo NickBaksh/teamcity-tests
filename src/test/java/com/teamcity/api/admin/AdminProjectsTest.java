@@ -22,10 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Slf4j
-@Epic("Admin API")
 @Feature("Project Management")
-@Tag("admin")
-@Tag("projects")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class AdminProjectsTest extends BaseApiTest {
 
@@ -37,15 +34,8 @@ public class AdminProjectsTest extends BaseApiTest {
     }
 
     @Test
-    @Order(1)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("crud")
-    @Tag("positive")
-    @DisplayName("✅ [SMOKE] Create project with valid data")
     @Description("Verifies that a project can be created with valid data")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Create project")
     void shouldCreateProjectWithValidData() {
         Project project = dataFactory.createRandomProject();
         Project created = projectSteps.createProject(project);
@@ -61,19 +51,11 @@ public class AdminProjectsTest extends BaseApiTest {
         softly.assertThat(created.getArchived()).isIn(false, null);
         softly.assertAll();
 
-        log.info("✅ Project created: {}", created.getName());
     }
 
     @Test
-    @Order(2)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("crud")
-    @Tag("positive")
-    @DisplayName("✅ [SMOKE] Get project by ID")
     @Description("Verifies that a project can be retrieved by ID")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Get project")
     void shouldGetProjectById() {
         Project project = dataFactory.createRandomProject();
         Project created = projectSteps.createProject(project);
@@ -88,37 +70,22 @@ public class AdminProjectsTest extends BaseApiTest {
         softly.assertThat(retrieved.getHref()).isNotBlank();
         softly.assertAll();
 
-        log.info("✅ Project retrieved: {}", retrieved.getName());
     }
 
     @Test
-    @Order(3)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("crud")
-    @Tag("positive")
-    @DisplayName("✅ [SMOKE] Delete project")
     @Description("Verifies that a project can be deleted")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Delete project")
     void shouldDeleteProject() {
         Project project = dataFactory.createRandomProject();
         Project created = projectSteps.createProject(project);
 
         projectSteps.deleteProject(created.getId());
         assertThat(projectSteps.projectExists(created.getId())).isFalse();
-        log.info("✅ Project deleted: {}", created.getName());
     }
 
     @Test
-    @Order(4)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("crud")
-    @DisplayName("✅ Get all projects")
     @Description("Verifies that all projects can be retrieved")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Get project")
     void shouldGetAllProjects() {
         Project project1 = dataFactory.createRandomProject();
         Project created1 = projectSteps.createProject(project1);
@@ -137,18 +104,11 @@ public class AdminProjectsTest extends BaseApiTest {
                 .contains(created1.getId(), created2.getId());
         softly.assertAll();
 
-        log.info("✅ Retrieved {} projects", projects.size());
     }
 
     @Test
-    @Order(5)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("crud")
-    @DisplayName("✅ Update project name")
     @Description("Verifies that project name can be updated")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Update project")
     void shouldUpdateProjectName() {
         Project project = dataFactory.createRandomProject();
         Project created = projectSteps.createProject(project);
@@ -162,18 +122,11 @@ public class AdminProjectsTest extends BaseApiTest {
         softly.assertThat(updated.getName()).isEqualTo(newName);
         softly.assertAll();
 
-        log.info("✅ Project updated: {} → {}", project.getName(), newName);
     }
 
     @Test
-    @Order(6)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("crud")
-    @DisplayName("✅ Update project description")
     @Description("Verifies that project description can be updated")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Update project")
     void shouldUpdateProjectDescription() {
         Project project = dataFactory.createRandomProject();
         Project created = projectSteps.createProject(project);
@@ -184,20 +137,12 @@ public class AdminProjectsTest extends BaseApiTest {
 
         assertThat(updated.getDescription()).isEqualTo(newDescription);
 
-        log.info("✅ Project description updated: {}", newDescription);
     }
 
     @Test
-    @Order(7)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("parent")
-    @Tag("known-issue")
     @Disabled("TC-API-003: TeamCity API does not reliably expose parent-child relationship")
-    @DisplayName("✅ Create project with parent project")
     @Description("Verifies that a child project can be created under a parent")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Create project")
     void shouldCreateProjectWithParent() {
 
         Project parentProject = dataFactory.createRandomProject();
@@ -228,19 +173,12 @@ public class AdminProjectsTest extends BaseApiTest {
                 .isNotBlank();
         softly.assertAll();
 
-        log.info("✅ Child project created with parent: {}", createdParent.getId());
 
     }
 
     @Test
-    @Order(8)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("crud")
-    @DisplayName("✅ Create project with description")
     @Description("Verifies that a project can be created with description")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Create project")
     void shouldCreateProjectWithDescription() {
         String description = "Test project description";
         Project project = dataFactory.createRandomProject();
@@ -251,20 +189,13 @@ public class AdminProjectsTest extends BaseApiTest {
 
         assertThat(created.getDescription()).isEqualTo(description);
 
-        log.info("✅ Project with description created: {}", created.getName());
     }
 
     @ParameterizedTest
-    @Order(9)
-    @Tag("negative")
-    @Tag("critical")
-    @Tag("validation")
     @ValueSource(strings = {"", " ", "\t"})
-    @DisplayName("❌ Create project with invalid name → 400")
     @Description("Verifies that invalid project names are rejected." +
             "TeamCity rejects empty names with 400 and whitespace names with 500.")
     @Severity(SeverityLevel.CRITICAL)
-    @Story("Create project validation")
     void shouldNotCreateProjectWithInvalidName(String invalidName) {
         // Создаем проект с невалидным именем
         Project project = dataFactory.createRandomProject();
@@ -287,8 +218,6 @@ public class AdminProjectsTest extends BaseApiTest {
                                 .isEqualTo(500);
                     });
         }
-
-        log.info("✅ Project name '{}' correctly rejected", escapeWhitespace(invalidName));
     }
 
     private String escapeWhitespace(String input) {
@@ -301,14 +230,8 @@ public class AdminProjectsTest extends BaseApiTest {
     }
 
     @Test
-    @Order(10)
-    @Tag("negative")
-    @Tag("critical")
-    @Tag("conflict")
-    @DisplayName("❌ Create project with duplicate name → 409")
     @Description("Verifies that duplicate project names are rejected")
     @Severity(SeverityLevel.CRITICAL)
-    @Story("Create project validation")
     void shouldNotCreateProjectWithDuplicateName() {
         Project project = dataFactory.createRandomProject();
         Project created = projectSteps.createProject(project);
@@ -318,70 +241,45 @@ public class AdminProjectsTest extends BaseApiTest {
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("already exists");
 
-        log.info("✅ Duplicate project name correctly rejected");
     }
 
     @Test
-    @Order(11)
-    @Tag("negative")
-    @Tag("not-found")
-    @DisplayName("❌ Get non-existent project → 404")
     @Description("Verifies that non-existent project returns 404")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Get project validation")
     void shouldReturn404ForNonExistentProject() {
         assertThatThrownBy(() -> projectSteps.getProject("non-existent-id-12345"))
                 .isInstanceOf(ApiException.class)
                 .extracting("statusCode")
                 .isEqualTo(404);
 
-        log.info("✅ Non-existent project correctly rejected");
     }
 
     @Test
-    @Order(12)
-    @Tag("negative")
-    @Tag("not-found")
-    @DisplayName("❌ Update non-existent project → 404")
     @Description("Verifies that updating non-existent project returns 404")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Update project validation")
     void shouldReturn404WhenUpdatingNonExistentProject() {
         assertThatThrownBy(() -> projectSteps.updateProject("non-existent-id-12345", "New Name"))
                 .isInstanceOf(ApiException.class)
                 .extracting("statusCode")
                 .isEqualTo(404);
 
-        log.info("✅ Non-existent project update correctly rejected");
     }
 
     @Test
-    @Order(13)
-    @Tag("negative")
-    @Tag("not-found")
-    @DisplayName("❌ Delete non-existent project → 404")
     @Description("Verifies that deleting non-existent project returns 404")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Delete project validation")
     void shouldReturn404WhenDeletingNonExistentProject() {
         assertThatThrownBy(() -> projectSteps.deleteProject("non-existent-id-12345"))
                 .isInstanceOf(ApiException.class)
                 .extracting("statusCode")
                 .isEqualTo(404);
 
-        log.info("✅ Non-existent project deletion correctly rejected");
     }
 
     @ParameterizedTest
-    @Order(14)
-    @Tag("negative")
-    @Tag("parameterized")
-    @Tag("parent")
     @MethodSource("provideParentProjectConfigurations")
-    @DisplayName("🔄 Create project with various parent configurations")
     @Description("Verifies project creation with different parent project configurations")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Create project validation")
     void shouldCreateProjectWithVariousParents(String parentId, String expectedParentId) {
         Project project = dataFactory.createRandomProject();
         project.setParentProjectId(parentId);
@@ -393,16 +291,16 @@ public class AdminProjectsTest extends BaseApiTest {
                 .as("Parent project ID should be: " + expectedParentId)
                 .isEqualTo(expectedParentId);
 
-        log.info("✅ Project created with parent: {} (input: {})",
+        log.info("Project created with parent: {} (input: {})",
                 expectedParentId, parentId == null ? "null" : "'" + parentId + "'");
     }
 
     static Stream<Arguments> provideParentProjectConfigurations() {
         return Stream.of(
-                Arguments.of("_Root", "_Root"),                    // ✅ Существующий
-                Arguments.of("non-existent-id-12345", "_Root"),    // ⚠️ Не существует → _Root
-                Arguments.of("", "_Root"),                         // ⚠️ Пусто → _Root
-                Arguments.of(null, "_Root")                        // ⚠️ null → _Root
+                Arguments.of("_Root", "_Root"),
+                Arguments.of("non-existent-id-12345", "_Root"),
+                Arguments.of("", "_Root"),
+                Arguments.of(null, "_Root")
         );
     }
 }

@@ -23,10 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Slf4j
-@Epic("Admin API")
 @Feature("User Management")
-@Tag("admin")
-@Tag("users")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class AdminAuthTest extends BaseApiTest {
 
@@ -38,15 +35,8 @@ public class AdminAuthTest extends BaseApiTest {
     }
 
     @Test
-    @Order(1)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("auth")
-    @Tag("positive")
-    @DisplayName("✅ [SMOKE] Create user with valid credentials")
     @Description("Verifies that a user can be created with valid credentials")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Create user")
     void shouldCreateUserWithValidCredentials() {
         User user = dataFactory.createRandomUser();
         User created = userSteps.createUser(user);
@@ -61,19 +51,11 @@ public class AdminAuthTest extends BaseApiTest {
         softly.assertThat(created.getHref()).isNotBlank();
         softly.assertAll();
 
-        log.info("✅ User created successfully: {}", created.getUsername());
     }
 
     @Test
-    @Order(2)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("auth")
-    @Tag("positive")
-    @DisplayName("✅ [SMOKE] Get user by username")
     @Description("Verifies that user can be retrieved by username")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Get user")
     void shouldGetUserByUsername() {
         User user = dataFactory.createRandomUser();
         User created = userSteps.createUser(user);
@@ -87,19 +69,11 @@ public class AdminAuthTest extends BaseApiTest {
         softly.assertThat(retrieved.getEmail()).isEqualTo(created.getEmail());
         softly.assertAll();
 
-        log.info("✅ User retrieved: {}", retrieved.getUsername());
     }
 
     @Test
-    @Order(3)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("auth")
-    @Tag("positive")
-    @DisplayName("✅ [SMOKE] Delete user")
-    @Description("Verifies that user can be deleted")
+    @DisplayName("[SMOKE] Delete user")
     @Severity(SeverityLevel.BLOCKER)
-    @Story("Delete user")
     void shouldDeleteUser() {
         User user = dataFactory.createRandomUser();
         User created = userSteps.createUser(user);
@@ -111,18 +85,11 @@ public class AdminAuthTest extends BaseApiTest {
                 .extracting("statusCode")
                 .isEqualTo(404);
 
-        log.info("✅ User deleted: {}", created.getUsername());
     }
 
     @Test
-    @Order(4)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("auth")
-    @DisplayName("✅ Create user with minimal required fields")
     @Description("Verifies that a user can be created with only required fields")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Create user")
     void shouldCreateUserWithMinimalFields() {
         String username = dataFactory.generateUniqueUsername();
         User user = User.builder()
@@ -142,14 +109,8 @@ public class AdminAuthTest extends BaseApiTest {
     }
 
     @Test
-    @Order(5)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("validation")
-    @DisplayName("✅ Create user with invalid email (TeamCity allows)")
     @Description("Verifies that TeamCity allows invalid email format")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Create user validation")
     void shouldCreateUserWithInvalidEmail() {
         User user = dataFactory.createRandomUser();
         user.setEmail("invalid-email");
@@ -162,18 +123,11 @@ public class AdminAuthTest extends BaseApiTest {
         softly.assertThat(created.getId()).isNotNull();
         softly.assertAll();
 
-        log.info("✅ User created with invalid email (TeamCity does not validate email format)");
     }
 
     @Test
-    @Order(6)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("validation")
-    @DisplayName("✅ Create user with short password (TeamCity allows)")
     @Description("Verifies that TeamCity allows short password")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Create user validation")
     void shouldCreateUserWithShortPassword() {
         User user = dataFactory.createRandomUser();
         user.setPassword("123");
@@ -186,18 +140,11 @@ public class AdminAuthTest extends BaseApiTest {
         softly.assertThat(created.getId()).isNotNull();
         softly.assertAll();
 
-        log.info("✅ User created with short password (TeamCity does not validate password length)");
     }
 
     @Test
-    @Order(7)
-    @Tag("negative")
-    @Tag("critical")
-    @Tag("conflict")
-    @DisplayName("❌ Create user with duplicate username → 409")
     @Description("Verifies that duplicate username creation is rejected")
     @Severity(SeverityLevel.CRITICAL)
-    @Story("Create user validation")
     void shouldNotCreateUserWithDuplicateUsername() {
         User user = dataFactory.createRandomUser();
         User created = userSteps.createUser(user);
@@ -207,19 +154,11 @@ public class AdminAuthTest extends BaseApiTest {
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("already exists");
 
-        log.info("✅ Duplicate user creation correctly rejected");
     }
 
     @Test
-    @Order(8)
-    @Tag("negative")
-    @Tag("critical")
-    @Tag("validation")
-    @DisplayName("❌ Create user with empty username → 400")
     @Description("Verifies that empty username is rejected")
     @Severity(SeverityLevel.CRITICAL)
-    @Story("Create user validation")
-
     void shouldNotCreateUserWithEmptyUsername() {
 
         User invalidUser = User.builder()
@@ -231,22 +170,13 @@ public class AdminAuthTest extends BaseApiTest {
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Username must not be empty");
 
-        log.info("✅ Empty username correctly rejected");
-
     }
 
     @ParameterizedTest
-    @Order(9)
-    @Tag("negative")
-    @Tag("normal")
-    @Tag("system-behavior")
-    @Tag("known-issue")
     @ValueSource(strings = {" ", "\t"})
     @Disabled("TC-API-004: TeamCity returns HTTP 500 for whitespace-only usernames")
-    @DisplayName("⚠️ Create user with whitespace username → 500 (known API issue)")
     @Description("Verifies current TeamCity behavior for whitespace-only usernames")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Create user validation")
 
     void shouldRejectWhitespaceUsernameWithServerError(String whitespaceUsername) {
 
@@ -261,22 +191,15 @@ public class AdminAuthTest extends BaseApiTest {
                 .extracting("statusCode")
                 .isEqualTo(500);
 
-        log.info("⚠️ Whitespace username '{}' rejected with HTTP 500",
+        log.info("Whitespace username '{}' rejected with HTTP 500",
                 printable(whitespaceUsername));
 
     }
 
-
     @ParameterizedTest
-    @Order(10)
-    @Tag("positive")
-    @Tag("parameterized")
-    @Tag("validation")
     @MethodSource("emailProvider")
-    @DisplayName("🔄 Create user with various email formats")
     @Description("Verifies user creation with different email formats")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Create user validation")
 
     void shouldCreateUserWithVariousEmails(String email) {
         User user = dataFactory.createRandomUser();
@@ -298,7 +221,7 @@ public class AdminAuthTest extends BaseApiTest {
 
         }
 
-        log.info("✅ User created with email: {}", email);
+        log.info("User created with email: {}", email);
 
     }
 
@@ -315,17 +238,10 @@ public class AdminAuthTest extends BaseApiTest {
 
     }
 
-
     @ParameterizedTest
-    @Order(11)
-    @Tag("positive")
-    @Tag("parameterized")
-    @Tag("validation")
     @MethodSource("passwordProvider")
-    @DisplayName("🔄 Create user with various password lengths")
     @Description("Verifies user creation with different password lengths")
     @Severity(SeverityLevel.NORMAL)
-    @Story("Create user validation")
     void shouldCreateUserWithVariousPasswords(String password, boolean shouldSucceed) {
         User user = dataFactory.createRandomUser();
         user.setPassword(password);
@@ -334,11 +250,11 @@ public class AdminAuthTest extends BaseApiTest {
             User created = userSteps.createUser(user);
             trackUser(created.getUsername());
             assertThat(created.getUsername()).isNotBlank();
-            log.info("✅ User created with password length: {}", password != null ? password.length() : 0);
+            log.info("User created with password length: {}", password != null ? password.length() : 0);
         } else {
             assertThatThrownBy(() -> userSteps.createUser(user))
                     .isInstanceOf(Exception.class);
-            log.info("✅ User creation with password length '{}' correctly rejected",
+            log.info("User creation with password length '{}' correctly rejected",
                     password != null ? password.length() : 0);
         }
     }
