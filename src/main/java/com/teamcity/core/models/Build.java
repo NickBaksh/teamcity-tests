@@ -15,13 +15,29 @@ import java.util.Map;
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)  // Игнорируем неизвестные поля
 public class Build {
-    private String id;
+    private Long id;
     private String buildTypeId;
-    private String state;
+    private String number;
     private String status;
-    private String statusText;
+    private String state;
+    private Boolean running;
+    private Boolean composite;
+    private Boolean personal;
     private String href;
     private String webUrl;
+    private String statusText;
+    private String branchName;
+    private Boolean pinned;
+    private Long taskId;
+    private String buildTypeInternalId;
+    private Boolean failedToStart;
+    private Integer percentageComplete;
+    private Boolean defaultBranch;
+    private Boolean unspecifiedBranch;
+    private Boolean history;
+    private Integer queuePosition;
+    private Integer limitedChangesCount;
+    private String artifactsDirectory;
     private Map<String, String> parameters;
 
     // Добавляем поле buildType, если нужно

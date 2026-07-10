@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -103,8 +102,11 @@ public class BuildSteps {
 
         // ✅ Используем метод с RequestType.JSON
         Response response = client.get(
-                Endpoint.BUILD_TYPE.format(configId),
-                RequestType.JSON
+
+                Endpoint.BUILD_TYPE.format(configId)
+//        Response response = client.get(
+//                Endpoint.BUILD_TYPE.format(configId),
+//                RequestType.JSON
         );
         BuildConfig config = validator.validate(response, BuildConfig.class);
 
@@ -220,6 +222,19 @@ public class BuildSteps {
         BuildConfig updated = getBuildConfig(configId);
         log.info("Build config description updated: ID={}", updated.getId());
         return updated;
+    }
+
+    // =========================================================================
+    // 4. DELETE — Удаление билд
+    // =========================================================================
+
+    @Step("Delete build: {buildId}")
+    public Build deleteBuild(String buildId) {
+        Response response = client.delete(
+                Endpoint.BUILD.format(buildId)
+        );
+        validator.validateStatus(response);
+        return null;
     }
 
     // =========================================================================
@@ -413,6 +428,21 @@ public class BuildSteps {
         log.info("Build triggered: ID={}, State={}, Branch={}",
                 created.getId(), created.getState(), branch);
         return created;
+    }
+
+    /**
+     * Запускает Билд и ждет завершения
+     * @param buildTypeId
+     * @return
+     */
+    @Step("Run build and wait for finish: {buildTypeId}")
+    public Build runBuildAndWait(String buildTypeId) {
+
+        Build build = runBuild(buildTypeId);
+
+        return waitForBuildFinish(
+                String.valueOf(build.getId())
+        );
     }
 
     /**
@@ -857,5 +887,58 @@ public class BuildSteps {
             return QUEUED.value.equalsIgnoreCase(state) ||
                     RUNNING.value.equalsIgnoreCase(state);
         }
+    }
+//временно методы, возможно удалю
+    @Step("Cancel build (negative): {buildId}")
+    public Response cancelBuildForbidden(String buildId) {
+        BuildCancelRequest request = new BuildCancelRequest();
+        request.setComment("Canceled by API test");
+        return client.post(
+                Endpoint.BUILD.format(buildId),
+                request
+        );
+    }
+    /**
+     * Удаляет билд с для негативного сценария
+     * @param buildId
+     * @return
+     */
+    @Step("Delete build (negative): {buildId}")
+    public Response deleteBuildForbidden(String buildId) {
+        return client.delete(
+                Endpoint.BUILD.format(buildId)
+        );
+    }
+    @Step("Add command line step to build config: {buildConfigId}")
+    public void addCommandLineStep(String buildConfigId, String script) {
+
+        Map<String, Object> body = Map.of(
+                "name", "Create artifact",
+                "type", "simpleRunner",
+                "properties",
+                Map.of(
+                        "property",
+                        List.of(
+                                Map.of(
+                                        "name", "command.executable",
+                                        "value", "bash"
+                                ),
+                                Map.of(
+                                        "name", "script.content",
+                                        "value", script
+                                )
+                        )
+                )
+        );
+
+        Response response = client.post(
+                Endpoint.BUILD_TYPE_STEPS.getPath()
+                        .replace("{btLocator}", buildConfigId),
+                body
+        );
+
+        validator.validateStatus(response);
+
+        log.info("Command line step added to build config: {}", buildConfigId);
     }
 }

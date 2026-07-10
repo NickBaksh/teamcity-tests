@@ -222,11 +222,16 @@ public class RestClient implements ApiClient {
 
                 long startTime = System.nanoTime();
                 Response response = request.get();
-
-                if (isNegativeTest && response.statusCode() == 401) {
+// В негативных тестах возвращаем Response для дальнейшей проверки статуса
+                if (isNegativeTest) {
+                    responseValidator.validateNegativeStatus(response);
+                    logRequestDetails(response, System.nanoTime() - startTime);
                     return response;
                 }
-
+//                if (isNegativeTest && response.statusCode() == 401) {
+//                    return response;
+//                }
+//
                 responseValidator.validateStatus(response);
                 logRequestDetails(response, System.nanoTime() - startTime);
                 return response;

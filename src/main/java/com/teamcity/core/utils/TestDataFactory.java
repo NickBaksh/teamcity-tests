@@ -1,6 +1,5 @@
 package com.teamcity.core.utils;
 
-import com.teamcity.core.models.Build;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.Project;
 import com.teamcity.core.models.User;
@@ -27,6 +26,16 @@ public class TestDataFactory {
                 .name(name)
                 .description("Auto-generated project: " + name)
                 .parentProjectId(parentProjectId)
+                .build();
+    }
+    // ===== Генерация сборок =====
+    public BuildConfig createBuildConfigWithArtifacts(String projectId) {
+        String name = "BuildConfig_" + System.currentTimeMillis();
+        return BuildConfig.builder()
+                .name(name)
+                .projectId(projectId)
+                .description("Build config with artifacts: " + name)
+                .artifactRules("**/* => artifacts.zip")
                 .build();
     }
 
@@ -76,6 +85,20 @@ public class TestDataFactory {
     }
 
     /**
+     * Генерирует уникальное имя для несуществующего Build.
+     */
+    public String generateNotExistingBuildConfigId() {
+        return "NotExisting_" + UUID.randomUUID();
+    }
+
+    /**
+     * Генерирует несуществующий ID сборки.
+     */
+    public String generateNotExistingBuildId() {
+        return String.valueOf(System.currentTimeMillis());
+    }
+
+    /**
      * Генерирует уникальное имя пользователя.
      */
     public String generateUniqueUsername() {
@@ -101,5 +124,23 @@ public class TestDataFactory {
      */
     public String randomPassword() {
         return "P@ssw0rd_" + randomString(6);
+    }
+
+    public BuildConfig createRandomBuildConfigWithArtifactRules(String projectId) {
+
+        String name = "BuildConfig_" + System.currentTimeMillis();
+
+        return BuildConfig.builder()
+
+                .name(name)
+
+                .projectId(projectId)
+
+                .description("Auto-generated build config with artifact")
+
+                .artifactRules("artifact.txt")
+
+                .build();
+
     }
 }
