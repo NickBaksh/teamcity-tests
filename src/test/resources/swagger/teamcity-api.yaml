@@ -1,0 +1,1680 @@
+openapi: 3.0.1
+info:
+  title: TeamCity REST API - Builds Module
+  description: Complete Builds API for TeamCity
+  version: 2024.03
+  contact:
+    name: TeamCity Documentation
+    url: https://www.jetbrains.com/help/teamcity/rest-api.html
+servers:
+  - url: http://localhost:8111
+    description: Local TeamCity Server
+
+paths:
+  # =========================================================================
+  # 1. BUILDS - Основные операции
+  # =========================================================================
+
+  /app/rest/builds:
+    get:
+      summary: Get all builds
+      operationId: getBuilds
+      parameters:
+        - name: locator
+          in: query
+          schema:
+            type: string
+          description: Build locator for filtering
+        - name: fields
+          in: query
+          schema:
+            type: string
+          description: Fields to return
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /app/rest/builds/{buildLocator}:
+    get:
+      summary: Get build by ID
+      operationId: getBuild
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Build ID or locator
+      responses:
+        '200':
+          description: Successful operation
+        '404':
+          description: Build not found
+
+    delete:
+      summary: Delete build
+      operationId: deleteBuild
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Build deleted
+        '404':
+          description: Build not found
+
+    post:
+      summary: Cancel build
+      operationId: cancelBuild
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+                  description: Cancellation comment
+                readdIntoQueue:
+                  type: boolean
+                  description: Re-add to queue after cancel
+      responses:
+        '200':
+          description: Build cancelled
+        '404':
+          description: Build not found
+
+  /app/rest/builds/multiple/{buildLocator}:
+    get:
+      summary: Get multiple builds
+      operationId: getMultipleBuilds
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+
+    delete:
+      summary: Delete multiple builds
+      operationId: deleteMultipleBuilds
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Builds deleted
+
+  /app/rest/builds/{buildLocator}/status:
+    get:
+      summary: Get build status
+      operationId: getBuildStatus
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build status
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /app/rest/builds/{buildLocator}/statusText:
+    get:
+      summary: Get build status text
+      operationId: getBuildStatusText
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build status text
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /app/rest/builds/{buildLocator}/statusIcon:
+    get:
+      summary: Get build status icon
+      operationId: getBuildStatusIcon
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Status icon
+
+  /app/rest/builds/{buildLocator}/number:
+    get:
+      summary: Get build number
+      operationId: getBuildNumber
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build number
+
+  /app/rest/builds/{buildLocator}/comment:
+    get:
+      summary: Get build comment
+      operationId: getBuildComment
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build comment
+
+    put:
+      summary: Update build comment
+      operationId: updateBuildComment
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '204':
+          description: Comment updated
+
+  /app/rest/builds/{buildLocator}/pinInfo:
+    get:
+      summary: Get build pin info
+      operationId: getBuildPinInfo
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Pin info
+
+    put:
+      summary: Pin/unpin build
+      operationId: pinBuild
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: boolean
+      responses:
+        '204':
+          description: Pin state updated
+
+  /app/rest/builds/{buildLocator}/tags:
+    get:
+      summary: Get build tags
+      operationId: getBuildTags
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build tags
+
+    post:
+      summary: Add tags to build
+      operationId: addBuildTags
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Tags added
+
+    delete:
+      summary: Remove tags from build
+      operationId: removeBuildTags
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Tags removed
+
+  /app/rest/builds/{buildLocator}/artifacts:
+    get:
+      summary: Get build artifacts
+      operationId: getBuildArtifacts
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build artifacts
+
+  /app/rest/builds/{buildLocator}/artifacts/{artifactPath}:
+    get:
+      summary: Get specific artifact
+      operationId: getArtifact
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: artifactPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Artifact content
+
+  /app/rest/builds/{buildLocator}/log:
+    get:
+      summary: Get build log
+      operationId: getBuildLog
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build log
+
+  /app/rest/builds/{buildLocator}/statistics:
+    get:
+      summary: Get build statistics
+      operationId: getBuildStatistics
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build statistics
+
+  /app/rest/builds/{buildLocator}/statistics/{name}:
+    get:
+      summary: Get specific statistic
+      operationId: getBuildStatistic
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Statistic value
+
+  /app/rest/builds/{buildLocator}/runningData:
+    get:
+      summary: Get running build data
+      operationId: getRunningBuildData
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Running data
+
+  /app/rest/builds/{buildLocator}/finishDate:
+    get:
+      summary: Get build finish date
+      operationId: getBuildFinishDate
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Finish date
+
+  /app/rest/builds/{buildLocator}/problemOccurrences:
+    get:
+      summary: Get problem occurrences
+      operationId: getBuildProblems
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Problem occurrences
+
+  /app/rest/builds/{buildLocator}/testOccurrences:
+    get:
+      summary: Get test occurrences
+      operationId: getBuildTests
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Test occurrences
+
+  /app/rest/builds/{buildLocator}/vcsLabels:
+    get:
+      summary: Get VCS labels
+      operationId: getVcsLabels
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: VCS labels
+
+  /app/rest/builds/{buildLocator}/relatedIssues:
+    get:
+      summary: Get related issues
+      operationId: getRelatedIssues
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Related issues
+
+  /app/rest/builds/{buildLocator}/resulting-properties:
+    get:
+      summary: Get resulting properties
+      operationId: getResultingProperties
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Resulting properties
+
+  # =========================================================================
+  # 2. BUILD QUEUE
+  # =========================================================================
+
+  /app/rest/buildQueue:
+    get:
+      summary: Get build queue
+      operationId: getBuildQueue
+      parameters:
+        - name: locator
+          in: query
+          schema:
+            type: string
+          description: Queue locator
+      responses:
+        '200':
+          description: Successful operation
+
+    post:
+      summary: Add build to queue
+      operationId: runBuild
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                buildTypeId:
+                  type: string
+                  description: Build type ID
+                branchName:
+                  type: string
+                  description: Branch name
+                cleanSources:
+                  type: boolean
+                  description: Clean sources
+                parameters:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  description: Build parameters
+      responses:
+        '200':
+          description: Build queued
+        '400':
+          description: Bad request
+        '404':
+          description: Build type not found
+
+  /app/rest/buildQueue/{queuedBuildLocator}:
+    get:
+      summary: Get queued build
+      operationId: getQueuedBuild
+      parameters:
+        - name: queuedBuildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Queued build info
+        '404':
+          description: Build not in queue
+
+    delete:
+      summary: Remove build from queue
+      operationId: cancelQueuedBuild
+      parameters:
+        - name: queuedBuildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Build removed from queue
+        '404':
+          description: Build not in queue
+
+  /app/rest/buildQueue/order:
+    get:
+      summary: Get queue order
+      operationId: getQueueOrder
+      responses:
+        '200':
+          description: Queue order
+
+    put:
+      summary: Update queue order
+      operationId: updateQueueOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '204':
+          description: Queue order updated
+
+  /app/rest/buildQueue/pausedState:
+    get:
+      summary: Get queue paused state
+      operationId: getQueuePausedState
+      responses:
+        '200':
+          description: Paused state
+
+    put:
+      summary: Pause/resume queue
+      operationId: pauseQueue
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: boolean
+      responses:
+        '204':
+          description: Queue state updated
+
+  /app/rest/buildQueue/{queuedBuildLocator}/approvalInfo:
+    get:
+      summary: Get approval info
+      operationId: getBuildApprovalInfo
+      parameters:
+        - name: queuedBuildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Approval info
+
+  /app/rest/buildQueue/{queuedBuildLocator}/approve:
+    post:
+      summary: Approve build
+      operationId: approveBuild
+      parameters:
+        - name: queuedBuildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+      responses:
+        '200':
+          description: Build approved
+
+  /app/rest/buildQueue/{queuedBuildLocator}/tags:
+    get:
+      summary: Get queued build tags
+      operationId: getQueuedBuildTags
+      parameters:
+        - name: queuedBuildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tags
+
+    post:
+      summary: Add tags to queued build
+      operationId: addQueuedBuildTags
+      parameters:
+        - name: queuedBuildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tags added
+
+    delete:
+      summary: Remove tags from queued build
+      operationId: removeQueuedBuildTags
+      parameters:
+        - name: queuedBuildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Tags removed
+
+  /app/rest/buildQueue/{queuedBuildLocator}/compatibleAgents:
+    get:
+      summary: Get compatible agents
+      operationId: getCompatibleAgents
+      parameters:
+        - name: queuedBuildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Compatible agents
+
+  # =========================================================================
+  # 3. BUILD TYPES (Build Configurations) - Полный CRUD
+  # =========================================================================
+
+  /app/rest/buildTypes:
+    get:
+      summary: Get all build types
+      operationId: getBuildTypes
+      parameters:
+        - name: locator
+          in: query
+          schema:
+            type: string
+          description: Build type locator
+        - name: fields
+          in: query
+          schema:
+            type: string
+          description: Fields to return
+      responses:
+        '200':
+          description: Successful operation
+
+    post:
+      summary: Create build type
+      operationId: createBuildType
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: Build type ID
+                name:
+                  type: string
+                  description: Build type name
+                projectId:
+                  type: string
+                  description: Parent project ID
+                description:
+                  type: string
+                  description: Build type description
+      responses:
+        '200':
+          description: Build type created
+        '400':
+          description: Bad request
+        '409':
+          description: Build type already exists
+
+  /app/rest/buildTypes/{btLocator}:
+    get:
+      summary: Get build type by ID
+      operationId: getBuildType
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+        '404':
+          description: Build type not found
+
+    put:
+      summary: Update build type
+      operationId: updateBuildType
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Build type updated
+        '404':
+          description: Build type not found
+
+    delete:
+      summary: Delete build type
+      operationId: deleteBuildType
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Build type deleted
+        '404':
+          description: Build type not found
+
+  /app/rest/buildTypes/{btLocator}/name:
+    get:
+      summary: Get build type name
+      operationId: getBuildTypeName
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build type name
+
+    put:
+      summary: Update build type name
+      operationId: updateBuildTypeName
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '204':
+          description: Name updated
+        '404':
+          description: Build type not found
+
+  /app/rest/buildTypes/{btLocator}/description:
+    get:
+      summary: Get build type description
+      operationId: getBuildTypeDescription
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build type description
+
+    put:
+      summary: Update build type description
+      operationId: updateBuildTypeDescription
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '204':
+          description: Description updated
+
+  /app/rest/buildTypes/{btLocator}/paused:
+    get:
+      summary: Get pause state
+      operationId: getBuildTypePaused
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Pause state
+          content:
+            text/plain:
+              schema:
+                type: boolean
+
+    put:
+      summary: Pause/resume build type
+      operationId: pauseBuildType
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: boolean
+      responses:
+        '204':
+          description: Pause state updated
+        '404':
+          description: Build type not found
+
+  /app/rest/buildTypes/{btLocator}/settingsFile:
+    get:
+      summary: Get settings file
+      operationId: getSettingsFile
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Settings file
+
+  /app/rest/buildTypes/{btLocator}/builds:
+    get:
+      summary: Get builds for build type
+      operationId: getBuildsForBuildType
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locator
+          in: query
+          schema:
+            type: string
+          description: Build locator
+      responses:
+        '200':
+          description: List of builds
+
+  /app/rest/buildTypes/{btLocator}/branches:
+    get:
+      summary: Get branches for build type
+      operationId: getBranches
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of branches
+
+  /app/rest/buildTypes/{btLocator}/buildTags:
+    get:
+      summary: Get build tags for build type
+      operationId: getBuildTypeTags
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build tags
+
+  /app/rest/buildTypes/{btLocator}/steps:
+    get:
+      summary: Get build steps
+      operationId: getBuildSteps
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build steps
+
+    post:
+      summary: Add build step
+      operationId: addBuildStep
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Step added
+
+  /app/rest/buildTypes/{btLocator}/steps/{stepId}:
+    get:
+      summary: Get build step by ID
+      operationId: getBuildStep
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: stepId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build step
+
+    put:
+      summary: Update build step
+      operationId: updateBuildStep
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: stepId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Step updated
+
+    delete:
+      summary: Delete build step
+      operationId: deleteBuildStep
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: stepId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Step deleted
+
+  /app/rest/buildTypes/{btLocator}/features:
+    get:
+      summary: Get build features
+      operationId: getBuildFeatures
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build features
+
+    post:
+      summary: Add build feature
+      operationId: addBuildFeature
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Feature added
+
+  /app/rest/buildTypes/{btLocator}/features/{featureId}:
+    get:
+      summary: Get build feature
+      operationId: getBuildFeature
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: featureId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build feature
+
+    delete:
+      summary: Delete build feature
+      operationId: deleteBuildFeature
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: featureId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Feature deleted
+
+  /app/rest/buildTypes/{btLocator}/triggers:
+    get:
+      summary: Get build triggers
+      operationId: getBuildTriggers
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build triggers
+
+    post:
+      summary: Add build trigger
+      operationId: addBuildTrigger
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trigger added
+
+  /app/rest/buildTypes/{btLocator}/triggers/{triggerLocator}:
+    get:
+      summary: Get build trigger
+      operationId: getBuildTrigger
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: triggerLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build trigger
+
+    delete:
+      summary: Delete build trigger
+      operationId: deleteBuildTrigger
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: triggerLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Trigger deleted
+
+  /app/rest/buildTypes/{btLocator}/parameters:
+    get:
+      summary: Get build parameters
+      operationId: getBuildParameters
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build parameters
+
+    post:
+      summary: Add build parameter
+      operationId: addBuildParameter
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Parameter added
+
+  /app/rest/buildTypes/{btLocator}/parameters/{name}:
+    get:
+      summary: Get build parameter
+      operationId: getBuildParameter
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Build parameter
+
+    put:
+      summary: Update build parameter
+      operationId: updateBuildParameter
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '204':
+          description: Parameter updated
+
+    delete:
+      summary: Delete build parameter
+      operationId: deleteBuildParameter
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Parameter deleted
+
+  /app/rest/buildTypes/{btLocator}/templates/{templateLocator}:
+    delete:
+      summary: Detach template
+      operationId: detachTemplate
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: templateLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Template detached
+
+  /app/rest/buildTypes/{btLocator}/agent-requirements:
+    get:
+      summary: Get agent requirements
+      operationId: getAgentRequirements
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent requirements
+
+    post:
+      summary: Add agent requirement
+      operationId: addAgentRequirement
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent requirement added
+
+  /app/rest/buildTypes/{btLocator}/agent-requirements/{agentRequirementLocator}:
+    get:
+      summary: Get agent requirement
+      operationId: getAgentRequirement
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: agentRequirementLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent requirement
+
+    delete:
+      summary: Delete agent requirement
+      operationId: deleteAgentRequirement
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: agentRequirementLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Agent requirement deleted
+
+  /app/rest/buildTypes/{btLocator}/snapshot-dependencies:
+    get:
+      summary: Get snapshot dependencies
+      operationId: getSnapshotDependencies
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Snapshot dependencies
+
+    post:
+      summary: Add snapshot dependency
+      operationId: addSnapshotDependency
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Snapshot dependency added
+
+  /app/rest/buildTypes/{btLocator}/snapshot-dependencies/{snapshotDepLocator}:
+    delete:
+      summary: Delete snapshot dependency
+      operationId: deleteSnapshotDependency
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: snapshotDepLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Snapshot dependency deleted
+
+  /app/rest/buildTypes/{btLocator}/artifact-dependencies:
+    get:
+      summary: Get artifact dependencies
+      operationId: getArtifactDependencies
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Artifact dependencies
+
+    post:
+      summary: Add artifact dependency
+      operationId: addArtifactDependency
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Artifact dependency added
+
+  /app/rest/buildTypes/{btLocator}/artifact-dependencies/{artifactDepLocator}:
+    delete:
+      summary: Delete artifact dependency
+      operationId: deleteArtifactDependency
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: artifactDepLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Artifact dependency deleted
+
+  /app/rest/buildTypes/{btLocator}/vcs-root-entries:
+    get:
+      summary: Get VCS root entries
+      operationId: getVcsRootEntries
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: VCS root entries
+
+    post:
+      summary: Add VCS root entry
+      operationId: addVcsRootEntry
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: VCS root entry added
+
+  /app/rest/buildTypes/{btLocator}/vcs-root-entries/{vcsRootLocator}:
+    delete:
+      summary: Delete VCS root entry
+      operationId: deleteVcsRootEntry
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: vcsRootLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: VCS root entry deleted
+
+  /app/rest/buildTypes/{btLocator}/investigations:
+    get:
+      summary: Get investigations for build type
+      operationId: getInvestigations
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Investigations
+
+  /app/rest/buildTypes/{btLocator}/move:
+    post:
+      summary: Move build type to another project
+      operationId: moveBuildType
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+            examples:
+              projectId:
+                value: "NewProjectId"
+      responses:
+        '200':
+          description: Build type moved
+
+  # =========================================================================
+  # 4. BUILD TYPE TEMPLATES
+  # =========================================================================
+
+  /app/rest/buildTypes/{btLocator}/templates:
+    get:
+      summary: Get templates for build type
+      operationId: getTemplatesForBuildType
+      parameters:
+        - name: btLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Templates
+
+  # =========================================================================
+  # 5. BUILD METRICS
+  # =========================================================================
+
+  /app/rest/builds/aggregated/{buildLocator}/status:
+    get:
+      summary: Get aggregated build status
+      operationId: getAggregatedStatus
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Aggregated status
+
+  /app/rest/builds/aggregated/{buildLocator}/statusIcon:
+    get:
+      summary: Get aggregated status icon
+      operationId: getAggregatedStatusIcon
+      parameters:
+        - name: buildLocator
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Status icon
+
+components:
+  schemas:
+    Build:
+      type: object
+      properties:
+        id:
+          type: string
+        buildTypeId:
+          type: string
+        state:
+          type: string
+          enum: [queued, running, finished, canceled]
+        status:
+          type: string
+          enum: [SUCCESS, FAILURE, UNKNOWN]
+        statusText:
+          type: string
+        href:
+          type: string
+        webUrl:
+          type: string
+
+    BuildType:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        projectId:
+          type: string
+        projectName:
+          type: string
+        href:
+          type: string
+        webUrl:
+          type: string
+        paused:
+          type: boolean
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        parentProjectId:
+          type: string
+        href:
+          type: string
+        webUrl:
+          type: string
+
+    BuildQueueItem:
+      type: object
+      properties:
+        id:
+          type: string
+        buildTypeId:
+          type: string
+        state:
+          type: string
+        href:
+          type: string
+        webUrl:
+          type: string
+
+    BuildCancelRequest:
+      type: object
+      properties:
+        comment:
+          type: string
+        readdIntoQueue:
+          type: boolean
+
+    RunBuildRequest:
+      type: object
+      properties:
+        buildTypeId:
+          type: string
+        branchName:
+          type: string
+        cleanSources:
+          type: boolean
+        parameters:
+          type: object
+          additionalProperties:
+            type: string
