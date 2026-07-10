@@ -1,5 +1,7 @@
 package com.teamcity.core.client;
 
+import com.github.viclovsky.swagger.coverage.SwaggerCoverageRestAssured;
+import com.teamcity.core.utils.SwaggerCoverageRecorder;
 import com.teamcity.core.exceptions.ApiException;
 import io.qameta.allure.Allure;
 import io.qameta.allure.restassured.AllureRestAssured;
@@ -57,7 +59,8 @@ public class RestClient implements ApiClient {
                 .filters(
                         new RequestLoggingFilter(),
                         new ResponseLoggingFilter(),
-                        new AllureRestAssured()
+                        new AllureRestAssured(),
+                        new SwaggerCoverageRecorder()
                 );
 
         spec.headers(this.defaultHeaders.build());
