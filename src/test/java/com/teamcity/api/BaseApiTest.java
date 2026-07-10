@@ -4,8 +4,7 @@ import com.teamcity.core.client.ApiClient;
 import com.teamcity.core.client.RestClient;
 import com.teamcity.core.config.ConfigManager;
 import com.teamcity.core.exceptions.ApiException;
-import com.teamcity.core.steps.BuildSteps;
-import com.teamcity.core.steps.ProjectSteps;
+import com.teamcity.core.steps.*;
 import com.teamcity.core.utils.TestDataFactory;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +28,11 @@ public abstract class BaseApiTest {
     protected ProjectSteps userProjectSteps;
     protected BuildSteps userBuildSteps;
     protected TestDataFactory dataFactory;
+    protected AgentSteps adminAgentSteps;
+    protected ArtifactSteps adminArtifactSteps;
+    protected AgentSteps userAgentSteps;
+    protected BuildFeatureSteps adminBuildFeatureSteps;
+    protected BuildFeatureSteps userBuildFeatureSteps;
 
     private final List<String> createdProjects = new ArrayList<>();
     private final List<String> createdUsers = new ArrayList<>();
@@ -56,8 +60,13 @@ public abstract class BaseApiTest {
 
         adminProjectSteps = new ProjectSteps(adminClient);
         adminBuildSteps = new BuildSteps(adminClient);
+        adminBuildFeatureSteps = new BuildFeatureSteps(adminClient);
+        adminArtifactSteps = new ArtifactSteps(adminClient);
+        adminAgentSteps = new AgentSteps((RestClient) adminClient);
         userProjectSteps = new ProjectSteps(userClient);
         userBuildSteps = new BuildSteps(userClient);
+        userBuildFeatureSteps = new BuildFeatureSteps(userClient);
+        userAgentSteps = new AgentSteps((RestClient) userClient);
     }
 
     @AfterEach

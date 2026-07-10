@@ -1,19 +1,34 @@
 package com.teamcity.api.admin;
 
+import com.teamcity.api.BaseApiTest;
+import com.teamcity.core.models.Agent;
+import com.teamcity.core.models.Agents;
+import com.teamcity.core.models.dto.AuthorizedInfo;
+import com.teamcity.core.models.dto.EnabledInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class AdminAgentsTest {
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class AdminAgentsTest extends BaseApiTest {
     @Test
-    @DisplayName("Юзер может получить всех агентов")
+    @DisplayName("Админ может получить всех агентов")
     public void adminCanGetAllAgentsTest (){
-     //Expected: 200 OK
+        Agents agents = adminAgentSteps.getAllAgents();
+        assertThat(agents).isNotNull();
+        assertThat(agents.getAgent()).isNotEmpty();
     }
 
     @Test
-    @DisplayName("Юзер может получить агента по ID")
+    @DisplayName("Админ может получить агента по ID")
     public void adminCanGetAgentByIdTest(){
-        //Expected: 200 OK
+        Agent expected = adminAgentSteps.getAllAgents()
+                .getAgent()
+                .getFirst();
+        Agent actual = adminAgentSteps.getAgent(String.valueOf(expected.getId()));
+
+        assertThat(actual.getId()).isEqualTo(expected.getId());
+        assertThat(actual.getName()).isEqualTo(expected.getName());
     }
 
     @Test
@@ -25,18 +40,44 @@ public class AdminAgentsTest {
     @Test
     @DisplayName("Юзер может включить агента")
     public void adminCanEnableAgentTest(){
-     //Expected: 200 OK
+        Agent agent = adminAgentSteps.getAllAgents()
+                .getAgent()
+                .getFirst();
+
+        EnabledInfo enabled = adminAgentSteps.enableAgent(
+                String.valueOf(agent.getId())
+        );
+
+        assertThat(enabled.getStatus()).isTrue();
     }
 
     @Test
     @DisplayName("Юзер может выключить агента")
     public void adminCanDisableAgentTest() {
-        //Expected: 200 OK
+        Agent agent = adminAgentSteps.getAllAgents()
+                .getAgent()
+                .getFirst();
+
+        try {
+            EnabledInfo disabled = adminAgentSteps.disableAgent(String.valueOf(agent.getId()));
+            assertThat(disabled.getStatus()).isFalse();
+        } finally {
+            // включаем агента обратно в любом случае, даже если assert упал
+            adminAgentSteps.enableAgent(String.valueOf(agent.getId()));
+        }
     }
 
     @Test
     @DisplayName("Юзер может авторизовать агента")
     public void adminCanAuthorizeAgentTest(){
-    //Expected: 200 OK
+        Agent agent = adminAgentSteps.getAllAgents()
+                .getAgent()
+                .getFirst();
+
+        AuthorizedInfo authorized = adminAgentSteps.authorizeAgent(
+                String.valueOf(agent.getId())
+        );
+
+        assertThat(authorized.getStatus()).isTrue();
     }
 }

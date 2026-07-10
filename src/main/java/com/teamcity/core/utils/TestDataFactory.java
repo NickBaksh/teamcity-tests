@@ -28,6 +28,16 @@ public class TestDataFactory {
                 .parentProjectId(parentProjectId)
                 .build();
     }
+    // ===== Генерация сборок =====
+    public BuildConfig createBuildConfigWithArtifacts(String projectId) {
+        String name = "BuildConfig_" + System.currentTimeMillis();
+        return BuildConfig.builder()
+                .name(name)
+                .projectId(projectId)
+                .description("Build config with artifacts: " + name)
+                .artifactRules("**/* => artifacts.zip")
+                .build();
+    }
 
     // ===== Генерация пользователей =====
     public User createRandomUser() {
@@ -82,6 +92,13 @@ public class TestDataFactory {
     }
 
     /**
+     * Генерирует несуществующий ID сборки.
+     */
+    public String generateNotExistingBuildId() {
+        return String.valueOf(System.currentTimeMillis());
+    }
+
+    /**
      * Генерирует уникальное имя пользователя.
      */
     public String generateUniqueUsername() {
@@ -107,5 +124,23 @@ public class TestDataFactory {
      */
     public String randomPassword() {
         return "P@ssw0rd_" + randomString(6);
+    }
+
+    public BuildConfig createRandomBuildConfigWithArtifactRules(String projectId) {
+
+        String name = "BuildConfig_" + System.currentTimeMillis();
+
+        return BuildConfig.builder()
+
+                .name(name)
+
+                .projectId(projectId)
+
+                .description("Auto-generated build config with artifact")
+
+                .artifactRules("artifact.txt")
+
+                .build();
+
     }
 }

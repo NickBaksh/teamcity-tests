@@ -68,6 +68,7 @@ public enum Endpoint {
     BUILD_TAGS("/app/rest/builds/{buildLocator}/tags"),
     BUILD_COMMENT("/app/rest/builds/{buildLocator}/comment"),
     BUILD_PIN_INFO("/app/rest/builds/{buildLocator}/pinInfo"),
+    BUILD_STEPS("/app/rest/buildTypes/id:%s/steps"),
     BUILD_STATUS("/app/rest/builds/{buildLocator}/status"),
     BUILD_STATUS_TEXT("/app/rest/builds/{buildLocator}/statusText"),
     BUILD_STATUS_ICON("/app/rest/builds/{buildLocator}/statusIcon{suffix}"),

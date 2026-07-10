@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -224,16 +223,18 @@ public class BuildSteps {
         log.info("Build config description updated: ID={}", updated.getId());
         return updated;
     }
+
     // =========================================================================
     // 4. DELETE — Удаление билд
     // =========================================================================
 
     @Step("Delete build: {buildId}")
-    public void deleteBuild(String buildId) {
+    public Build deleteBuild(String buildId) {
         Response response = client.delete(
                 Endpoint.BUILD.format(buildId)
         );
         validator.validateStatus(response);
+        return null;
     }
 
     // =========================================================================
@@ -427,6 +428,21 @@ public class BuildSteps {
         log.info("Build triggered: ID={}, State={}, Branch={}",
                 created.getId(), created.getState(), branch);
         return created;
+    }
+
+    /**
+     * Запускает Билд и ждет завершения
+     * @param buildTypeId
+     * @return
+     */
+    @Step("Run build and wait for finish: {buildTypeId}")
+    public Build runBuildAndWait(String buildTypeId) {
+
+        Build build = runBuild(buildTypeId);
+
+        return waitForBuildFinish(
+                String.valueOf(build.getId())
+        );
     }
 
     /**
@@ -892,5 +908,37 @@ public class BuildSteps {
         return client.delete(
                 Endpoint.BUILD.format(buildId)
         );
+    }
+    @Step("Add command line step to build config: {buildConfigId}")
+    public void addCommandLineStep(String buildConfigId, String script) {
+
+        Map<String, Object> body = Map.of(
+                "name", "Create artifact",
+                "type", "simpleRunner",
+                "properties",
+                Map.of(
+                        "property",
+                        List.of(
+                                Map.of(
+                                        "name", "command.executable",
+                                        "value", "bash"
+                                ),
+                                Map.of(
+                                        "name", "script.content",
+                                        "value", script
+                                )
+                        )
+                )
+        );
+
+        Response response = client.post(
+                Endpoint.BUILD_TYPE_STEPS.getPath()
+                        .replace("{btLocator}", buildConfigId),
+                body
+        );
+
+        validator.validateStatus(response);
+
+        log.info("Command line step added to build config: {}", buildConfigId);
     }
 }

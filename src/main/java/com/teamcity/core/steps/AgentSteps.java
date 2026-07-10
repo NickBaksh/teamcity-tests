@@ -30,8 +30,8 @@ public class AgentSteps {
     @Step("Get agent by ID: {agentId}")
     public Agent getAgent(String agentId) {
         Response response = client.get(
-                Endpoint.AGENT.getPath(),
-                agentId);
+                Endpoint.AGENT.format("id:" + agentId)
+        );
 
         response.then().spec(ResponseSpecs.requestReturnsOK());
         return response.as(Agent.class);
@@ -45,9 +45,9 @@ public class AgentSteps {
                 .build();
 
         Response response = client.put(
-                Endpoint.AGENT_ENABLED_INFO.getPath(),
-                request,
-                agentId);
+                Endpoint.AGENT_ENABLED_INFO.format("id:" + agentId),
+                request
+        );
 
         response.then().spec(ResponseSpecs.requestReturnsOK());
         EnabledInfo enabledInfo = response.as(EnabledInfo.class);
@@ -63,9 +63,9 @@ public class AgentSteps {
                 .build();
 
         Response response = client.put(
-                Endpoint.AGENT_ENABLED_INFO.getPath(),
-                request,
-                agentId);
+                Endpoint.AGENT_ENABLED_INFO.format("id:" + agentId),
+                request
+        );
 
         response.then().spec(ResponseSpecs.requestReturnsOK());
         EnabledInfo enabledInfo = response.as(EnabledInfo.class);
@@ -79,11 +79,10 @@ public class AgentSteps {
         AuthorizedInfo request = AuthorizedInfo.builder()
                 .status(true)
                 .build();
-
         Response response = client.put(
-                Endpoint.AGENT_AUTHORIZED_INFO.getPath(),
-                request,
-                agentId);
+                Endpoint.AGENT_AUTHORIZED_INFO.format("id:" + agentId),
+                request
+        );
 
         response.then().spec(ResponseSpecs.requestReturnsOK());
         AuthorizedInfo authorizedInfo = response.as(AuthorizedInfo.class);

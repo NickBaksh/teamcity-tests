@@ -27,4 +27,5 @@ public class BuildConfig {
     private String type;
     private String uuid;
     private String projectInternalId;
+    private String artifactRules;
 }
