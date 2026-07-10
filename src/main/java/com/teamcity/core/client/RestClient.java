@@ -16,11 +16,13 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import static io.restassured.RestAssured.given;
+
 @Slf4j
 public class RestClient implements ApiClient {
 
     private static final Set<Integer> NON_RETRYABLE_STATUSES = Set.of(
-            400, 401, 403, 404, 405, 406, 409, 422
+            400, 401, 403, 404, 405, 406, 409, 422, 500
     );
 
     private static final long MIN_RETRY_DELAY_MS = 100;
@@ -37,8 +39,8 @@ public class RestClient implements ApiClient {
     private final HeaderConfig defaultHeaders;
 
     private RestClient(Builder builder) {
-        RestAssured.baseURI = builder.baseUrl;
-        RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+        //RestAssured.baseURI = builder.baseUrl;
+        //RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
         this.maxRetries = builder.retryCount;
         this.retryDelay = builder.retryDelay;
@@ -50,7 +52,8 @@ public class RestClient implements ApiClient {
         }
         this.defaultHeaders = defaultHeaders;
 
-        RequestSpecification spec = RestAssured.given()
+        RequestSpecification spec = given()
+                .baseUri(builder.baseUrl)
                 .relaxedHTTPSValidation()
                 .filters(
                         new RequestLoggingFilter(),
@@ -77,6 +80,8 @@ public class RestClient implements ApiClient {
         return new Builder();
     }
 
+
+
     // ===== БАЗОВЫЕ МЕТОДЫ =====
 
     @Override
@@ -86,7 +91,8 @@ public class RestClient implements ApiClient {
 
     @Override
     public Response post(String endpoint, Object body) {
-        return executeWithRetry(() -> requestSpec.body(body).post(endpoint));
+        return executeWithRetry(() -> requestSpec.given().body(body).post(endpoint));
+                //requestSpec.body(body).post(endpoint));
     }
 
     @Override
@@ -96,7 +102,8 @@ public class RestClient implements ApiClient {
 
     @Override
     public Response put(String endpoint, Object body, Object... pathParams) {
-        return executeWithRetry(() -> requestSpec.body(body).put(endpoint, pathParams));
+        return executeWithRetry(() -> requestSpec.given().body(body).put(endpoint, pathParams));
+                //requestSpec.body(body).put(endpoint, pathParams));
     }
 
     /**
@@ -131,7 +138,8 @@ public class RestClient implements ApiClient {
             }
         }
 
-        return executeWithRetry(() -> requestSpec.delete(endpoint, pathParams));
+        return executeWithRetry(() -> requestSpec.given().delete(endpoint, pathParams));
+                //requestSpec.delete(endpoint, pathParams));
     }
 
     // ===== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ =====

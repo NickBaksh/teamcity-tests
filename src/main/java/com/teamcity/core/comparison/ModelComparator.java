@@ -1,4 +1,4 @@
-package com.teamcity.models.comparison;
+package com.teamcity.core.comparison;
 
 import java.io.IOException;
 import java.io.InputStream;

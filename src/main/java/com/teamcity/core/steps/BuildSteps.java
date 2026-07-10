@@ -15,6 +15,8 @@ import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
+import org.awaitility.Awaitility;
+import java.time.Duration;
 
 import java.util.Collections;
 import java.util.List;
@@ -110,6 +112,42 @@ public class BuildSteps {
 
         log.debug("Build config fetched: ID={}, Name={}", config.getId(), config.getName());
         return config;
+    }
+
+    public BuildConfig waitUntilPaused(String buildConfigId) {
+
+        return Awaitility.await()
+
+                .atMost(Duration.ofSeconds(10))
+
+                .pollInterval(Duration.ofSeconds(1))
+
+                .until(
+
+                        () -> getBuildConfig(buildConfigId),
+
+                        config -> Boolean.TRUE.equals(config.getPaused())
+
+                );
+
+    }
+
+    public BuildConfig waitUntilResumed(String buildConfigId) {
+
+        return Awaitility.await()
+
+                .atMost(Duration.ofSeconds(10))
+
+                .pollInterval(Duration.ofSeconds(1))
+
+                .until(
+
+                        () -> getBuildConfig(buildConfigId),
+
+                        config -> !Boolean.TRUE.equals(config.getPaused())
+
+                );
+
     }
 
     /**
@@ -295,20 +333,21 @@ public class BuildSteps {
         log.info("Build config resumed: {}", configId);
     }
 
-    /**
-     * Устанавливает статус паузы для билд-конфига
-     *
-     * @param configId ID билд-конфига
-     * @param paused   true - пауза, false - возобновить
-     */
+
     @Step("Set build config pause: {configId} = {paused}")
     @Severity(SeverityLevel.NORMAL)
-    public void setBuildConfigPaused(String configId, boolean paused) {
-        if (paused) {
-            pauseBuildConfig(configId);
-        } else {
-            resumeBuildConfig(configId);
-        }
+    public void setBuildConfigPaused(String buildConfigId, boolean paused) {
+
+        client.putBoolean(
+
+                "/app/rest/buildTypes/id:{btLocator}/paused",
+
+                paused,
+
+                buildConfigId
+
+        );
+
     }
 
     /**
@@ -816,6 +855,8 @@ public class BuildSteps {
             throw new RuntimeException("Wait interrupted", e);
         }
     }
+
+
 
     // =========================================================================
     // 12. ENUMS — Вспомогательные перечисления
