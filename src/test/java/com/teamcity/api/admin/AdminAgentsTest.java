@@ -11,72 +11,88 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AdminAgentsTest extends BaseApiTest {
+
     @Test
     @DisplayName("Админ может получить всех агентов")
-    public void adminCanGetAllAgentsTest (){
-        Agents agents = adminAgentSteps.getAllAgents();
+    void adminCanGetAllAgentsTest() {
+
+        Agents agents = agentSteps(adminClient()).getAll();
+
         assertThat(agents).isNotNull();
         assertThat(agents.getAgent()).isNotEmpty();
     }
 
     @Test
     @DisplayName("Админ может получить агента по ID")
-    public void adminCanGetAgentByIdTest(){
-        Agent expected = adminAgentSteps.getAllAgents()
+    void adminCanGetAgentByIdTest() {
+
+        Agent expected = agentSteps(adminClient())
+                .getAll()
                 .getAgent()
                 .getFirst();
-        Agent actual = adminAgentSteps.getAgent(String.valueOf(expected.getId()));
+
+        Agent actual = agentSteps(adminClient())
+                .get(expected.getId());
 
         assertThat(actual.getId()).isEqualTo(expected.getId());
         assertThat(actual.getName()).isEqualTo(expected.getName());
     }
 
     @Test
-    @DisplayName("Юзер не может получить несуществующего агента ")
-    public void adminCanNotGetNonExistingAgentTest(){
-        //Expected: 404 Not Found
+    @DisplayName("Админ не может получить несуществующего агента")
+    void adminCanNotGetNonExistingAgentTest() {
+        // TODO: 404 Not Found
     }
 
     @Test
-    @DisplayName("Юзер может включить агента")
-    public void adminCanEnableAgentTest(){
-        Agent agent = adminAgentSteps.getAllAgents()
+    @DisplayName("Админ может включить агента")
+    void adminCanEnableAgentTest() {
+
+        Agent agent = agentSteps(adminClient())
+                .getAll()
                 .getAgent()
                 .getFirst();
 
-        EnabledInfo enabled = adminAgentSteps.enableAgent(
-                String.valueOf(agent.getId())
-        );
+        EnabledInfo enabled = agentSteps(adminClient())
+                .enable(agent);
 
         assertThat(enabled.getStatus()).isTrue();
     }
 
     @Test
-    @DisplayName("Юзер может выключить агента")
-    public void adminCanDisableAgentTest() {
-        Agent agent = adminAgentSteps.getAllAgents()
+    @DisplayName("Админ может выключить агента")
+    void adminCanDisableAgentTest() {
+
+        Agent agent = agentSteps(adminClient())
+                .getAll()
                 .getAgent()
                 .getFirst();
 
         try {
-            EnabledInfo disabled = adminAgentSteps.disableAgent(String.valueOf(agent.getId()));
+
+            EnabledInfo disabled = agentSteps(adminClient())
+                    .disable(agent);
+
             assertThat(disabled.getStatus()).isFalse();
+
         } finally {
-            // включаем агента обратно в любом случае, даже если assert упал
-            adminAgentSteps.enableAgent(String.valueOf(agent.getId()));
+
+            agentSteps(adminClient())
+                    .enable(agent);
         }
     }
 
     @Test
-    @DisplayName("Юзер может авторизовать агента")
-    public void adminCanAuthorizeAgentTest(){
-        Agent agent = adminAgentSteps.getAllAgents()
+    @DisplayName("Админ может авторизовать агента")
+    void adminCanAuthorizeAgentTest() {
+
+        Agent agent = agentSteps(adminClient())
+                .getAll()
                 .getAgent()
                 .getFirst();
 
-        AuthorizedInfo authorized = adminAgentSteps.authorizeAgent(
-                String.valueOf(agent.getId())
-        );
+        AuthorizedInfo authorized = agentSteps(adminClient())
+                .authorize(agent);
 
         assertThat(authorized.getStatus()).isTrue();
     }

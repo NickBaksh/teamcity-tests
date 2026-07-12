@@ -8,6 +8,7 @@ import com.teamcity.core.exceptions.ResourceNotFoundException;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.BuildType;
 import com.teamcity.core.models.Project;
+import com.teamcity.core.utils.TestDataFactory;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Step;
@@ -33,6 +34,7 @@ public class ProjectSteps {
     private final ApiClient client;
     private final ResponseValidator validator;
     private final String baseUrl;
+    private final TestDataFactory dataFactory = new TestDataFactory();
 
     // ===== КОНСТРУКТОРЫ =====
 
@@ -67,6 +69,13 @@ public class ProjectSteps {
 
         log.info("Project created: ID={}, Name={}", created.getId(), created.getName());
         return created;
+    }
+
+    @Step("Create random project")
+    public Project createRandomProject() {
+        return createProject(
+                dataFactory.createRandomProject()
+        );
     }
 
     /**

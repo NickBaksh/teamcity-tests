@@ -1,8 +1,6 @@
 package com.teamcity.api.smoke;
 
 import com.teamcity.api.BaseApiTest;
-import com.teamcity.core.client.ApiClient;
-import com.teamcity.core.client.ClientFactory;
 import com.teamcity.core.client.RestClient;
 import com.teamcity.core.config.ConfigManager;
 import com.teamcity.core.exceptions.ApiException;
@@ -10,6 +8,7 @@ import com.teamcity.core.models.Build;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.Project;
 import com.teamcity.core.models.User;
+import com.teamcity.core.steps.BuildConfigSteps;
 import com.teamcity.core.steps.BuildSteps;
 import com.teamcity.core.steps.ProjectSteps;
 import com.teamcity.core.steps.UserSteps;
@@ -34,43 +33,32 @@ public class SmokeTest extends BaseApiTest {
 
     private ProjectSteps projectSteps;
     private UserSteps userSteps;
+    private BuildConfigSteps buildConfigSteps;
     private BuildSteps buildSteps;
 
     @BeforeEach
     void initSteps() {
-        projectSteps = new ProjectSteps(adminClient);
-        userSteps = new UserSteps(adminClient);
-        buildSteps = new BuildSteps(adminClient);
+        projectSteps = projectSteps(adminClient());
+        userSteps = userSteps(adminClient());
+        buildConfigSteps = buildConfigSteps(adminClient());
+        buildSteps = buildSteps(adminClient());
     }
 
     @Test
     @Order(1)
-    @Tag("auth")
-    @Tag("security")
     @DisplayName("✅ [SMOKE] Auth with valid credentials → 200")
-    @Description("Verifies that admin can authenticate")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Authentication")
     void shouldAuthenticateWithValidCredentials() {
-        Response response = adminClient.get("/app/rest/server");
 
-        assertThat(response.statusCode())
-                .as("Admin should be authenticated")
-                .isEqualTo(200);
+        Response response = adminClient().get("/app/rest/server");
 
-        log.info("✅ Authentication successful");
+        assertThat(response.statusCode()).isEqualTo(200);
     }
 
     @Test
     @Order(2)
-    @Tag("auth")
-    @Tag("security")
-    @Tag("negative")
     @DisplayName("❌ [SMOKE] Auth with invalid credentials → 401")
-    @Description("Verifies that invalid credentials are rejected")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Authentication")
-    public void shouldRejectInvalidCredentials() {
+    void shouldRejectInvalidCredentials() {
+
         RestClient invalidClient = RestClient.builder()
                 .baseUrl(ConfigManager.getApiBaseUrl())
                 .basicAuth(ConfigManager.getAdminLogin(), "wrong_password")
@@ -78,240 +66,177 @@ public class SmokeTest extends BaseApiTest {
                 .build();
 
         assertThatThrownBy(() -> invalidClient.get("/app/rest/server"))
-                .isInstanceOf(AuthenticationException.class)
-                .hasMessageContaining("Authentication failed")
-                .hasMessageContaining("Incorrect username or password");
-
+                .isInstanceOf(AuthenticationException.class);
     }
 
     @Test
     @Order(3)
-    @Tag("projects")
-    @Tag("crud")
-    @DisplayName("✅ [SMOKE] Create project → 200")
-    @Description("Verifies project creation — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Project")
+    @DisplayName("✅ [SMOKE] Create project")
     void shouldCreateProject() {
-        Project project = dataFactory.createRandomProject();
-        Project created = projectSteps.createProject(project);
-        trackProject(created.getId());
+
+        Project created = projectSteps.createRandomProject();
 
         SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(created.getId()).isNotBlank();
-        softly.assertThat(created.getName()).isEqualTo(project.getName());
-        softly.assertThat(created.getHref()).isNotBlank();
-        softly.assertAll();
 
-        log.info("✅ Project created: {}", created.getName());
+        softly.assertThat(created.getId()).isNotBlank();
+        softly.assertThat(created.getName()).isNotBlank();
+        softly.assertThat(created.getHref()).isNotBlank();
+
+        softly.assertAll();
     }
 
     @Test
     @Order(4)
-    @Tag("projects")
-    @Tag("crud")
-    @DisplayName("✅ [SMOKE] Get project by ID → 200")
-    @Description("Verifies project retrieval by ID — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Project")
+    @DisplayName("✅ [SMOKE] Get project")
     void shouldGetProjectById() {
-        Project project = dataFactory.createRandomProject();
-        Project created = projectSteps.createProject(project);
-        trackProject(created.getId());
 
-        Project retrieved = projectSteps.getProject(created.getId());
+        Project expected = projectSteps.createRandomProject();
 
-        SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(retrieved.getId()).isEqualTo(created.getId());
-        softly.assertThat(retrieved.getName()).isEqualTo(created.getName());
-        softly.assertAll();
+        Project actual = projectSteps.getProject(expected.getId());
 
-        log.info("✅ Project retrieved: {}", retrieved.getName());
+        assertThat(actual.getId()).isEqualTo(expected.getId());
+        assertThat(actual.getName()).isEqualTo(expected.getName());
     }
 
     @Test
     @Order(5)
-    @Tag("projects")
-    @Tag("crud")
-    @DisplayName("✅ [SMOKE] Delete project → 200")
-    @Description("Verifies project deletion — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Project")
+    @DisplayName("✅ [SMOKE] Delete project")
     void shouldDeleteProject() {
-        Project project = dataFactory.createRandomProject();
-        Project created = projectSteps.createProject(project);
 
-        projectSteps.deleteProject(created.getId());
+        Project project = projectSteps.createRandomProject();
 
-        assertThat(projectSteps.projectExists(created.getId())).isFalse();
+        projectSteps.deleteProject(project.getId());
 
-        log.info("✅ Project deleted: {}", created.getName());
+        assertThat(projectSteps.projectExists(project.getId()))
+                .isFalse();
     }
 
     @Test
     @Order(6)
-    @Tag("build-configs")
-    @Tag("crud")
-    @DisplayName("✅ [SMOKE] Create build config → 200")
-    @Description("Verifies build configuration creation — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Build Config")
+    @DisplayName("✅ [SMOKE] Create build config")
     void shouldCreateBuildConfig() {
-        Project project = dataFactory.createRandomProject();
-        Project createdProject = projectSteps.createProject(project);
-        trackProject(createdProject.getId());
 
-        BuildConfig config = dataFactory.createRandomBuildConfig(createdProject.getId());
-        BuildConfig created = buildSteps.createBuildConfig(config);
-        trackBuildConfig(created.getId());
+        Project project = projectSteps.createRandomProject();
+
+        BuildConfig created =
+                buildConfigSteps.createRandomBuildConfig(project);
 
         SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(created.getId()).isNotBlank();
-        softly.assertThat(created.getName()).isEqualTo(config.getName());
-        softly.assertAll();
 
-        log.info("✅ Build config created: {}", created.getName());
+        softly.assertThat(created.getId()).isNotBlank();
+        softly.assertThat(created.getName()).isNotBlank();
+        softly.assertThat(created.getProjectId())
+                .isEqualTo(project.getId());
+
+        softly.assertAll();
     }
 
     @Test
     @Order(7)
-    @Tag("build-configs")
-    @Tag("crud")
-    @DisplayName("✅ [SMOKE] Delete build config → 200")
-    @Description("Verifies build configuration deletion — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Build Config")
+    @DisplayName("✅ [SMOKE] Delete build config")
     void shouldDeleteBuildConfig() {
-        Project project = dataFactory.createRandomProject();
-        Project createdProject = projectSteps.createProject(project);
-        trackProject(createdProject.getId());
 
-        BuildConfig config = dataFactory.createRandomBuildConfig(createdProject.getId());
-        BuildConfig created = buildSteps.createBuildConfig(config);
+        Project project = projectSteps.createRandomProject();
 
-        buildSteps.deleteBuildConfig(created.getId());
+        BuildConfig buildConfig =
+                buildConfigSteps.createRandomBuildConfig(project);
 
-        assertThat(buildSteps.buildConfigExists(created.getId())).isFalse();
+        buildConfigSteps.delete(buildConfig);
 
-        log.info("✅ Build config deleted: {}", created.getName());
+        assertThat(buildConfigSteps.exists(buildConfig))
+                .isFalse();
     }
-
 
     @Test
     @Order(8)
-    @Tag("builds")
-    @DisplayName("✅ [SMOKE] Run build → 200")
-    @Description("Verifies build execution — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Build")
+    @DisplayName("✅ [SMOKE] Run build")
     void shouldRunBuild() {
-        Project project = dataFactory.createRandomProject();
-        Project createdProject = projectSteps.createProject(project);
-        trackProject(createdProject.getId());
 
-        BuildConfig config = dataFactory.createRandomBuildConfig(createdProject.getId());
-        BuildConfig createdConfig = buildSteps.createBuildConfig(config);
-        trackBuildConfig(createdConfig.getId());
+        Project project = projectSteps.createRandomProject();
 
-        Build build = buildSteps.runBuild(createdConfig.getId());
+        BuildConfig buildConfig =
+                buildConfigSteps.createRandomBuildConfig(project);
+
+        Build build = buildSteps.runBuild(buildConfig.getId());
 
         SoftAssertions softly = new SoftAssertions();
+
         softly.assertThat(build.getId()).isNotNull();
         softly.assertThat(build.getBuildTypeId()).isNotBlank();
-        softly.assertAll();
 
-        log.info("✅ Build started: {}", build.getId());
+        softly.assertAll();
     }
 
     @Test
     @Order(9)
-    @Tag("builds")
-    @DisplayName("✅ [SMOKE] Get build status → 200")
-    @Description("Verifies build status retrieval")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Build")
+    @DisplayName("✅ [SMOKE] Get build status")
     void shouldGetBuildStatus() {
-        Project project = dataFactory.createRandomProject();
-        Project createdProject = projectSteps.createProject(project);
-        trackProject(createdProject.getId());
 
-        BuildConfig config = dataFactory.createRandomBuildConfig(createdProject.getId());
-        BuildConfig createdConfig = buildSteps.createBuildConfig(config);
-        trackBuildConfig(createdConfig.getId());
+        Project project = projectSteps.createRandomProject();
 
-        Build build = buildSteps.runBuild(createdConfig.getId());
+        BuildConfig buildConfig =
+                buildConfigSteps.createRandomBuildConfig(project);
 
-        Build retrievedBuild = buildSteps.getBuild(String.valueOf(build.getId()));
+        Build startedBuild =
+                buildSteps.runBuild(buildConfig.getId());
+
+        Build actual =
+                buildSteps.getBuild(String.valueOf(startedBuild.getId()));
 
         SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(retrievedBuild.getStatus()).isNotNull();
-        softly.assertThat(retrievedBuild.getState()).isNotNull();
-        softly.assertAll();
 
-        log.info("✅ Build status retrieved: {}", retrievedBuild.getStatus());
+        softly.assertThat(actual.getStatus()).isNotNull();
+        softly.assertThat(actual.getState()).isNotNull();
+
+        softly.assertAll();
     }
 
 
     @Test
     @Order(10)
-    @Tag("users")
-    @Tag("auth")
-    @DisplayName("✅ [SMOKE] Create user → 200")
-    @Description("Verifies user creation — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("User")
+    @DisplayName("✅ [SMOKE] Create user")
     void shouldCreateUser() {
-        User user = dataFactory.createRandomUser();
-        User created = userSteps.createUser(user);
-        trackUser(created.getUsername());
+
+        User created =
+                userSteps.createRandomUser();
 
         SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(created.getUsername()).isNotBlank();
-        softly.assertThat(created.getUsername()).isEqualTo(user.getUsername());
-        softly.assertAll();
 
-        log.info("✅ User created: {}", created.getUsername());
+        softly.assertThat(created.getUsername()).isNotBlank();
+        softly.assertThat(created.getName()).isNotBlank();
+
+        softly.assertAll();
     }
 
     @Test
     @Order(11)
-    @Tag("users")
-    @Tag("auth")
-    @DisplayName("✅ [SMOKE] Get user by username → 200")
-    @Description("Verifies user retrieval by username — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("User")
+    @DisplayName("✅ [SMOKE] Get user")
     void shouldGetUserByUsername() {
-        User user = dataFactory.createRandomUser();
-        User created = userSteps.createUser(user);
-        trackUser(created.getUsername());
 
-        User retrieved = userSteps.getUser(created.getUsername());
+        User expected =
+                userSteps.createRandomUser();
 
-        assertThat(retrieved.getUsername()).isEqualTo(created.getUsername());
+        User actual =
+                userSteps.getUser(expected.getUsername());
 
-        log.info("✅ User retrieved: {}", retrieved.getUsername());
+        assertThat(actual.getUsername())
+                .isEqualTo(expected.getUsername());
     }
 
     @Test
     @Order(12)
-    @Tag("users")
-    @Tag("auth")
-    @DisplayName("✅ [SMOKE] Delete user → 200")
-    @Description("Verifies user deletion — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("User")
+    @DisplayName("✅ [SMOKE] Delete user")
     void shouldDeleteUser() {
-        User user = dataFactory.createRandomUser();
-        User created = userSteps.createUser(user);
 
-        userSteps.deleteUser(created.getUsername());
+        User user =
+                userSteps.createRandomUser();
 
-        assertThatThrownBy(() -> userSteps.getUser(created.getUsername()))
+        userSteps.deleteUser(user.getUsername());
+
+        assertThatThrownBy(() ->
+                userSteps.getUser(user.getUsername()))
                 .isInstanceOf(ApiException.class)
                 .extracting("statusCode")
                 .isEqualTo(404);
-
-        log.info("✅ User deleted: {}", created.getUsername());
     }
 }

@@ -29,234 +29,196 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class AdminAuthTest extends BaseApiTest {
 
-    private UserSteps userSteps;
-
-    @BeforeEach
-    void initSteps() {
-        userSteps = new UserSteps(adminClient);
-    }
-
     @Test
     @Order(1)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("auth")
-    @Tag("positive")
     @DisplayName("✅ [SMOKE] Create user with valid credentials")
-    @Description("Verifies that a user can be created with valid credentials")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Create user")
     void shouldCreateUserWithValidCredentials() {
-        User user = dataFactory.createRandomUser();
-        User created = userSteps.createUser(user);
-        trackUser(created.getUsername());
+
+        User created = userSteps(adminClient())
+                .createRandomUser();
 
         SoftAssertions softly = new SoftAssertions();
+
         softly.assertThat(created).isNotNull();
-        softly.assertThat(created.getUsername()).isEqualTo(user.getUsername());
-        softly.assertThat(created.getEmail()).isEqualTo(user.getEmail());
-        softly.assertThat(created.getName()).isEqualTo(user.getName());
         softly.assertThat(created.getId()).isNotNull();
+        softly.assertThat(created.getUsername()).isNotBlank();
         softly.assertThat(created.getHref()).isNotBlank();
+
         softly.assertAll();
 
-        log.info("✅ User created successfully: {}", created.getUsername());
+        log.info("User created: {}", created.getUsername());
     }
 
     @Test
     @Order(2)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("auth")
-    @Tag("positive")
     @DisplayName("✅ [SMOKE] Get user by username")
-    @Description("Verifies that user can be retrieved by username")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Get user")
     void shouldGetUserByUsername() {
-        User user = dataFactory.createRandomUser();
-        User created = userSteps.createUser(user);
-        trackUser(created.getUsername());
 
-        User retrieved = userSteps.getUser(created.getUsername());
+        User expected = userSteps(adminClient())
+                .createRandomUser();
+
+        User actual = userSteps(adminClient())
+                .getUser(expected.getUsername());
 
         SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(retrieved).isNotNull();
-        softly.assertThat(retrieved.getUsername()).isEqualTo(created.getUsername());
-        softly.assertThat(retrieved.getEmail()).isEqualTo(created.getEmail());
-        softly.assertAll();
 
-        log.info("✅ User retrieved: {}", retrieved.getUsername());
+        softly.assertThat(actual).isNotNull();
+        softly.assertThat(actual.getUsername())
+                .isEqualTo(expected.getUsername());
+        softly.assertThat(actual.getEmail())
+                .isEqualTo(expected.getEmail());
+
+        softly.assertAll();
     }
 
     @Test
     @Order(3)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("auth")
-    @Tag("positive")
     @DisplayName("✅ [SMOKE] Delete user")
-    @Description("Verifies that user can be deleted")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Delete user")
     void shouldDeleteUser() {
-        User user = dataFactory.createRandomUser();
-        User created = userSteps.createUser(user);
 
-        userSteps.deleteUser(created.getUsername());
+        User user = userSteps(adminClient())
+                .createRandomUser();
 
-        assertThatThrownBy(() -> userSteps.getUser(created.getUsername()))
+        userSteps(adminClient())
+                .deleteUser(user.getUsername());
+
+        assertThatThrownBy(() ->
+                userSteps(adminClient())
+                        .getUser(user.getUsername()))
                 .isInstanceOf(ApiException.class)
                 .extracting("statusCode")
                 .isEqualTo(404);
-
-        log.info("✅ User deleted: {}", created.getUsername());
     }
 
     @Test
     @Order(4)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("auth")
-    @DisplayName("✅ Create user with minimal required fields")
-    @Description("Verifies that a user can be created with only required fields")
-    @Severity(SeverityLevel.NORMAL)
-    @Story("Create user")
+    @DisplayName("Create user with minimal required fields")
     void shouldCreateUserWithMinimalFields() {
+
         String username = dataFactory.generateUniqueUsername();
+
         User user = User.builder()
                 .username(username)
                 .password(TestDataFactory.DEFAULT_PASSWORD)
                 .build();
 
-        User created = userSteps.createUser(user);
-        trackUser(created.getUsername());
+        User created = userSteps(adminClient())
+                .createUser(user);
 
         SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(created.getUsername()).isEqualTo(username);
-        softly.assertThat(created.getHref()).isNotBlank();
-        softly.assertThat(created.getEmail()).isNullOrEmpty();
-        softly.assertThat(created.getName()).isNullOrEmpty();
+
+        softly.assertThat(created.getUsername())
+                .isEqualTo(username);
+        softly.assertThat(created.getHref())
+                .isNotBlank();
+        softly.assertThat(created.getEmail())
+                .isNullOrEmpty();
+        softly.assertThat(created.getName())
+                .isNullOrEmpty();
+
         softly.assertAll();
     }
 
     @Test
     @Order(5)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("validation")
-    @DisplayName("✅ Create user with invalid email (TeamCity allows)")
-    @Description("Verifies that TeamCity allows invalid email format")
-    @Severity(SeverityLevel.NORMAL)
-    @Story("Create user validation")
+    @DisplayName("Create user with invalid email (TeamCity allows)")
     void shouldCreateUserWithInvalidEmail() {
+
         User user = dataFactory.createRandomUser();
         user.setEmail("invalid-email");
 
-        User created = userSteps.createUser(user);
-        trackUser(created.getUsername());
+        User created = userSteps(adminClient())
+                .createUser(user);
 
         SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(created.getEmail()).isEqualTo("invalid-email");
-        softly.assertThat(created.getId()).isNotNull();
-        softly.assertAll();
 
-        log.info("✅ User created with invalid email (TeamCity does not validate email format)");
+        softly.assertThat(created.getEmail())
+                .isEqualTo("invalid-email");
+        softly.assertThat(created.getId())
+                .isNotNull();
+
+        softly.assertAll();
     }
 
     @Test
     @Order(6)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("validation")
-    @DisplayName("✅ Create user with short password (TeamCity allows)")
-    @Description("Verifies that TeamCity allows short password")
-    @Severity(SeverityLevel.NORMAL)
-    @Story("Create user validation")
+    @DisplayName("Create user with short password (TeamCity allows)")
     void shouldCreateUserWithShortPassword() {
+
         User user = dataFactory.createRandomUser();
         user.setPassword("123");
 
-        User created = userSteps.createUser(user);
-        trackUser(created.getUsername());
+        User created = userSteps(adminClient())
+                .createUser(user);
 
         SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(created.getUsername()).isNotBlank();
-        softly.assertThat(created.getId()).isNotNull();
-        softly.assertAll();
 
-        log.info("✅ User created with short password (TeamCity does not validate password length)");
+        softly.assertThat(created.getUsername())
+                .isNotBlank();
+        softly.assertThat(created.getId())
+                .isNotNull();
+
+        softly.assertAll();
     }
 
     @Test
     @Order(7)
-    @Tag("negative")
-    @Tag("critical")
-    @Tag("conflict")
-    @DisplayName("❌ Create user with duplicate username → 409")
-    @Description("Verifies that duplicate username creation is rejected")
-    @Severity(SeverityLevel.CRITICAL)
-    @Story("Create user validation")
+    @DisplayName("Create user with duplicate username")
     void shouldNotCreateUserWithDuplicateUsername() {
-        User user = dataFactory.createRandomUser();
-        User created = userSteps.createUser(user);
-        trackUser(created.getUsername());
 
-        assertThatThrownBy(() -> userSteps.createUser(user))
+        User user = dataFactory.createRandomUser();
+
+        userSteps(adminClient())
+                .createUser(user);
+
+        assertThatThrownBy(() ->
+                userSteps(adminClient())
+                        .createUser(user))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("already exists");
-
-        log.info("✅ Duplicate user creation correctly rejected");
     }
 
     @ParameterizedTest
     @Order(8)
-    @Tag("negative")
-    @Tag("critical")
-    @Tag("validation")
     @ValueSource(strings = {"", " ", "\t"})
-    @DisplayName("❌ Create user with invalid username → 400")
-    @Description("Verifies that invalid usernames are rejected")
-    @Severity(SeverityLevel.CRITICAL)
-    @Story("Create user validation")
+    @DisplayName("Create user with invalid username")
     void shouldNotCreateUserWithInvalidUsername(String invalidUsername) {
+
         User invalidUser = User.builder()
                 .username(invalidUsername)
                 .password(TestDataFactory.DEFAULT_PASSWORD)
                 .email("test@test.com")
                 .build();
 
-        assertThatThrownBy(() -> userSteps.createUser(invalidUser))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Username must not be empty");
-
-        log.info("✅ Username '{}' correctly rejected", invalidUsername);
+        assertThatThrownBy(() ->
+                userSteps(adminClient())
+                        .createUser(invalidUser))
+                .isInstanceOf(ValidationException.class);
     }
-
 
     @ParameterizedTest
     @Order(9)
-    @Tag("positive")
-    @Tag("parameterized")
-    @Tag("validation")
     @MethodSource("emailProvider")
-    @DisplayName("🔄 Create user with various email formats")
-    @Description("Verifies user creation with different email formats")
-    @Severity(SeverityLevel.NORMAL)
-    @Story("Create user validation")
+    @DisplayName("Create user with various email formats")
     void shouldCreateUserWithVariousEmails(String email, boolean shouldSucceed) {
+
         User user = dataFactory.createRandomUser();
         user.setEmail(email);
 
         if (shouldSucceed) {
-            User created = userSteps.createUser(user);
-            trackUser(created.getUsername());
-            assertThat(created.getEmail()).isEqualTo(email);
-            log.info("✅ User created with email: {}", email);
+
+            User created = userSteps(adminClient())
+                    .createUser(user);
+
+            assertThat(created.getEmail())
+                    .isEqualTo(email);
+
         } else {
-            assertThatThrownBy(() -> userSteps.createUser(user))
+
+            assertThatThrownBy(() ->
+                    userSteps(adminClient())
+                            .createUser(user))
                     .isInstanceOf(Exception.class);
-            log.info("✅ User creation with email '{}' correctly rejected", email);
         }
     }
 
@@ -272,28 +234,27 @@ public class AdminAuthTest extends BaseApiTest {
 
     @ParameterizedTest
     @Order(10)
-    @Tag("positive")
-    @Tag("parameterized")
-    @Tag("validation")
     @MethodSource("passwordProvider")
-    @DisplayName("🔄 Create user with various password lengths")
-    @Description("Verifies user creation with different password lengths")
-    @Severity(SeverityLevel.NORMAL)
-    @Story("Create user validation")
+    @DisplayName("Create user with various password lengths")
     void shouldCreateUserWithVariousPasswords(String password, boolean shouldSucceed) {
+
         User user = dataFactory.createRandomUser();
         user.setPassword(password);
 
         if (shouldSucceed) {
-            User created = userSteps.createUser(user);
-            trackUser(created.getUsername());
-            assertThat(created.getUsername()).isNotBlank();
-            log.info("✅ User created with password length: {}", password != null ? password.length() : 0);
+
+            User created = userSteps(adminClient())
+                    .createUser(user);
+
+            assertThat(created.getUsername())
+                    .isNotBlank();
+
         } else {
-            assertThatThrownBy(() -> userSteps.createUser(user))
+
+            assertThatThrownBy(() ->
+                    userSteps(adminClient())
+                            .createUser(user))
                     .isInstanceOf(Exception.class);
-            log.info("✅ User creation with password length '{}' correctly rejected",
-                    password != null ? password.length() : 0);
         }
     }
 

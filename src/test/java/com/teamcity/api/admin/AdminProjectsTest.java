@@ -29,13 +29,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class AdminProjectsTest extends BaseApiTest {
 
-    private ProjectSteps projectSteps;
-
-    @BeforeEach
-    void initSteps() {
-        projectSteps = new ProjectSteps(adminClient);
-    }
-
     @Test
     @Order(1)
     @Tag("smoke")
@@ -47,9 +40,11 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.BLOCKER)
     @Story("Create project")
     void shouldCreateProjectWithValidData() {
+
+        ProjectSteps projectSteps = projectSteps(adminClient());
+
         Project project = dataFactory.createRandomProject();
         Project created = projectSteps.createProject(project);
-        trackProject(created.getId());
 
         SoftAssertions softly = new SoftAssertions();
         softly.assertThat(created).isNotNull();
@@ -75,9 +70,11 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.BLOCKER)
     @Story("Get project")
     void shouldGetProjectById() {
+
+        ProjectSteps projectSteps = projectSteps(adminClient());
+
         Project project = dataFactory.createRandomProject();
         Project created = projectSteps.createProject(project);
-        trackProject(created.getId());
 
         Project retrieved = projectSteps.getProject(created.getId());
 
@@ -102,6 +99,9 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.BLOCKER)
     @Story("Delete project")
     void shouldDeleteProject() {
+
+        ProjectSteps projectSteps = projectSteps(adminClient());
+
         Project project = dataFactory.createRandomProject();
         Project created = projectSteps.createProject(project);
 
@@ -122,20 +122,22 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Get project")
     void shouldGetAllProjects() {
-        Project project1 = dataFactory.createRandomProject();
-        Project created1 = projectSteps.createProject(project1);
-        trackProject(created1.getId());
 
-        Project project2 = dataFactory.createRandomProject();
-        Project created2 = projectSteps.createProject(project2);
-        trackProject(created2.getId());
+        ProjectSteps projectSteps = projectSteps(adminClient());
+
+        Project created1 = projectSteps.createProject(
+                dataFactory.createRandomProject());
+
+        Project created2 = projectSteps.createProject(
+                dataFactory.createRandomProject());
 
         List<Project> projects = projectSteps.getAllProjects();
 
         SoftAssertions softly = new SoftAssertions();
         softly.assertThat(projects).isNotNull();
         softly.assertThat(projects).hasSizeGreaterThanOrEqualTo(2);
-        softly.assertThat(projects).extracting(Project::getId)
+        softly.assertThat(projects)
+                .extracting(Project::getId)
                 .contains(created1.getId(), created2.getId());
         softly.assertAll();
 
@@ -152,19 +154,23 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Update project")
     void shouldUpdateProjectName() {
-        Project project = dataFactory.createRandomProject();
-        Project created = projectSteps.createProject(project);
-        trackProject(created.getId());
+
+        ProjectSteps projectSteps = projectSteps(adminClient());
+
+        Project created = projectSteps.createProject(
+                dataFactory.createRandomProject());
 
         String newName = dataFactory.generateUniqueProjectName();
-        Project updated = projectSteps.updateProject(created.getId(), newName);
+
+        Project updated =
+                projectSteps.updateProject(created.getId(), newName);
 
         SoftAssertions softly = new SoftAssertions();
         softly.assertThat(updated.getId()).isEqualTo(created.getId());
         softly.assertThat(updated.getName()).isEqualTo(newName);
         softly.assertAll();
 
-        log.info("✅ Project updated: {} → {}", project.getName(), newName);
+        log.info("✅ Project updated: {} → {}", created.getName(), newName);
     }
 
     @Test
@@ -177,16 +183,25 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Update project")
     void shouldUpdateProjectDescription() {
-        Project project = dataFactory.createRandomProject();
-        Project created = projectSteps.createProject(project);
-        trackProject(created.getId());
 
-        String newDescription = "Updated description " + System.currentTimeMillis();
-        Project updated = projectSteps.updateProjectDescription(created.getId(), newDescription);
+        ProjectSteps projectSteps = projectSteps(adminClient());
 
-        assertThat(updated.getDescription()).isEqualTo(newDescription);
+        Project created = projectSteps.createProject(
+                dataFactory.createRandomProject());
 
-        log.info("✅ Project description updated: {}", newDescription);
+        String description =
+                "Updated description " + System.currentTimeMillis();
+
+        Project updated =
+                projectSteps.updateProjectDescription(
+                        created.getId(),
+                        description
+                );
+
+        assertThat(updated.getDescription())
+                .isEqualTo(description);
+
+        log.info("✅ Project description updated");
     }
 
     @Test
@@ -199,22 +214,25 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Create project")
     void shouldCreateProjectWithParent() {
-        Project parent = dataFactory.createRandomProject();
-        Project createdParent = projectSteps.createProject(parent);
-        trackProject(createdParent.getId());
 
-        Project child = dataFactory.createRandomProject(createdParent.getId());
-        Project createdChild = projectSteps.createProject(child);
-        trackProject(createdChild.getId());
+        ProjectSteps projectSteps = projectSteps(adminClient());
+
+        Project parent =
+                projectSteps.createProject(
+                        dataFactory.createRandomProject());
+
+        Project child =
+                projectSteps.createProject(
+                        dataFactory.createRandomProject(parent.getId()));
 
         SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(createdChild.getParentProjectId()).isEqualTo(createdParent.getId());
-        softly.assertThat(createdChild.getName()).isEqualTo(child.getName());
-        softly.assertThat(createdChild.getId()).isNotEqualTo(createdParent.getId());
+        softly.assertThat(child.getParentProjectId())
+                .isEqualTo(parent.getId());
+        softly.assertThat(child.getName()).isNotBlank();
+        softly.assertThat(child.getId()).isNotEqualTo(parent.getId());
         softly.assertAll();
 
-        log.info("✅ Child project created: {} under parent: {}",
-                createdChild.getName(), createdParent.getName());
+        log.info("✅ Child project created");
     }
 
     @Test
@@ -227,16 +245,18 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Create project")
     void shouldCreateProjectWithDescription() {
-        String description = "Test project description";
+
+        ProjectSteps projectSteps = projectSteps(adminClient());
+
         Project project = dataFactory.createRandomProject();
-        project.setDescription(description);
+        project.setDescription("Test project description");
 
         Project created = projectSteps.createProject(project);
-        trackProject(created.getId());
 
-        assertThat(created.getDescription()).isEqualTo(description);
+        assertThat(created.getDescription())
+                .isEqualTo("Test project description");
 
-        log.info("✅ Project with description created: {}", created.getName());
+        log.info("✅ Project with description created");
     }
 
     @ParameterizedTest
@@ -250,6 +270,9 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Create project validation")
     void shouldNotCreateProjectWithInvalidName(String invalidName) {
+
+        ProjectSteps projectSteps = projectSteps(adminClient());
+
         Project project = Project.builder()
                 .name(invalidName)
                 .parentProjectId("_Root")
@@ -272,9 +295,12 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.CRITICAL)
     @Story("Create project validation")
     void shouldNotCreateProjectWithDuplicateName() {
+
+        ProjectSteps projectSteps = projectSteps(adminClient());
+
         Project project = dataFactory.createRandomProject();
-        Project created = projectSteps.createProject(project);
-        trackProject(created.getId());
+
+        projectSteps.createProject(project);
 
         assertThatThrownBy(() -> projectSteps.createProject(project))
                 .isInstanceOf(DuplicateResourceException.class)
@@ -292,7 +318,11 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Get project validation")
     void shouldReturn404ForNonExistentProject() {
-        assertThatThrownBy(() -> projectSteps.getProject("non-existent-id-12345"))
+
+        ProjectSteps projectSteps = projectSteps(adminClient());
+
+        assertThatThrownBy(() ->
+                projectSteps.getProject("non-existent-id-12345"))
                 .isInstanceOf(ApiException.class)
                 .extracting("statusCode")
                 .isEqualTo(404);
@@ -309,7 +339,13 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Update project validation")
     void shouldReturn404WhenUpdatingNonExistentProject() {
-        assertThatThrownBy(() -> projectSteps.updateProject("non-existent-id-12345", "New Name"))
+
+        ProjectSteps projectSteps = projectSteps(adminClient());
+
+        assertThatThrownBy(() ->
+                projectSteps.updateProject(
+                        "non-existent-id-12345",
+                        "New Name"))
                 .isInstanceOf(ApiException.class)
                 .extracting("statusCode")
                 .isEqualTo(404);
@@ -326,7 +362,11 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     @Story("Delete project validation")
     void shouldReturn404WhenDeletingNonExistentProject() {
-        assertThatThrownBy(() -> projectSteps.deleteProject("non-existent-id-12345"))
+
+        ProjectSteps projectSteps = projectSteps(adminClient());
+
+        assertThatThrownBy(() ->
+                projectSteps.deleteProject("non-existent-id-12345"))
                 .isInstanceOf(ApiException.class)
                 .extracting("statusCode")
                 .isEqualTo(404);
@@ -344,18 +384,30 @@ public class AdminProjectsTest extends BaseApiTest {
     @Description("Verifies project creation with different parent project configurations")
     @Severity(SeverityLevel.NORMAL)
     @Story("Create project validation")
-    void shouldCreateProjectWithVariousParents(String parentId, boolean shouldSucceed) {
+    void shouldCreateProjectWithVariousParents(String parentId,
+                                               boolean shouldSucceed) {
+
+        ProjectSteps projectSteps = projectSteps(adminClient());
+
         Project project = dataFactory.createRandomProject(parentId);
 
         if (shouldSucceed) {
+
             Project created = projectSteps.createProject(project);
-            trackProject(created.getId());
-            assertThat(created.getParentProjectId()).isEqualTo(parentId);
+
+            assertThat(created.getParentProjectId())
+                    .isEqualTo(parentId);
+
             log.info("✅ Project created with parent: {}", parentId);
+
         } else {
-            assertThatThrownBy(() -> projectSteps.createProject(project))
+
+            assertThatThrownBy(() ->
+                    projectSteps.createProject(project))
                     .isInstanceOf(Exception.class);
-            log.info("✅ Project creation with parent '{}' correctly rejected", parentId);
+
+            log.info("✅ Project creation with parent '{}' correctly rejected",
+                    parentId);
         }
     }
 

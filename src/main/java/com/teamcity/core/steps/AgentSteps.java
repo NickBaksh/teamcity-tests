@@ -13,32 +13,51 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class AgentSteps {
+
     private final RestClient client;
 
     public AgentSteps(RestClient client) {
         this.client = client;
     }
 
+    // =========================================================================
+    // GET
+    // =========================================================================
+
     @Step("Get all agents")
-    public Agents getAllAgents() {
-        Response response = client.get(Endpoint.AGENTS.getPath());
+    public Agents getAll() {
+
+        Response response = client.get(
+                Endpoint.AGENTS.getPath()
+        );
 
         response.then().spec(ResponseSpecs.requestReturnsOK());
+
         return response.as(Agents.class);
     }
 
-    @Step("Get agent by ID: {agentId}")
-    public Agent getAgent(String agentId) {
+    @Step("Get agent: {agentId}")
+    public Agent get(Integer agentId) {
+
         Response response = client.get(
                 Endpoint.AGENT.format("id:" + agentId)
         );
 
         response.then().spec(ResponseSpecs.requestReturnsOK());
+
         return response.as(Agent.class);
     }
 
+    public Agent get(Agent agent) {
+        return get(agent.getId());
+    }
+
+    // =========================================================================
+    // ENABLE / DISABLE
+    // =========================================================================
+
     @Step("Enable agent: {agentId}")
-    public EnabledInfo enableAgent(String agentId) {
+    public EnabledInfo enable(Integer agentId) {
 
         EnabledInfo request = EnabledInfo.builder()
                 .status(true)
@@ -50,13 +69,18 @@ public class AgentSteps {
         );
 
         response.then().spec(ResponseSpecs.requestReturnsOK());
-        EnabledInfo enabledInfo = response.as(EnabledInfo.class);
-        log.info("Agent enabled: ID={}", agentId);
-        return enabledInfo;
+
+        log.info("Agent {} enabled", agentId);
+
+        return response.as(EnabledInfo.class);
+    }
+
+    public EnabledInfo enable(Agent agent) {
+        return enable(agent.getId());
     }
 
     @Step("Disable agent: {agentId}")
-    public EnabledInfo disableAgent(String agentId) {
+    public EnabledInfo disable(Integer agentId) {
 
         EnabledInfo request = EnabledInfo.builder()
                 .status(false)
@@ -68,25 +92,40 @@ public class AgentSteps {
         );
 
         response.then().spec(ResponseSpecs.requestReturnsOK());
-        EnabledInfo enabledInfo = response.as(EnabledInfo.class);
-        log.info("Agent disabled: ID={}", agentId);
-        return enabledInfo;
+
+        log.info("Agent {} disabled", agentId);
+
+        return response.as(EnabledInfo.class);
     }
 
+    public EnabledInfo disable(Agent agent) {
+        return disable(agent.getId());
+    }
+
+    // =========================================================================
+    // AUTHORIZE
+    // =========================================================================
+
     @Step("Authorize agent: {agentId}")
-    public AuthorizedInfo authorizeAgent(String agentId) {
+    public AuthorizedInfo authorize(Integer agentId) {
 
         AuthorizedInfo request = AuthorizedInfo.builder()
                 .status(true)
                 .build();
+
         Response response = client.put(
                 Endpoint.AGENT_AUTHORIZED_INFO.format("id:" + agentId),
                 request
         );
 
         response.then().spec(ResponseSpecs.requestReturnsOK());
-        AuthorizedInfo authorizedInfo = response.as(AuthorizedInfo.class);
-        log.info("Agent authorized: ID={}", agentId);
-        return authorizedInfo;
+
+        log.info("Agent {} authorized", agentId);
+
+        return response.as(AuthorizedInfo.class);
+    }
+
+    public AuthorizedInfo authorize(Agent agent) {
+        return authorize(agent.getId());
     }
 }

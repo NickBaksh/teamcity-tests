@@ -1,7 +1,9 @@
 package com.teamcity.api.user;
 
 import com.teamcity.api.BaseApiTest;
+import com.teamcity.api.TestListener;
 import com.teamcity.api.specs.ResponseSpecs;
+import com.teamcity.core.cleanup.CleanupExtension;
 import com.teamcity.core.client.ApiClient;
 import com.teamcity.core.client.RestClient;
 import com.teamcity.core.config.ConfigManager;
@@ -16,6 +18,7 @@ import com.teamcity.core.steps.UserSteps;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,78 +26,63 @@ import static org.junit.jupiter.api.Assertions.*;
 public class UserBuildsTest extends BaseApiTest {
 
     @Test
-    @DisplayName("Юзер может запустить сборку админа")
     public void userCanRunBuildOfAdminProjectTest() {
-        Project project = adminProjectSteps.createProject(
-                dataFactory.createRandomProject());
+        Project project = projectSteps(adminClient()).createRandomProject();
+//        Project project = adminProjectSteps.createProject(
+//                dataFactory.createRandomProject());
 
-        BuildConfig buildConfig = adminBuildSteps.createBuildConfig(
-                dataFactory.createRandomBuildConfig(project.getId()));
+        BuildConfig buildConfig =
+                buildConfigSteps(adminClient()).createRandomBuildConfig(project);
+
+//        BuildConfig buildConfig = adminBuildSteps.createBuildConfig(
+//                dataFactory.createRandomBuildConfig(project.getId()));
         // создаем пользователя
-        User user = dataFactory.createRandomUser();
-        new UserSteps(adminClient).createUser(user);
+        User user = userSteps(adminClient()).createRandomUser();
+        System.out.println(user.getUsername());
+
+        System.out.println(user.getPassword());
+//        User user = dataFactory.createRandomUser();
+//        new UserSteps(adminClient).createUser(user);
 
         // создаем клиента под этим пользователем
-        ApiClient client = RestClient.builder()
-                .baseUrl(ConfigManager.getApiBaseUrl())
-                .basicAuth(user.getUsername(), user.getPassword())
-                .build();
-        //запускаем билд под пользователем
-        BuildSteps userSteps = new BuildSteps(client);
+        BuildSteps userSteps = buildSteps(userClient(user));
+//        ApiClient client = RestClient.builder()
+//                .baseUrl(ConfigManager.getApiBaseUrl())
+//                .basicAuth(user.getUsername(), user.getPassword())
+//                .build();
+//        //запускаем билд под пользователем
+//        BuildSteps userSteps = new BuildSteps(client);
+        //запускаем сборку
         Build build = userSteps.runBuild(buildConfig.getId());
 
         assertAll(
                 () -> assertNotNull(build.getId()),
-                () -> assertEquals(buildConfig.getId(), build.getBuildTypeId())
-        );
+                () -> assertEquals(buildConfig.getId(), build.getBuildTypeId()));
     }
 
     @Test
     @DisplayName("Юзер не может запустить несуществующую сборку")
     public void userCanNotRunNotExistBuildTest() {
-        // создаем пользователя
-        User user = dataFactory.createRandomUser();
-        new UserSteps(adminClient).createUser(user);
 
-        // создаем негативного клиента
-        ApiClient client = RestClient.builder()
-                .baseUrl(ConfigManager.getApiBaseUrl())
-                .basicAuth(user.getUsername(), user.getPassword())
-                .forNegativeTest()
-                .build();
+        User user = userSteps(adminClient()).createRandomUser();
 
-        Response response = client.post(
-                Endpoint.BUILD_QUEUE.getPath(),
-                RunBuildRequest.builder()
-                        .buildTypeId(dataFactory.generateNotExistingBuildConfigId())
-                        .build()
-        );
+        Response response = buildSteps(userNegativeClient(user))
+                .runBuildForbidden(dataFactory.generateNotExistingBuildConfigId());
 
         response.then().spec(ResponseSpecs.returnsNotFound());
     }
 
     @Test
-    @DisplayName("Юзер может получить статус сборки")
     public void userCanGetBuildStatusTest() {
-        // Создаем проект и билд-конфиг
-        Project project = adminProjectSteps.createProject(
-                dataFactory.createRandomProject());
+        Project project = projectSteps(adminClient()).createRandomProject();
 
-        BuildConfig buildConfig = adminBuildSteps.createBuildConfig(
-                dataFactory.createRandomBuildConfig(project.getId()));
+        BuildConfig buildConfig =
+                buildConfigSteps(adminClient()).createRandomBuildConfig(project);
 
-        // Создаем пользователя
-        User user = dataFactory.createRandomUser();
-        new UserSteps(adminClient).createUser(user);
+        userSteps(adminClient()).createRandomUser();
 
-        // Создаем клиента под пользователем
-        ApiClient client = RestClient.builder()
-                .baseUrl(ConfigManager.getApiBaseUrl())
-                .basicAuth(user.getUsername(), user.getPassword())
-                .build();
-
-        // Запускаем сборку и ждем завершения
-        Build build = adminBuildSteps.runBuildAndWait(buildConfig.getId());
+        Build build = buildSteps(adminClient())
+                .runBuildAndWait(buildConfig.getId());
 
         assertAll(
                 () -> assertNotNull(build.getState()),
@@ -107,32 +95,20 @@ public class UserBuildsTest extends BaseApiTest {
     @Test
     @DisplayName("Юзер может получить детали сборки")
     public void userCanGetOwnBuildDetailsTest() {
-        // Создаем проект и билд-конфиг
-        Project project = adminProjectSteps.createProject(
-                dataFactory.createRandomProject());
+        Project project = projectSteps(adminClient()).createRandomProject();
 
-        BuildConfig buildConfig = adminBuildSteps.createBuildConfig(
-                dataFactory.createRandomBuildConfig(project.getId()));
+        BuildConfig buildConfig =
+                buildConfigSteps(adminClient()).createRandomBuildConfig(project);
 
-        // Создаем пользователя
-        User user = dataFactory.createRandomUser();
-        new UserSteps(adminClient).createUser(user);
+        User user = userSteps(adminClient()).createRandomUser();
 
-        // Клиент пользователя
-        ApiClient client = RestClient.builder()
-                .baseUrl(ConfigManager.getApiBaseUrl())
-                .basicAuth(user.getUsername(), user.getPassword())
-                .build();
+        BuildSteps buildSteps = buildSteps(userClient(user));
 
-        BuildSteps userSteps = new BuildSteps(client);
+        Build build = buildSteps.runBuild(buildConfig.getId());
 
-        // Запускаем сборку
-        Build build = userSteps.runBuild(buildConfig.getId());
-        Build finishedBuild =
-                userSteps.waitForBuildFinish(String.valueOf(build.getId()));
+        Build finishedBuild = buildSteps.waitForBuildFinish(build.getId());
 
-        // Получаем детали сборки
-        Build buildDetails = userSteps.getBuild(String.valueOf(finishedBuild.getId()));
+        Build buildDetails = buildSteps.getBuild(finishedBuild.getId());
 
         assertAll(
                 () -> assertEquals(finishedBuild.getId(), buildDetails.getId()),
@@ -145,45 +121,24 @@ public class UserBuildsTest extends BaseApiTest {
     @Test
     @DisplayName("Юзер может отменить выполняющуюся сборку в очереди")
     public void userCanCancelRunningBuildTest() {
-        // Создаем проект и билд-конфиг
-        Project project = adminProjectSteps.createProject(
-                dataFactory.createRandomProject());
+        Project project = projectSteps(adminClient()).createRandomProject();
 
-        BuildConfig buildConfig = adminBuildSteps.createBuildConfig(
-                dataFactory.createRandomBuildConfig(project.getId()));
+        BuildConfig buildConfig =
+                buildConfigSteps(adminClient()).createRandomBuildConfig(project);
 
-        // Создаем пользователя
-        User user = dataFactory.createRandomUser();
-        new UserSteps(adminClient).createUser(user);
+        User user = userSteps(adminClient()).createRandomUser();
 
-        ApiClient client = RestClient.builder()
-                .baseUrl(ConfigManager.getApiBaseUrl())
-                .basicAuth(user.getUsername(), user.getPassword())
-                .build();
+        BuildSteps buildSteps = buildSteps(userClient(user));
 
-        BuildSteps userSteps = new BuildSteps(client);
+        Build build = buildSteps.runBuild(buildConfig.getId());
 
-        // Запускаем сборку
-        Build build = userSteps.runBuild(buildConfig.getId());
+        buildSteps.waitForBuildState(build.getId(), "running", 30);
 
-        // Ждем, пока сборка перейдет в состояние running
-        userSteps.waitForBuildState(
-                String.valueOf(build.getId()),
-                "running",
-                30
-        );
+        buildSteps.cancelBuild(build.getId().toString());
 
-        // Отменяем сборку
-        userSteps.cancelBuild(String.valueOf(build.getId()));
+        Build cancelledBuild =
+                buildSteps.waitForBuildState(build.getId(), "finished", 30);
 
-        // Ждем завершения отмены
-        Build cancelledBuild = userSteps.waitForBuildState(
-                String.valueOf(build.getId()),
-                "finished",
-                30
-        );
-
-        // Проверяем результат
         assertAll(
                 () -> assertEquals("finished", cancelledBuild.getState()),
                 () -> assertEquals("UNKNOWN", cancelledBuild.getStatus()),
@@ -198,56 +153,26 @@ public class UserBuildsTest extends BaseApiTest {
     // Поэтому я пока убрала специальный метод cancelBuildForbidden() и хочу уточнить, должен ли этот сценарий вообще существовать?
     public void userCanCancelAnotherUserBuildTest() {
 
-        // Создаем проект и билд-конфигурацию
-        Project project = adminProjectSteps.createProject(
-                dataFactory.createRandomProject());
+        Project project = projectSteps(adminClient()).createRandomProject();
 
-        BuildConfig buildConfig = adminBuildSteps.createBuildConfig(
-                dataFactory.createRandomBuildConfig(project.getId()));
+        BuildConfig buildConfig =
+                buildConfigSteps(adminClient()).createRandomBuildConfig(project);
 
-        // Создаем первого пользователя
-        User user1 = dataFactory.createRandomUser();
-        new UserSteps(adminClient).createUser(user1);
+        User user1 = userSteps(adminClient()).createRandomUser();
+        User user2 = userSteps(adminClient()).createRandomUser();
 
-        // Создаем второго пользователя
-        User user2 = dataFactory.createRandomUser();
-        new UserSteps(adminClient).createUser(user2);
+        BuildSteps user1Steps = buildSteps(userClient(user1));
+        BuildSteps user2Steps = buildSteps(userClient(user2));
 
-        // Клиент первого пользователя
-        ApiClient client1 = RestClient.builder()
-                .baseUrl(ConfigManager.getApiBaseUrl())
-                .basicAuth(user1.getUsername(), user1.getPassword())
-                .build();
+        Build build = user1Steps.runBuild(buildConfig.getId());
 
-        // Клиент второго пользователя
-        ApiClient client2 = RestClient.builder()
-                .baseUrl(ConfigManager.getApiBaseUrl())
-                .basicAuth(user2.getUsername(), user2.getPassword())
-                .forNegativeTest()
-                .build();
+        user1Steps.waitForBuildState(build.getId(), "running", 30);
 
-        BuildSteps firstUserSteps = new BuildSteps(client1);
-        BuildSteps secondUserSteps = new BuildSteps(client2);
+        Response response = user2Steps.cancelBuildForbidden(build.getId());
 
-        // Первый пользователь запускает сборку
-        Build build = firstUserSteps.runBuild(buildConfig.getId());
-
-        firstUserSteps.waitForBuildState(
-                String.valueOf(build.getId()),
-                "running",
-                30
-        );
-
-        // Второй пользователь пытается отменить чужую сборку
-        Response response = secondUserSteps.cancelBuildForbidden(
-                String.valueOf(build.getId())
-        );
         assertThat(response.statusCode()).isEqualTo(403);
 
-        // Проверяем, что сборка не была отменена
-        Build actualBuild = firstUserSteps.getBuild(
-                String.valueOf(build.getId())
-        );
+        Build actualBuild = user1Steps.getBuild(build.getId());
 
         assertThat(actualBuild.getStatusText())
                 .doesNotContain("Canceled");
@@ -256,53 +181,26 @@ public class UserBuildsTest extends BaseApiTest {
     @Test
     @DisplayName("Юзер не может удалить свою завершённую сборку без прав админа")
     public void userCanNotDeleteOwnFinishedBuildTest() {
-        // Создаем проект и Build Config
-        Project project = adminProjectSteps.createProject(
-                dataFactory.createRandomProject());
 
-        BuildConfig buildConfig = adminBuildSteps.createBuildConfig(
-                dataFactory.createRandomBuildConfig(project.getId()));
+        Project project = projectSteps(adminClient()).createRandomProject();
 
-        // Создаем пользователя
-        User user = dataFactory.createRandomUser();
-        new UserSteps(adminClient).createUser(user);
+        BuildConfig buildConfig =
+                buildConfigSteps(adminClient()).createRandomBuildConfig(project);
 
-        // Клиент пользователя для запуска сборки
-        ApiClient userClient = RestClient.builder()
-                .baseUrl(ConfigManager.getApiBaseUrl())
-                .basicAuth(user.getUsername(), user.getPassword())
-                .build();
+        User user = userSteps(adminClient()).createRandomUser();
 
-        BuildSteps userSteps = new BuildSteps(userClient);
+        BuildSteps buildSteps = buildSteps(userClient(user));
 
-        // Запускаем сборку
-        Build build = userSteps.runBuild(buildConfig.getId());
+        Build build = buildSteps.runBuild(buildConfig.getId());
 
-        // Ждем завершения
-        Build finishedBuild = userSteps.waitForBuildFinish(
-                String.valueOf(build.getId())
-        );
+        Build finishedBuild = buildSteps.waitForBuildFinish(build.getId());
 
-        // Негативный клиент того же пользователя
-        ApiClient negativeClient = RestClient.builder()
-                .baseUrl(ConfigManager.getApiBaseUrl())
-                .basicAuth(user.getUsername(), user.getPassword())
-                .forNegativeTest()
-                .build();
-
-        BuildSteps negativeSteps = new BuildSteps(negativeClient);
-
-        // Пытаемся удалить сборку
-        Response response = negativeSteps.deleteBuildForbidden(
-                String.valueOf(finishedBuild.getId())
-        );
+        Response response = buildSteps(userNegativeClient(user))
+                .deleteBuildForbidden(finishedBuild.getId());
 
         response.then().spec(ResponseSpecs.returnsForbidden());
 
-        // Проверяем, что сборка не исчезла
-        Build actualBuild = userSteps.getBuild(
-                String.valueOf(finishedBuild.getId())
-        );
+        Build actualBuild = buildSteps.getBuild(finishedBuild.getId());
 
         assertAll(
                 () -> assertNotNull(actualBuild),
@@ -311,11 +209,4 @@ public class UserBuildsTest extends BaseApiTest {
                 () -> assertEquals("SUCCESS", actualBuild.getStatus())
         );
     }
-
-    // Не существует ручки для получения лога. Тест несуществуюшего API
-//    @Test
-//    @DisplayName("Получить лог своей сборки")
-//    public void userCanGetOwnBuildLogTest() {
-//        // Expected: 200 OK
-//    }
 }

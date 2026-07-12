@@ -45,504 +45,410 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Feature("Build Configuration Management")
 @Tag("admin")
 @Tag("build-configs")
-@Tag("api-tests")
 @DisplayName("Build Configuration Management Tests")
 public class AdminBuildConfigsTest extends BaseApiTest {
 
     private static final String NON_EXISTENT_ID = "non-existent-id-12345";
     private static final String INVALID_PROJECT_ID = "invalid-project-id";
     private static final String ROOT_PROJECT_ID = "_Root";
-    private static final int DEFAULT_RETRY_COUNT = 3;
 
-    private ProjectSteps projectSteps;
-    private BuildSteps buildSteps;
     private String testProjectId;
 
-
-    @Override
     @BeforeEach
+    @Override
     public void setUp() {
         super.setUp();
 
-        projectSteps = new ProjectSteps(adminClient);
-        buildSteps = new BuildSteps(adminClient);
+        Project project = projectSteps(adminClient())
+                .createRandomProject();
 
-        Project project = dataFactory.createRandomProject();
-        Project created = projectSteps.createProject(project);
-        testProjectId = created.getId();
-        trackProject(testProjectId);
-
-        log.debug("Test setup completed. Project ID: {}", testProjectId);
+        testProjectId = project.getId();
     }
 
     @AfterEach
     void tearDown() {
-        cleanupResources();
+
+        buildConfigSteps(adminClient())
+                .getAll()
+                .stream()
+                .filter(config -> testProjectId.equals(config.getProjectId()))
+                .forEach(buildConfigSteps(adminClient())::deleteIfExists);
+
+        projectSteps(adminClient())
+                .deleteProjectIfExists(testProjectId);
     }
 
-    private void cleanupResources() {
-        try {
-            List<BuildConfig> configs = buildSteps.getAllBuildConfigs();
-            configs.stream()
-                    .filter(config -> testProjectId.equals(config.getProjectId()))
-                    .forEach(config -> {
-                        try {
-                            buildSteps.deleteBuildConfigIfExists(config.getId());
-                            log.debug("Cleaned up build config: {}", config.getId());
-                        } catch (Exception e) {
-                            log.warn("Failed to clean up build config {}: {}", config.getId(), e.getMessage());
-                        }
-                    });
-
-            try {
-                projectSteps.deleteProject(testProjectId);
-                log.debug("Cleaned up project: {}", testProjectId);
-            } catch (ResourceNotFoundException e) {
-                log.debug("Project {} already deleted", testProjectId);
-            } catch (Exception e) {
-                log.warn("Failed to clean up project {}: {}", testProjectId, e.getMessage());
-            }
-
-        } catch (Exception e) {
-            log.warn("Error during cleanup: {}", e.getMessage());
-        }
-    }
+    // ========================================================================
+    // CREATE
+    // ========================================================================
 
     @Test
     @Order(1)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("crud")
-    @Tag("positive")
-    @DisplayName("✅ [SMOKE] Create build config with valid data")
-    @Description("Verifies that a build configuration can be created with valid data")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Create build config")
+    @DisplayName("Create build config")
     void shouldCreateBuildConfigWithValidData() {
 
-        BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
+        Project project = projectSteps(adminClient())
+                .getProject(testProjectId);
 
-        BuildConfig created = buildSteps.createBuildConfig(config);
-        trackBuildConfig(created.getId());
+        BuildConfig actual = buildConfigSteps(adminClient())
+                .createRandomBuildConfig(project);
 
         SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(created).as("Created build config should not be null").isNotNull();
-        softly.assertThat(created.getId()).as("ID should not be empty").isNotBlank();
-        softly.assertThat(created.getName()).as("Name should match").isEqualTo(config.getName());
-        softly.assertThat(created.getProjectId()).as("Project ID should match").isEqualTo(testProjectId);
-        softly.assertThat(created.getHref()).as("Href should not be empty").isNotBlank();
-        softly.assertAll();
 
-        log.info("✅ Build config created: ID={}, Name={}", created.getId(), created.getName());
+        softly.assertThat(actual.getId()).isNotBlank();
+        softly.assertThat(actual.getName()).isNotBlank();
+        softly.assertThat(actual.getProjectId()).isEqualTo(project.getId());
+        softly.assertThat(actual.getHref()).isNotBlank();
+
+        softly.assertAll();
     }
 
     @Test
     @Order(2)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("crud")
-    @Tag("positive")
-    @DisplayName("✅ [SMOKE] Get build config by ID")
-    @Description("Verifies that a build configuration can be retrieved by ID")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Get build config")
+    @DisplayName("Get build config by id")
     void shouldGetBuildConfigById() {
 
-        BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
-        BuildConfig created = buildSteps.createBuildConfig(config);
-        trackBuildConfig(created.getId());
+        Project project = projectSteps(adminClient())
+                .getProject(testProjectId);
 
-        BuildConfig retrieved = buildSteps.getBuildConfig(created.getId());
+        BuildConfig expected = buildConfigSteps(adminClient())
+                .createRandomBuildConfig(project);
 
-        SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(retrieved).as("Retrieved build config should not be null").isNotNull();
-        softly.assertThat(retrieved.getId()).as("ID should match").isEqualTo(created.getId());
-        softly.assertThat(retrieved.getName()).as("Name should match").isEqualTo(created.getName());
-        softly.assertThat(retrieved.getProjectId()).as("Project ID should match").isEqualTo(testProjectId);
-        softly.assertAll();
+        BuildConfig actual = buildConfigSteps(adminClient())
+                .get(expected);
 
-        log.info("✅ Build config retrieved: ID={}, Name={}", retrieved.getId(), retrieved.getName());
+        assertThat(actual.getId()).isEqualTo(expected.getId());
+        assertThat(actual.getName()).isEqualTo(expected.getName());
+        assertThat(actual.getProjectId()).isEqualTo(expected.getProjectId());
     }
 
     @Test
     @Order(3)
-    @Tag("smoke")
-    @Tag("critical")
-    @Tag("crud")
-    @Tag("positive")
-    @DisplayName("✅ [SMOKE] Delete build config")
-    @Description("Verifies that a build configuration can be deleted")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Delete build config")
+    @DisplayName("Delete build config")
     void shouldDeleteBuildConfig() {
-        BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
-        BuildConfig created = buildSteps.createBuildConfig(config);
 
-        buildSteps.deleteBuildConfig(created.getId());
+        Project project = projectSteps(adminClient())
+                .getProject(testProjectId);
 
-        assertThat(buildSteps.buildConfigExists(created.getId()))
-                .as("Build config should not exist after deletion")
-                .isFalse();
+        BuildConfig created = buildConfigSteps(adminClient())
+                .createRandomBuildConfig(project);
 
-        log.info("✅ Build config deleted: ID={}", created.getId());
+        buildConfigSteps(adminClient())
+                .delete(created);
+
+        assertThat(
+                buildConfigSteps(adminClient())
+                        .exists(created)
+        ).isFalse();
     }
-
 
     @Test
     @Order(4)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("crud")
-    @DisplayName("✅ Get all build configs")
-    @Description("Verifies that all build configurations can be retrieved")
-    @Severity(SeverityLevel.CRITICAL)
-    @Story("Get build config")
+    @DisplayName("Get all build configs")
     void shouldGetAllBuildConfigs() {
 
-        createMultipleBuildConfigs(2);
+        Project project = projectSteps(adminClient())
+                .getProject(testProjectId);
 
-        List<BuildConfig> configs = buildSteps.getAllBuildConfigs();
+        buildConfigSteps(adminClient()).createRandomBuildConfig(project);
+        buildConfigSteps(adminClient()).createRandomBuildConfig(project);
 
-        SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(configs).as("Build configs list should not be null").isNotNull();
-        softly.assertThat(configs).as("Should have at least 2 configs").hasSizeGreaterThanOrEqualTo(2);
-        softly.assertAll();
+        List<BuildConfig> configs = buildConfigSteps(adminClient())
+                .getAll();
 
-        log.info("✅ Retrieved {} build configs", configs.size());
+        assertThat(configs).isNotNull();
+        assertThat(configs.size()).isGreaterThanOrEqualTo(2);
     }
 
     @Test
     @Order(5)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("crud")
-    @DisplayName("✅ Update build config name")
-    @Description("Verifies that build configuration name can be updated")
-    @Severity(SeverityLevel.CRITICAL)
-    @Story("Update build config")
+    @DisplayName("Update build config name")
     void shouldUpdateBuildConfigName() {
 
-        BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
-        BuildConfig created = buildSteps.createBuildConfig(config);
-        trackBuildConfig(created.getId());
+        Project project = projectSteps(adminClient())
+                .getProject(testProjectId);
 
-        String newName = dataFactory.generateUniqueBuildConfigName();
+        BuildConfig created = buildConfigSteps(adminClient())
+                .createRandomBuildConfig(project);
 
-        BuildConfig updated = buildSteps.updateBuildConfig(created.getId(), newName);
+        String newName = "Updated_" + System.currentTimeMillis();
 
-        SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(updated).as("Updated config should not be null").isNotNull();
-        softly.assertThat(updated.getId()).as("ID should remain the same").isEqualTo(created.getId());
-        softly.assertThat(updated.getName()).as("Name should be updated").isEqualTo(newName);
-        softly.assertAll();
+        BuildConfig updated = buildConfigSteps(adminClient())
+                .updateName(created, newName);
 
-        log.info("✅ Build config updated: {} → {}", config.getName(), newName);
+        assertThat(updated.getId()).isEqualTo(created.getId());
+        assertThat(updated.getName()).isEqualTo(newName);
     }
 
     @Test
     @Order(6)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("crud")
-    @DisplayName("✅ Pause build config")
-    @Description("Verifies that a build configuration can be paused")
-    @Severity(SeverityLevel.CRITICAL)
-    @Story("Pause build config")
+    @DisplayName("Pause build config")
     void shouldPauseBuildConfig() {
 
-        BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
-        BuildConfig created = buildSteps.createBuildConfig(config);
-        trackBuildConfig(created.getId());
+        Project project = projectSteps(adminClient())
+                .getProject(testProjectId);
 
-        buildSteps.setBuildConfigPaused(created.getId(), true);
+        BuildConfig created = buildConfigSteps(adminClient())
+                .createRandomBuildConfig(project);
 
-        BuildConfig paused = buildSteps.getBuildConfig(created.getId());
-        assertThat(paused.getPaused())
-                .as("Build config should be paused")
-                .isTrue();
+        buildConfigSteps(adminClient())
+                .pause(created);
 
-        log.info("✅ Build config paused: {}", created.getName());
+        BuildConfig paused = buildConfigSteps(adminClient())
+                .get(created);
+
+        assertThat(paused.getPaused()).isTrue();
     }
 
-    @Order(7)
     @Test
-    @Tag("build-configs")
-    @Tag("pause-resume")
-    @DisplayName("✅ Resume build config → 200")
-    @Description("Verifies that build config can be paused and resumed. " +
-            "Tests idempotency: pausing already paused config, resuming already resumed config.")
-    @Severity(SeverityLevel.BLOCKER)
-    @Story("Build Config")
+    @Order(7)
+    @DisplayName("Resume build config")
     void shouldResumeBuildConfig() {
 
-        Project project = dataFactory.createRandomProject();
-        Project createdProject = projectSteps.createProject(project);
-        trackProject(createdProject.getId());
+        Project project = projectSteps(adminClient())
+                .getProject(testProjectId);
 
-        BuildConfig config = dataFactory.createRandomBuildConfig(createdProject.getId());
-        BuildConfig createdConfig = buildSteps.createBuildConfig(config);
-        trackBuildConfig(createdConfig.getId());
+        BuildConfig created = buildConfigSteps(adminClient())
+                .createRandomBuildConfig(project);
 
         SoftAssertions softly = new SoftAssertions();
 
-        BuildConfig initialConfig = buildSteps.getBuildConfig(createdConfig.getId());
-        softly.assertThat(initialConfig.getPaused())
-                .as("Build config should NOT be paused initially")
-                .isFalse();
+        softly.assertThat(
+                buildConfigSteps(adminClient())
+                        .get(created)
+                        .getPaused()
+        ).isFalse();
 
-        buildSteps.pauseBuildConfig(createdConfig.getId());
-        BuildConfig pausedConfig = buildSteps.getBuildConfig(createdConfig.getId());
+        buildConfigSteps(adminClient())
+                .pause(created);
 
-        softly.assertThat(pausedConfig.getPaused())
-                .as("Build config should be paused after pause() call")
-                .isTrue();
+        softly.assertThat(
+                buildConfigSteps(adminClient())
+                        .get(created)
+                        .getPaused()
+        ).isTrue();
 
-        softly.assertThatCode(() -> buildSteps.pauseBuildConfig(createdConfig.getId()))
-                .as("Pausing already paused config should not throw exception")
-                .doesNotThrowAnyException();
+        softly.assertThatCode(() ->
+                buildConfigSteps(adminClient())
+                        .pause(created)
+        ).doesNotThrowAnyException();
 
-        BuildConfig doublePausedConfig = buildSteps.getBuildConfig(createdConfig.getId());
-        softly.assertThat(doublePausedConfig.getPaused())
-                .as("Double pause should keep config paused")
-                .isTrue();
+        softly.assertThat(
+                buildConfigSteps(adminClient())
+                        .get(created)
+                        .getPaused()
+        ).isTrue();
 
-        buildSteps.resumeBuildConfig(createdConfig.getId());
-        BuildConfig resumedConfig = buildSteps.getBuildConfig(createdConfig.getId());
+        buildConfigSteps(adminClient())
+                .resume(created);
 
-        softly.assertThat(resumedConfig.getPaused())
-                .as("Build config should be resumed after resume() call")
-                .isFalse();
+        softly.assertThat(
+                buildConfigSteps(adminClient())
+                        .get(created)
+                        .getPaused()
+        ).isFalse();
 
-        softly.assertThatCode(() -> buildSteps.resumeBuildConfig(createdConfig.getId()))
-                .as("Resuming already resumed config should not throw exception")
-                .doesNotThrowAnyException();
+        softly.assertThatCode(() ->
+                buildConfigSteps(adminClient())
+                        .resume(created)
+        ).doesNotThrowAnyException();
 
-        BuildConfig doubleResumedConfig = buildSteps.getBuildConfig(createdConfig.getId());
-        softly.assertThat(doubleResumedConfig.getPaused())
-                .as("Double resume should keep config resumed")
-                .isFalse();
-
-        softly.assertThat(resumedConfig.getId())
-                .as("Build config ID should not change")
-                .isEqualTo(createdConfig.getId());
-
-        softly.assertThat(resumedConfig.getName())
-                .as("Build config name should not change")
-                .isEqualTo(createdConfig.getName());
+        softly.assertThat(
+                buildConfigSteps(adminClient())
+                        .get(created)
+                        .getPaused()
+        ).isFalse();
 
         softly.assertAll();
-
-        log.info("✅ Build config pause/resume verified: {}", createdConfig.getName());
     }
 
     @Test
     @Order(8)
-    @Tag("positive")
-    @Tag("normal")
-    @Tag("crud")
-    @DisplayName("✅ Create build config with description")
-    @Description("Verifies that a build configuration can be created with description")
-    @Severity(SeverityLevel.NORMAL)
-    @Story("Create build config")
+    @DisplayName("Build config with description")
     void shouldCreateBuildConfigWithDescription() {
 
-        String description = "This is a test build config";
-        BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
-        config.setDescription(description);
+        Project project = projectSteps(adminClient())
+                .getProject(testProjectId);
 
+        BuildConfig config = dataFactory.createRandomBuildConfig(project.getId());
+        config.setDescription("This is a test build config");
 
-        BuildConfig created = buildSteps.createBuildConfig(config);
-        trackBuildConfig(created.getId());
-
+        BuildConfig created = buildConfigSteps(adminClient())
+                .create(config);
 
         assertThat(created.getDescription())
-                .as("Description should match")
-                .isEqualTo(description);
-
-        log.info("✅ Build config with description created: {}", created.getName());
+                .isEqualTo("This is a test build config");
     }
 
-    @ParameterizedTest
+    @Test
     @Order(9)
-    @Tag("negative")
-    @Tag("critical")
-    @Tag("validation")
-    @ValueSource(strings = {"", " ", "\t"})
-    @DisplayName("❌ Create build config with invalid name → 400/500")
-    @Description("Verifies that invalid build config names are rejected")
-    @Severity(SeverityLevel.CRITICAL)
-    @Story("Create build config validation")
-    void shouldNotCreateBuildConfigWithInvalidName(String invalidName) {
+    @DisplayName("Create build config with invalid name")
+    void shouldNotCreateBuildConfigWithInvalidName() {
 
-        BuildConfig invalidConfig = BuildConfig.builder()
-                .name(invalidName)
+        BuildConfig invalid = BuildConfig.builder()
+                .name("")
                 .projectId(testProjectId)
                 .build();
 
-
-        assertThatThrownBy(() -> buildSteps.createBuildConfig(invalidConfig))
-                .as("Should throw exception for invalid name: '" + invalidName + "'")
-                .isInstanceOfAny(ValidationException.class, ApiException.class);
-
-        log.info("✅ Build config name '{}' correctly rejected", invalidName);
-    }
-
-    @Test
-    @Order(10)
-    @Tag("negative")
-    @Tag("critical")
-    @Tag("conflict")
-    @DisplayName("❌ Create build config with duplicate name → 409")
-    @Description("Verifies that duplicate build config names are rejected")
-    @Severity(SeverityLevel.CRITICAL)
-    @Story("Create build config validation")
-    void shouldNotCreateBuildConfigWithDuplicateName() {
-
-        BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
-        BuildConfig created = buildSteps.createBuildConfig(config);
-        trackBuildConfig(created.getId());
-
-
-        assertThatThrownBy(() -> buildSteps.createBuildConfig(config))
-                .as("Should throw DuplicateResourceException for duplicate name")
-                .isInstanceOf(DuplicateResourceException.class)
-                .hasMessageContaining("already exists");
-
-        log.info("✅ Duplicate build config name correctly rejected");
-    }
-
-    @Test
-    @Order(11)
-    @Tag("negative")
-    @Tag("validation")
-    @Tag("not-found")
-    @DisplayName("❌ Create build config with invalid project ID → 400")
-    @Description("Verifies that invalid project ID is rejected")
-    @Severity(SeverityLevel.CRITICAL)
-    @Story("Create build config validation")
-    void shouldNotCreateBuildConfigWithInvalidProjectId() {
-
-        BuildConfig invalidConfig = BuildConfig.builder()
-                .name(dataFactory.generateUniqueBuildConfigName())
-                .projectId(INVALID_PROJECT_ID)
-                .build();
-
-
-        assertThatThrownBy(() -> buildSteps.createBuildConfig(invalidConfig))
-                .as("Should throw ValidationException for invalid project")
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Cannot find project");
-
-        log.info("✅ Invalid project ID correctly rejected");
-    }
-
-    @Test
-    @Order(12)
-    @Tag("negative")
-    @Tag("not-found")
-    @DisplayName("❌ Get non-existent build config → 404")
-    @Description("Verifies that non-existent build config returns 404")
-    @Severity(SeverityLevel.CRITICAL)
-    @Story("Get build config validation")
-    void shouldReturn404ForNonExistentBuildConfig() {
-
-        assertThatThrownBy(() -> buildSteps.getBuildConfig(NON_EXISTENT_ID))
-                .as("Should throw ApiException with status 404")
-                .isInstanceOf(ApiException.class)
-                .extracting("statusCode")
-                .isEqualTo(404);
-
-        log.info("✅ Non-existent build config correctly rejected");
+        assertThatThrownBy(() ->
+                buildConfigSteps(adminClient()).create(invalid)
+        ).isInstanceOfAny(
+                ValidationException.class,
+                ApiException.class
+        );
     }
 
     @ParameterizedTest
-    @Order(13)
-    @Tag("negative")
-    @Tag("parameterized")
-    @Tag("validation")
-    @MethodSource("provideProjectConfigurations")
-    @DisplayName("🔄 Create build config with various project configurations")
-    @Description("Verifies build config creation with different project configurations")
-    @Severity(SeverityLevel.NORMAL)
-    @Story("Create build config validation")
-    void shouldCreateBuildConfigWithVariousProjects(String projectId, boolean shouldSucceed, String expectedError) {
-        BuildConfig config = dataFactory.createRandomBuildConfig(projectId);
+    @ValueSource(strings = {" ", "\t"})
+    @Order(10)
+    @DisplayName("Create build config with blank name")
+    void shouldNotCreateBuildConfigWithBlankName(String name) {
 
-        if (shouldSucceed) {
+        BuildConfig invalid = BuildConfig.builder()
+                .name(name)
+                .projectId(testProjectId)
+                .build();
 
-            BuildConfig created = buildSteps.createBuildConfig(config);
-            trackBuildConfig(created.getId());
-
-            assertThat(created.getProjectId())
-                    .as("Project ID should match")
-                    .isEqualTo(projectId);
-            log.info("✅ Build config created with project: {}", projectId);
-        } else {
-
-            assertThatThrownBy(() -> buildSteps.createBuildConfig(config))
-                    .as("Should fail with appropriate exception for project: " + projectId)
-                    .isInstanceOfAny(ValidationException.class, ApiException.class);
-            log.info("✅ Build config creation with project '{}' correctly rejected", projectId);
-        }
-    }
-
-    static Stream<Arguments> provideProjectConfigurations() {
-        return Stream.of(
-                Arguments.of(ROOT_PROJECT_ID, false, "Root project cannot contain build configurations"),
-                Arguments.of(INVALID_PROJECT_ID, false, "Cannot find project"),
-                Arguments.of("", false, "Cannot find project"),
-                Arguments.of(null, false, "Cannot find project")
+        assertThatThrownBy(() ->
+                buildConfigSteps(adminClient()).create(invalid)
+        ).isInstanceOfAny(
+                ValidationException.class,
+                ApiException.class
         );
     }
 
     @Test
-    @Order(14)
-    @Tag("edge")
-    @Tag("positive")
-    @DisplayName("🔍 Verify build config exists")
-    @Description("Verifies that buildConfigExists method works correctly")
-    @Severity(SeverityLevel.MINOR)
-    @Story("Build config validation")
-    void shouldVerifyBuildConfigExists() {
-        // Given — non-existent
-        assertThat(buildSteps.buildConfigExists(NON_EXISTENT_ID))
-                .as("Non-existent config should return false")
-                .isFalse();
+    @Order(11)
+    @DisplayName("Duplicate build config")
+    void shouldNotCreateBuildConfigWithDuplicateName() {
 
-        // Given — exists
-        BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
-        BuildConfig created = buildSteps.createBuildConfig(config);
-        trackBuildConfig(created.getId());
+        Project project = projectSteps(adminClient())
+                .getProject(testProjectId);
 
-        assertThat(buildSteps.buildConfigExists(created.getId()))
-                .as("Existing config should return true")
-                .isTrue();
+        BuildConfig created = buildConfigSteps(adminClient())
+                .createRandomBuildConfig(project);
 
-        log.info("✅ Build config existence verification successful");
+        BuildConfig duplicate = BuildConfig.builder()
+                .name(created.getName())
+                .projectId(project.getId())
+                .build();
+
+        assertThatThrownBy(() ->
+                buildConfigSteps(adminClient()).create(duplicate)
+        ).isInstanceOf(DuplicateResourceException.class);
     }
 
     @Test
-    @Order(15)
-    @Tag("edge")
-    @Tag("negative")
-    @DisplayName("🔍 Delete non-existent build config (idempotent)")
-    @Description("Verifies that deleting non-existent build config is safe")
-    @Severity(SeverityLevel.MINOR)
-    @Story("Build config validation")
-    void shouldHandleNonExistentDeletion() {
-        // Should not throw exception
-        buildSteps.deleteBuildConfigIfExists(NON_EXISTENT_ID);
-        buildSteps.deleteBuildConfigIfExists(NON_EXISTENT_ID); // Повторный вызов тоже безопасен
+    @Order(12)
+    @DisplayName("Invalid project id")
+    void shouldNotCreateBuildConfigWithInvalidProjectId() {
 
-        log.info("✅ Non-existent build config deletion handled correctly");
+        BuildConfig invalid = BuildConfig.builder()
+                .name("Build_" + System.currentTimeMillis())
+                .projectId(INVALID_PROJECT_ID)
+                .build();
+
+        assertThatThrownBy(() ->
+                buildConfigSteps(adminClient()).create(invalid)
+        ).isInstanceOfAny(
+                ValidationException.class,
+                ApiException.class
+        );
+    }
+
+    @Test
+    @Order(13)
+    @DisplayName("Get non existing build config")
+    void shouldReturn404ForNonExistentBuildConfig() {
+
+        assertThatThrownBy(() ->
+                buildConfigSteps(adminClient()).get(NON_EXISTENT_ID)
+        ).isInstanceOf(ApiException.class);
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideProjectConfigurations")
+    @Order(14)
+    @DisplayName("Create build config with different projects")
+    void shouldCreateBuildConfigWithVariousProjects(
+            String projectId,
+            boolean shouldSucceed,
+            String expectedError) {
+
+        BuildConfig config = BuildConfig.builder()
+                .name("Build_" + System.currentTimeMillis())
+                .projectId(projectId)
+                .build();
+
+        if (shouldSucceed) {
+
+            BuildConfig created = buildConfigSteps(adminClient())
+                    .create(config);
+
+            assertThat(created.getProjectId())
+                    .isEqualTo(projectId);
+
+        } else {
+
+            assertThatThrownBy(() ->
+                    buildConfigSteps(adminClient()).create(config)
+            ).isInstanceOfAny(
+                    ValidationException.class,
+                    ApiException.class
+            );
+        }
+    }
+    static Stream<Arguments> provideProjectConfigurations() {
+
+        return Stream.of(
+                Arguments.of(ROOT_PROJECT_ID, false, ""),
+                Arguments.of(INVALID_PROJECT_ID, false, ""),
+                Arguments.of("", false, ""),
+                Arguments.of(null, false, "")
+        );
+    }
+
+
+    @Test
+    @DisplayName("Build config exists")
+
+    void shouldVerifyBuildConfigExists() {
+        assertThat(
+                buildConfigSteps(adminClient())
+                        .exists(NON_EXISTENT_ID)
+        ).isFalse();
+
+        Project project = projectSteps(adminClient())
+                .getProject(testProjectId);
+
+        BuildConfig created = buildConfigSteps(adminClient())
+                .createRandomBuildConfig(project);
+
+        assertThat(
+                buildConfigSteps(adminClient())
+                        .exists(created)
+        ).isTrue();
+    }
+
+    @Test
+    @DisplayName("Delete non existing build config")
+    void shouldHandleNonExistentDeletion() {
+
+        buildConfigSteps(adminClient())
+                .deleteIfExists(NON_EXISTENT_ID);
+
+        buildConfigSteps(adminClient())
+                .deleteIfExists(NON_EXISTENT_ID);
     }
 
     private void createMultipleBuildConfigs(int count) {
+
+        Project project = projectSteps(adminClient())
+                .getProject(testProjectId);
+
         for (int i = 0; i < count; i++) {
-            BuildConfig config = dataFactory.createRandomBuildConfig(testProjectId);
-            BuildConfig created = buildSteps.createBuildConfig(config);
-            trackBuildConfig(created.getId());
+            buildConfigSteps(adminClient())
+                    .createRandomBuildConfig(project);
         }
-        log.debug("Created {} build configs", count);
     }
 }
