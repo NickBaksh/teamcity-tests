@@ -21,9 +21,10 @@ public final class CleanupRegistry {
     }
 
     public void cleanup() {
-        for (Runnable action : actions) {
+
+        for (int i = actions.size() - 1; i >= 0; i--) {
             try {
-                action.run();
+                actions.get(i).run();
             } catch (Exception ignored) {
             }
         }

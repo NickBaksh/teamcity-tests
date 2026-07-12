@@ -1,5 +1,6 @@
 package com.teamcity.core.steps;
 
+import com.teamcity.core.cleanup.CleanupRegistry;
 import com.teamcity.core.client.ApiClient;
 import com.teamcity.core.client.ResponseValidator;
 import com.teamcity.core.endpoints.Endpoint;
@@ -37,6 +38,12 @@ public class UserSteps {
         user.setHref(createdUser.getHref());
         user.setName(createdUser.getName());
         user.setEmail(createdUser.getEmail());
+        CleanupRegistry.get().register(() -> {
+            try {
+                deleteUser(createdUser.getUsername());
+            } catch (Exception ignored) {
+            }
+        });
 
         return user;
     }

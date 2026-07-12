@@ -1,5 +1,6 @@
 package com.teamcity.core.steps;
 
+import com.teamcity.core.cleanup.CleanupRegistry;
 import com.teamcity.core.client.ApiClient;
 import com.teamcity.core.client.RequestType;
 import com.teamcity.core.client.ResponseValidator;
@@ -66,6 +67,17 @@ public class ProjectSteps {
 
         Response response = client.post(Endpoint.PROJECTS.getPath(), project);
         Project created = validator.validate(response, Project.class);
+        CleanupRegistry.get().register(() -> {
+
+            try {
+
+                deleteProject(created.getId());
+
+            } catch (Exception ignored) {
+
+            }
+
+        });
 
         log.info("Project created: ID={}, Name={}", created.getId(), created.getName());
         return created;

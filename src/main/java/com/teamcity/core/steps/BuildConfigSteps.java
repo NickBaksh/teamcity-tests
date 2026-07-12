@@ -1,5 +1,6 @@
 package com.teamcity.core.steps;
 
+import com.teamcity.core.cleanup.CleanupRegistry;
 import com.teamcity.core.client.ApiClient;
 import com.teamcity.core.client.RequestType;
 import com.teamcity.core.client.ResponseValidator;
@@ -45,6 +46,13 @@ public class BuildConfigSteps {
 
         Response response = client.post(Endpoint.BUILD_TYPES.getPath(), config);
         BuildConfig created = validator.validate(response, BuildConfig.class);
+        CleanupRegistry.get().register(() -> {
+
+            try {
+                delete(created.getId());
+            } catch (Exception ignored) {
+            }
+        });
 
         log.info("Build config created: ID={}, Name={}", created.getId(), created.getName());
         return created;
