@@ -24,6 +24,12 @@ public class ResponseSpecs {
                 .build();
     }
 
+    public static ResponseSpecification requestReturnsNoContent() {
+        return defaultResponseBuilder()
+                .expectStatusCode(HttpStatus.SC_NO_CONTENT)
+                .build();
+    }
+
     public static ResponseSpecification returnsBadRequest() {
         return defaultResponseBuilder()
                 .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
