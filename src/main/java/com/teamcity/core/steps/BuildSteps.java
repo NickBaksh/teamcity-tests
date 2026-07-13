@@ -21,14 +21,17 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class BuildSteps {
 
+    public static final int DEFAULT_WAIT_TIMEOUT_SECONDS = 50;
     private static final int DEFAULT_WAIT_INTERVAL_SECONDS = 2;
     private static final int DEFAULT_MAX_WAIT_SECONDS = 300;
     private static final String DEFAULT_CANCEL_COMMENT = "Canceled by API test";
 
-    private static final String FINISHED = "finished";
-    private static final String RUNNING = "running";
-    private static final String FAILED = "failed";
-    private static final String CANCELLED = "cancelled";
+    public static final String STATE_RUNNING = "running";
+    public static final String STATE_FINISHED = "finished";
+    public static final String STATUS_FAILED = "FAILURE";
+    public static final String STATUS_UNKNOWN = "UNKNOWN";
+    public static final String STATUS_TEXT_CANCELED = "Canceled";
+    public static final String STATUS_SUCCESS = "SUCCESS";
 
     private final ApiClient client;
     private final ResponseValidator validator;
@@ -165,8 +168,8 @@ public class BuildSteps {
     // =========================================================================
 
     @Step("Cancel build: {buildId}")
-    public void cancelBuild(String buildId) {
-        cancelBuild(buildId, DEFAULT_CANCEL_COMMENT);
+    public void cancelBuild(Long buildId) {
+        cancelBuild(String.valueOf(buildId), DEFAULT_CANCEL_COMMENT);
     }
 
     @Step("Cancel build: {buildId}")
@@ -256,6 +259,14 @@ public class BuildSteps {
                         expectedState,
                         maxWaitSeconds
                 )
+        );
+    }
+
+    public Build waitForBuildState(long buildId, String state) {
+        return waitForBuildState(
+                buildId,
+                state,
+                DEFAULT_MAX_WAIT_SECONDS
         );
     }
 

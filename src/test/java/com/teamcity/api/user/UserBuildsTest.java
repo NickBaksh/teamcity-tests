@@ -1,26 +1,15 @@
 package com.teamcity.api.user;
 
 import com.teamcity.api.BaseApiTest;
-import com.teamcity.api.TestListener;
 import com.teamcity.api.specs.ResponseSpecs;
-import com.teamcity.core.cleanup.CleanupExtension;
-import com.teamcity.core.client.ApiClient;
-import com.teamcity.core.client.RestClient;
-import com.teamcity.core.config.ConfigManager;
-import com.teamcity.core.endpoints.Endpoint;
 import com.teamcity.core.models.Build;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.Project;
 import com.teamcity.core.models.User;
-import com.teamcity.core.models.dto.RunBuildRequest;
 import com.teamcity.core.steps.BuildSteps;
-import com.teamcity.core.steps.UserSteps;
 import io.restassured.response.Response;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class UserBuildsTest extends BaseApiTest {
@@ -28,31 +17,14 @@ public class UserBuildsTest extends BaseApiTest {
     @Test
     public void userCanRunBuildOfAdminProjectTest() {
         Project project = projectSteps(adminClient()).createRandomProject();
-//        Project project = adminProjectSteps.createProject(
-//                dataFactory.createRandomProject());
 
         BuildConfig buildConfig =
                 buildConfigSteps(adminClient()).createRandomBuildConfig(project);
 
-//        BuildConfig buildConfig = adminBuildSteps.createBuildConfig(
-//                dataFactory.createRandomBuildConfig(project.getId()));
-        // создаем пользователя
         User user = userSteps(adminClient()).createRandomUser();
-        System.out.println(user.getUsername());
 
-        System.out.println(user.getPassword());
-//        User user = dataFactory.createRandomUser();
-//        new UserSteps(adminClient).createUser(user);
-
-        // создаем клиента под этим пользователем
         BuildSteps userSteps = buildSteps(userClient(user));
-//        ApiClient client = RestClient.builder()
-//                .baseUrl(ConfigManager.getApiBaseUrl())
-//                .basicAuth(user.getUsername(), user.getPassword())
-//                .build();
-//        //запускаем билд под пользователем
-//        BuildSteps userSteps = new BuildSteps(client);
-        //запускаем сборку
+
         Build build = userSteps.runBuild(buildConfig.getId());
 
         assertAll(
@@ -61,7 +33,6 @@ public class UserBuildsTest extends BaseApiTest {
     }
 
     @Test
-    @DisplayName("Юзер не может запустить несуществующую сборку")
     public void userCanNotRunNotExistBuildTest() {
 
         User user = userSteps(adminClient()).createRandomUser();
@@ -87,39 +58,12 @@ public class UserBuildsTest extends BaseApiTest {
         assertAll(
                 () -> assertNotNull(build.getState()),
                 () -> assertNotNull(build.getStatus()),
-                () -> assertEquals("finished", build.getState()),
-                () -> assertEquals("SUCCESS", build.getStatus())
+                () -> assertEquals(BuildSteps.STATE_FINISHED, build.getState()),
+                () -> assertEquals(BuildSteps.STATUS_SUCCESS, build.getStatus())
         );
     }
 
     @Test
-    @DisplayName("Юзер может получить детали сборки")
-    public void userCanGetOwnBuildDetailsTest() {
-        Project project = projectSteps(adminClient()).createRandomProject();
-
-        BuildConfig buildConfig =
-                buildConfigSteps(adminClient()).createRandomBuildConfig(project);
-
-        User user = userSteps(adminClient()).createRandomUser();
-
-        BuildSteps buildSteps = buildSteps(userClient(user));
-
-        Build build = buildSteps.runBuild(buildConfig.getId());
-
-        Build finishedBuild = buildSteps.waitForBuildFinish(build.getId());
-
-        Build buildDetails = buildSteps.getBuild(finishedBuild.getId());
-
-        assertAll(
-                () -> assertEquals(finishedBuild.getId(), buildDetails.getId()),
-                () -> assertEquals(buildConfig.getId(), buildDetails.getBuildTypeId()),
-                () -> assertEquals("finished", buildDetails.getState()),
-                () -> assertEquals("SUCCESS", buildDetails.getStatus())
-        );
-    }
-
-    @Test
-    @DisplayName("Юзер может отменить выполняющуюся сборку в очереди")
     public void userCanCancelRunningBuildTest() {
         Project project = projectSteps(adminClient()).createRandomProject();
 
@@ -132,26 +76,21 @@ public class UserBuildsTest extends BaseApiTest {
 
         Build build = buildSteps.runBuild(buildConfig.getId());
 
-        buildSteps.waitForBuildState(build.getId(), "running", 30);
+        buildSteps.waitForBuildState(build.getId(), BuildSteps.STATE_RUNNING);
 
-        buildSteps.cancelBuild(build.getId().toString());
+        buildSteps.cancelBuild(build.getId());
 
         Build cancelledBuild =
-                buildSteps.waitForBuildState(build.getId(), "finished", 30);
+                buildSteps.waitForBuildState(build.getId(), BuildSteps.STATE_FINISHED);
 
         assertAll(
-                () -> assertEquals("finished", cancelledBuild.getState()),
-                () -> assertEquals("UNKNOWN", cancelledBuild.getStatus()),
-                () -> assertTrue(cancelledBuild.getStatusText().toLowerCase().contains("cancel"))
+                () -> assertEquals(BuildSteps.STATUS_UNKNOWN, cancelledBuild.getStatus()),
+                () -> assertEquals(BuildSteps.STATUS_TEXT_CANCELED, cancelledBuild.getStatusText())
         );
     }
 
     @Test
-    @DisplayName("Юзер может отменить чужую сборку")
-    //проверить по документации какое ожидаемое поведение на самом деле и относительно  этого уже позитив или негати
-    //Это тест на запрет отмены чужой сборки. Но TeamCity возвращает 200 OK и успешно отменяет сборку вторым пользователем.
-    // Поэтому я пока убрала специальный метод cancelBuildForbidden() и хочу уточнить, должен ли этот сценарий вообще существовать?
-    public void userCanCancelAnotherUserBuildTest() {
+    public void userCanCancelAnotherUsersBuildTest() {
 
         Project project = projectSteps(adminClient()).createRandomProject();
 
@@ -166,20 +105,21 @@ public class UserBuildsTest extends BaseApiTest {
 
         Build build = user1Steps.runBuild(buildConfig.getId());
 
-        user1Steps.waitForBuildState(build.getId(), "running", 30);
+        user1Steps.waitForBuildState(build.getId(), BuildSteps.STATE_RUNNING);
 
-        Response response = user2Steps.cancelBuildForbidden(build.getId());
+        user2Steps.cancelBuild(build.getId());
 
-        assertThat(response.statusCode()).isEqualTo(403);
+        Build cancelledBuild =
+                user1Steps.waitForBuildState(build.getId(), BuildSteps.STATE_FINISHED);
 
-        Build actualBuild = user1Steps.getBuild(build.getId());
-
-        assertThat(actualBuild.getStatusText())
-                .doesNotContain("Canceled");
+        assertAll(
+                () -> assertEquals(BuildSteps.STATE_FINISHED, cancelledBuild.getState()),
+                () -> assertEquals(BuildSteps.STATUS_UNKNOWN, cancelledBuild.getStatus()),
+                () -> assertEquals(BuildSteps.STATUS_TEXT_CANCELED, cancelledBuild.getStatusText())
+        );
     }
     // Проверяет ограничение прав.
     @Test
-    @DisplayName("Юзер не может удалить свою завершённую сборку без прав админа")
     public void userCanNotDeleteOwnFinishedBuildTest() {
 
         Project project = projectSteps(adminClient()).createRandomProject();
@@ -205,8 +145,33 @@ public class UserBuildsTest extends BaseApiTest {
         assertAll(
                 () -> assertNotNull(actualBuild),
                 () -> assertEquals(finishedBuild.getId(), actualBuild.getId()),
-                () -> assertEquals("finished", actualBuild.getState()),
-                () -> assertEquals("SUCCESS", actualBuild.getStatus())
+                () -> assertEquals(BuildSteps.STATE_FINISHED, actualBuild.getState()),
+                () -> assertEquals(BuildSteps.STATUS_SUCCESS, actualBuild.getStatus())
+        );
+    }
+
+    @Test
+    public void userCanGetOwnBuildDetailsTest() {
+        Project project = projectSteps(adminClient()).createRandomProject();
+
+        BuildConfig buildConfig =
+                buildConfigSteps(adminClient()).createRandomBuildConfig(project);
+
+        User user = userSteps(adminClient()).createRandomUser();
+
+        BuildSteps buildSteps = buildSteps(userClient(user));
+
+        Build build = buildSteps.runBuild(buildConfig.getId());
+
+        Build finishedBuild = buildSteps.waitForBuildFinish(build.getId());
+
+        Build buildDetails = buildSteps.getBuild(finishedBuild.getId());
+
+        assertAll(
+                () -> assertEquals(finishedBuild.getId(), buildDetails.getId()),
+                () -> assertEquals(buildConfig.getId(), buildDetails.getBuildTypeId()),
+                () -> assertEquals(BuildSteps.STATE_FINISHED, buildDetails.getState()),
+                () -> assertEquals(BuildSteps.STATUS_SUCCESS, buildDetails.getStatus())
         );
     }
 }

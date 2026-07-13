@@ -45,11 +45,11 @@ public class UserBuildConfigsTest extends BaseApiTest {
         Project project = projectSteps(adminClient())
                 .createRandomProject();
 
-        BuildConfig buildConfig =
-                dataFactory.createRandomBuildConfig(project.getId());
-
         User user = userSteps(adminClient())
                 .createRandomUser();
+
+        BuildConfig buildConfig =
+                dataFactory.createRandomBuildConfig(project.getId());
 
         Response response = userNegativeClient(user).post(
                 Endpoint.BUILD_TYPES.getPath(),
