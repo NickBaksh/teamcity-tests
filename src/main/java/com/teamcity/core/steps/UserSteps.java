@@ -3,6 +3,8 @@ package com.teamcity.core.steps;
 import com.teamcity.core.client.ApiClient;
 import com.teamcity.core.client.ResponseValidator;
 import com.teamcity.core.endpoints.Endpoint;
+import com.teamcity.core.exceptions.ApiException;
+import com.teamcity.core.exceptions.ResourceNotFoundException;
 import com.teamcity.core.models.User;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
@@ -11,18 +13,14 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 
 @Slf4j
-public class UserSteps {
-    private final ApiClient client;
-    private final ResponseValidator validator;
+public class UserSteps extends BaseSteps {
 
     public UserSteps(ApiClient client) {
-        this.client = client;
-        this.validator = new ResponseValidator();
+        super(client);
     }
 
     public UserSteps(ApiClient client, ResponseValidator validator) {
-        this.client = client;
-        this.validator = validator;
+        super(client, validator);
     }
 
     @Step("Create user: {user.username}")
@@ -48,5 +46,29 @@ public class UserSteps {
         Response response = client.delete(Endpoint.USER.format(username));
         validator.validateStatus(response);
         log.info("User deleted: {}", username);
+    }
+
+    @Step("Delete user if exists: {username}")
+    public boolean deleteUserIfExists(String username) {
+        if (!userExists(username)) {
+            return false;
+        }
+        deleteUser(username);
+        return true;
+    }
+
+    @Step("Check if user exists: {username}")
+    public boolean userExists(String username) {
+        try {
+            getUser(username);
+            return true;
+        } catch (ResourceNotFoundException e) {
+            return false;
+        } catch (ApiException e) {
+            if (e.getStatusCode() == 404) {
+                return false;
+            }
+            throw e;
+        }
     }
 }

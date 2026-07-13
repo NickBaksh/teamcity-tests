@@ -1,248 +1,100 @@
 package com.teamcity.api.smoke;
 
 import com.teamcity.api.BaseApiTest;
-import com.teamcity.core.client.RestClient;
-import com.teamcity.core.config.ConfigManager;
-import com.teamcity.core.exceptions.ApiException;
+import com.teamcity.core.assertions.ApiAssertions;
 import com.teamcity.core.models.Build;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.Project;
 import com.teamcity.core.models.User;
-import com.teamcity.core.steps.BuildSteps;
-import com.teamcity.core.steps.ProjectSteps;
-import com.teamcity.core.steps.UserSteps;
-import io.qameta.allure.*;
-import io.restassured.response.Response;
-import lombok.extern.slf4j.Slf4j;
-import org.assertj.core.api.SoftAssertions;
-import org.junit.jupiter.api.*;
+import com.teamcity.core.steps.AdminSteps;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@Slf4j
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Feature("Smoke")
+@Tag("smoke")
 public class SmokeTest extends BaseApiTest {
 
-    private ProjectSteps projectSteps;
-    private UserSteps userSteps;
-    private BuildSteps buildSteps;
-
-    @BeforeEach
-    void initSteps() {
-        projectSteps = new ProjectSteps(adminClient);
-        userSteps = new UserSteps(adminClient);
-        buildSteps = new BuildSteps(adminClient);
+    @Test
+    @Severity(SeverityLevel.BLOCKER)
+    void shouldAllowAdminAccess() {
+        authSteps.verifyServerAccessible();
     }
 
     @Test
-    @Description("Verifies that admin can authenticate")
     @Severity(SeverityLevel.BLOCKER)
-    void shouldAuthenticateWithValidCredentials() {
-        Response response = adminClient.get("/app/rest/server");
-
-        assertThat(response.statusCode())
-                .as("Admin should be authenticated")
-                .isEqualTo(200);
-
+    void shouldRejectInvalidCredentials() {
+        authSteps.verifyInvalidAuthRejected();
     }
 
     @Test
-    @Description("Verifies that invalid credentials are rejected")
     @Severity(SeverityLevel.BLOCKER)
-    public void shouldRejectInvalidCredentials() {
-        RestClient invalidClient = RestClient.builder()
-                .baseUrl(ConfigManager.getApiBaseUrl())
-                .basicAuth(ConfigManager.getAdminLogin(), "wrong_password")
-                .build();
+    void shouldManageProjectLifecycle() {
+        Project request = dataFactory.createRandomProject();
 
-        assertThatThrownBy(() -> invalidClient.get("/app/rest/server"))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Authentication failed")
-                .hasMessageContaining("Incorrect username or password");
-
-    }
-
-    @Test
-    @Description("Verifies project creation — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    void shouldCreateProject() {
-        Project project = dataFactory.createRandomProject();
-        Project created = projectSteps.createProject(project);
+        Project created = projectSteps.createProject(request);
         trackProject(created.getId());
-
-        SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(created.getId()).isNotBlank();
-        softly.assertThat(created.getName()).isEqualTo(project.getName());
-        softly.assertThat(created.getHref()).isNotBlank();
-        softly.assertAll();
-    }
-
-    @Test
-    @Description("Verifies project retrieval by ID — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    void shouldGetProjectById() {
-        Project project = dataFactory.createRandomProject();
-        Project created = projectSteps.createProject(project);
-        trackProject(created.getId());
-
         Project retrieved = projectSteps.getProject(created.getId());
 
-        SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(retrieved.getId()).isEqualTo(created.getId());
-        softly.assertThat(retrieved.getName()).isEqualTo(created.getName());
-        softly.assertAll();
-
-    }
-
-    @Test
-    @Description("Verifies project deletion — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    void shouldDeleteProject() {
-        Project project = dataFactory.createRandomProject();
-        Project created = projectSteps.createProject(project);
+        ApiAssertions.assertProjectCreated(request, created);
+        ApiAssertions.assertProjectsEqual(created, retrieved);
 
         projectSteps.deleteProject(created.getId());
 
         assertThat(projectSteps.projectExists(created.getId())).isFalse();
-
     }
 
     @Test
-    @Description("Verifies build configuration creation — critical path")
     @Severity(SeverityLevel.BLOCKER)
-    void shouldCreateBuildConfig() {
-        Project project = dataFactory.createRandomProject();
-        Project createdProject = projectSteps.createProject(project);
-        trackProject(createdProject.getId());
+    void shouldManageBuildConfigLifecycle() {
+        Project project = givenProject();
+        BuildConfig request = dataFactory.createRandomBuildConfig(project.getId());
 
-        BuildConfig config = dataFactory.createRandomBuildConfig(createdProject.getId());
-        BuildConfig created = buildSteps.createBuildConfig(config);
+        BuildConfig created = buildConfigSteps.createBuildConfig(request);
         trackBuildConfig(created.getId());
 
-        SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(created.getId()).isNotBlank();
-        softly.assertThat(created.getName()).isEqualTo(config.getName());
-        softly.assertAll();
+        ApiAssertions.assertBuildConfigCreated(request, created);
 
+        buildConfigSteps.deleteBuildConfig(created.getId());
+
+        assertThat(buildConfigSteps.buildConfigExists(created.getId())).isFalse();
     }
 
     @Test
-    @Description("Verifies build configuration deletion — critical path")
     @Severity(SeverityLevel.BLOCKER)
-    void shouldDeleteBuildConfig() {
-        Project project = dataFactory.createRandomProject();
-        Project createdProject = projectSteps.createProject(project);
-        trackProject(createdProject.getId());
+    void shouldTriggerAndReadBuild() {
+        AdminSteps.ProjectBuildRun run = adminSteps.createProjectBuildAndRun(
+                dataFactory.createRandomProject(),
+                dataFactory.createRandomBuildConfig(null)
+        );
+        trackProject(run.getProject().getId());
+        trackBuildConfig(run.getBuildConfig().getId());
 
-        BuildConfig config = dataFactory.createRandomBuildConfig(createdProject.getId());
-        BuildConfig created = buildSteps.createBuildConfig(config);
+        Build current = buildRunSteps.getBuild(String.valueOf(run.getBuild().getId()));
 
-        buildSteps.deleteBuildConfig(created.getId());
-
-        assertThat(buildSteps.buildConfigExists(created.getId())).isFalse();
-
-    }
-
-
-    @Test
-    @Description("Verifies build execution — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    void shouldRunBuild() {
-        Project project = dataFactory.createRandomProject();
-        Project createdProject = projectSteps.createProject(project);
-        trackProject(createdProject.getId());
-
-        BuildConfig config = dataFactory.createRandomBuildConfig(createdProject.getId());
-        BuildConfig createdConfig = buildSteps.createBuildConfig(config);
-        trackBuildConfig(createdConfig.getId());
-
-        Build build = buildSteps.runBuild(createdConfig.getId());
-
-        SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(build.getId()).isNotNull();
-        softly.assertThat(build.getBuildTypeId()).isNotBlank();
-        softly.assertAll();
-
+        ApiAssertions.assertBuildTriggered(run.getBuild());
+        ApiAssertions.assertBuildState(current, "queued", "running", "finished");
+        assertThat(current.getId()).isEqualTo(run.getBuild().getId());
     }
 
     @Test
-    @Description("Verifies build status retrieval")
     @Severity(SeverityLevel.BLOCKER)
-    void shouldGetBuildStatus() {
+    void shouldManageUserLifecycle() {
+        User request = dataFactory.createRandomUser();
 
-        Project project = dataFactory.createRandomProject();
-        Project createdProject = projectSteps.createProject(project);
-        trackProject(createdProject.getId());
-        BuildConfig config = dataFactory.createRandomBuildConfig(createdProject.getId());
-        BuildConfig createdConfig = buildSteps.createBuildConfig(config);
-        trackBuildConfig(createdConfig.getId());
-        Build build = buildSteps.runBuild(createdConfig.getId());
-        Build currentBuild = buildSteps.getBuild(String.valueOf(build.getId()));
-        SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(currentBuild)
-                .as("Build should be retrievable")
-                .isNotNull();
-
-        softly.assertThat(currentBuild.getId())
-                .as("Build ID should match")
-                .isEqualTo(build.getId());
-
-        softly.assertThat(currentBuild.getState())
-                .as("Build should be queued, running or finished")
-                .isIn("queued", "running", "finished");
-
-        softly.assertAll();
-
-        log.info("✅ Build status retrieved: ID={}, State={}",
-
-                currentBuild.getId(), currentBuild.getState());
-
-    }
-
-
-    @Test
-    @Description("Verifies user creation — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    void shouldCreateUser() {
-        User user = dataFactory.createRandomUser();
-        User created = userSteps.createUser(user);
+        User created = userSteps.createUser(request);
         trackUser(created.getUsername());
-
-        SoftAssertions softly = new SoftAssertions();
-        softly.assertThat(created.getUsername()).isNotBlank();
-        softly.assertThat(created.getUsername()).isEqualTo(user.getUsername());
-        softly.assertAll();
-
-    }
-
-    @Test
-    @Description("Verifies user retrieval by username — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    void shouldGetUserByUsername() {
-        User user = dataFactory.createRandomUser();
-        User created = userSteps.createUser(user);
-        trackUser(created.getUsername());
-
         User retrieved = userSteps.getUser(created.getUsername());
 
-        assertThat(retrieved.getUsername()).isEqualTo(created.getUsername());
-
-    }
-
-    @Test
-    @Description("Verifies user deletion — critical path")
-    @Severity(SeverityLevel.BLOCKER)
-    void shouldDeleteUser() {
-        User user = dataFactory.createRandomUser();
-        User created = userSteps.createUser(user);
+        ApiAssertions.assertUserCreated(request, created);
+        ApiAssertions.assertUsersEqual(created, retrieved);
 
         userSteps.deleteUser(created.getUsername());
 
-        assertThatThrownBy(() -> userSteps.getUser(created.getUsername()))
-                .isInstanceOf(ApiException.class)
-                .extracting("statusCode")
-                .isEqualTo(404);
-
+        ApiAssertions.assertNotFound(() -> userSteps.getUser(created.getUsername()));
     }
 }

@@ -1,36 +1,61 @@
 package com.teamcity.core.client;
 
 import com.teamcity.core.config.ConfigManager;
-import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ClientFactory {
+public final class ClientFactory {
 
-    // Для позитивных тестов — с ретраями
+    private ClientFactory() {
+    }
+
     public static ApiClient createAdminClient() {
         return RestClient.builder()
                 .baseUrl(ConfigManager.getApiBaseUrl())
                 .basicAuth(ConfigManager.getAdminLogin(), ConfigManager.getAdminPassword())
                 .withRetry(ConfigManager.getRetryCount())
+                .retryDelay(ConfigManager.getRetryDelay())
                 .build();
     }
 
-    // Для негативных тестов — БЕЗ ретраев
+    public static ApiClient createUserClient() {
+        return RestClient.builder()
+                .baseUrl(ConfigManager.getApiBaseUrl())
+                .basicAuth(ConfigManager.getUserLogin(), ConfigManager.getUserPassword())
+                .withRetry(ConfigManager.getRetryCount())
+                .retryDelay(ConfigManager.getRetryDelay())
+                .build();
+    }
+
+    public static ApiClient createBasicAuthClient(String username, String password) {
+        return RestClient.builder()
+                .baseUrl(ConfigManager.getApiBaseUrl())
+                .basicAuth(username, password)
+                .withRetry(ConfigManager.getRetryCount())
+                .build();
+    }
+
+    public static ApiClient createBearerClient(String token) {
+        return RestClient.builder()
+                .baseUrl(ConfigManager.getApiBaseUrl())
+                .bearerToken(token)
+                .withRetry(ConfigManager.getRetryCount())
+                .build();
+    }
+
     public static ApiClient createNegativeTestClient() {
         return RestClient.builder()
                 .baseUrl(ConfigManager.getApiBaseUrl())
                 .basicAuth(ConfigManager.getAdminLogin(), ConfigManager.getAdminPassword())
-                .withRetry(1)  // ← ТОЛЬКО 1 ПОПЫТКА
+                .withRetry(1)
                 .build();
     }
 
-    // Для неверной аутентификации — БЕЗ ретраев
     public static ApiClient createInvalidAuthClient() {
         return RestClient.builder()
                 .baseUrl(ConfigManager.getApiBaseUrl())
                 .basicAuth("wrong", "wrong")
-                .withRetry(1)  // ← НЕ РЕТРАИМ!
+                .withRetry(1)
                 .build();
     }
 }

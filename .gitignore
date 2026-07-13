@@ -1,0 +1,29 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+
+# Build / reports
+target/
+.allure/
+allure-results/
+allure-reports/
+surefire-reports/
+
+# Local secrets — use ci.properties or your own local.properties (not committed)
+src/test/resources/config/local.properties
+*.properties.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Infra runtime data (images, TeamCity data dirs, agent state)
+infra/allure-results/
+infra/allure-reports/
+infra/allure-reports-history/
+infra/teamcity-server/
+infra/teamcity-agent/
+infra/selenoid/video/
+infra/selenoid/logs/

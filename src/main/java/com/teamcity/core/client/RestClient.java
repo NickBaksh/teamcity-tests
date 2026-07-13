@@ -1,11 +1,9 @@
 package com.teamcity.core.client;
 
+import com.teamcity.core.config.ConfigManager;
 import com.teamcity.core.exceptions.ApiException;
+import com.teamcity.core.specs.RequestSpecs;
 import io.qameta.allure.Allure;
-import io.qameta.allure.restassured.AllureRestAssured;
-import io.restassured.RestAssured;
-import io.restassured.filter.log.RequestLoggingFilter;
-import io.restassured.filter.log.ResponseLoggingFilter;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import lombok.extern.slf4j.Slf4j;
@@ -18,11 +16,15 @@ import java.util.function.Supplier;
 
 import static io.restassured.RestAssured.given;
 
+/**
+ * Реализация {@link ApiClient} на RestAssured.
+ * Спецификации и логирование берутся из {@link RequestSpecs}; в тестах {@code given()} не используется.
+ */
 @Slf4j
 public class RestClient implements ApiClient {
 
     private static final Set<Integer> NON_RETRYABLE_STATUSES = Set.of(
-            400, 401, 403, 404, 405, 406, 409, 422, 500
+            400, 401, 403, 404, 405, 406, 409, 422
     );
 
     private static final long MIN_RETRY_DELAY_MS = 100;
@@ -36,181 +38,85 @@ public class RestClient implements ApiClient {
     private final ResponseValidator responseValidator;
     private final int maxRetries;
     private final long retryDelay;
-    private final HeaderConfig defaultHeaders;
 
     private RestClient(Builder builder) {
-        //RestAssured.baseURI = builder.baseUrl;
-        //RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-
         this.maxRetries = builder.retryCount;
         this.retryDelay = builder.retryDelay;
         this.responseValidator = new ResponseValidator();
 
-        HeaderConfig defaultHeaders = HeaderConfig.defaultHeaders();
-        if (builder.headers != null && !builder.headers.isEmpty()) {
-            defaultHeaders.withCustomHeaders(builder.headers);
-        }
-        this.defaultHeaders = defaultHeaders;
-
-        RequestSpecification spec = given()
-                .baseUri(builder.baseUrl)
-                .relaxedHTTPSValidation()
-                .filters(
-                        new RequestLoggingFilter(),
-                        new ResponseLoggingFilter(),
-                        new AllureRestAssured()
-                );
-
-        spec.headers(this.defaultHeaders.build());
-
+        RequestSpecification baseSpec;
         if (builder.token != null && !builder.token.isEmpty()) {
             log.info("Using Bearer Token authentication");
-            spec.header("Authorization", "Bearer " + builder.token);
+            baseSpec = RequestSpecs.withBearerToken(builder.token);
         } else if (builder.username != null && builder.password != null) {
             log.info("Using Basic authentication");
-            spec.auth().basic(builder.username, builder.password);
+            baseSpec = RequestSpecs.withBasicAuth(builder.username, builder.password);
         } else {
             log.info("No authentication configured");
+            baseSpec = RequestSpecs.base();
         }
 
-        this.requestSpec = spec;
+        if (builder.baseUrl != null && !builder.baseUrl.equals(ConfigManager.getApiBaseUrl())) {
+            baseSpec = given().spec(baseSpec).baseUri(builder.baseUrl);
+        }
+
+        if (builder.headers != null && !builder.headers.isEmpty()) {
+            baseSpec = given().spec(baseSpec).headers(builder.headers);
+        }
+
+        this.requestSpec = baseSpec;
     }
 
     public static Builder builder() {
         return new Builder();
     }
 
-
-
-    // ===== БАЗОВЫЕ МЕТОДЫ =====
+    private RequestSpecification newRequest() {
+        return given().spec(requestSpec);
+    }
 
     @Override
     public Response get(String endpoint, Object... pathParams) {
-        return executeWithRetry(() -> requestSpec.get(endpoint, pathParams));
+        return executeWithRetry(() -> newRequest().get(endpoint, pathParams));
     }
 
     @Override
     public Response post(String endpoint, Object body) {
-        return executeWithRetry(() -> requestSpec.given().body(body).post(endpoint));
-                //requestSpec.body(body).post(endpoint));
+        return executeWithRetry(() -> newRequest().body(body).post(endpoint));
     }
 
     @Override
     public Response post(String endpoint, Object body, Object... pathParams) {
-        return executeWithRetry(() -> requestSpec.body(body).post(endpoint, pathParams));
+        return executeWithRetry(() -> newRequest().body(body).post(endpoint, pathParams));
     }
 
     @Override
     public Response put(String endpoint, Object body, Object... pathParams) {
-        return executeWithRetry(() -> requestSpec.given().body(body).put(endpoint, pathParams));
-                //requestSpec.body(body).put(endpoint, pathParams));
+        return executeWithRetry(() -> newRequest().body(body).put(endpoint, pathParams));
     }
 
-    /**
-     * DELETE запрос с path параметрами.
-     * Пример: delete("/app/rest/projects/{id}", "project123")
-     */
     @Override
     public Response delete(String endpoint, Object... pathParams) {
-        // Проверяем, что endpoint содержит плейсхолдеры
-        boolean hasPlaceholders = endpoint.contains("{") && endpoint.contains("}");
-
-        // Если плейсхолдеров нет, но параметры переданы - это ошибка
-        if (!hasPlaceholders && pathParams != null && pathParams.length > 0) {
-            throw new IllegalArgumentException(
-                    String.format("Endpoint '%s' has no placeholders but %d parameters provided. " +
-                                    "Either add placeholders (e.g., '/projects/{id}') or " +
-                                    "construct the full URL (e.g., '/projects/123')",
-                            endpoint, pathParams.length)
-            );
-        }
-
-        // Если плейсхолдеры есть, проверяем количество параметров
-        if (hasPlaceholders) {
-            int expected = countPlaceholders(endpoint);
-            int actual = pathParams != null ? pathParams.length : 0;
-
-            if (actual != expected) {
-                throw new IllegalArgumentException(
-                        String.format("Endpoint '%s' expects %d parameter(s) but got %d",
-                                endpoint, expected, actual)
-                );
-            }
-        }
-
-        return executeWithRetry(() -> requestSpec.given().delete(endpoint, pathParams));
-                //requestSpec.delete(endpoint, pathParams));
+        validatePathParams(endpoint, pathParams);
+        return executeWithRetry(() -> newRequest().delete(endpoint, pathParams));
     }
 
-    // ===== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ =====
-
-    /**
-     * Подсчитывает количество плейсхолдеров {param} в строке endpoint
-     *
-     * @param endpoint URL с возможными плейсхолдерами вида {param}
-     * @return количество плейсхолдеров
-     * @throws IllegalArgumentException если формат endpoint некорректен
-     */
-    private int countPlaceholders(String endpoint) {
-        if (endpoint == null || endpoint.isEmpty()) {
-            return 0;
-        }
-
-        int count = 0;
-        int index = 0;
-
-        while ((index = endpoint.indexOf("{", index)) != -1) {
-            count++;
-
-            // Ищем закрывающую скобку
-            int endIndex = endpoint.indexOf("}", index);
-            if (endIndex == -1) {
-                throw new IllegalArgumentException(
-                        String.format("Invalid endpoint: '%s' - unclosed placeholder starting at position %d",
-                                endpoint, index)
-                );
-            }
-
-            // Проверяем, что внутри плейсхолдера есть имя
-            String placeholderName = endpoint.substring(index + 1, endIndex);
-            if (placeholderName.trim().isEmpty()) {
-                throw new IllegalArgumentException(
-                        String.format("Invalid endpoint: '%s' - empty placeholder at position %d",
-                                endpoint, index)
-                );
-            }
-
-            index = endIndex + 1;
-        }
-
-        return count;
-    }
-
-    /**
-     * Удаление по полному URL (без плейсхолдеров)
-     */
     public Response delete(String endpoint) {
-        if (endpoint == null || endpoint.trim().isEmpty()) {
+        if (endpoint == null || endpoint.isBlank()) {
             throw new IllegalArgumentException("Endpoint cannot be null or empty");
         }
-
-        // Проверяем, что нет плейсхолдеров
         if (endpoint.contains("{") && endpoint.contains("}")) {
             throw new IllegalArgumentException(
-                    String.format("Endpoint '%s' contains placeholders. " +
-                            "Use delete(endpoint, params) instead.", endpoint)
+                    String.format("Endpoint '%s' contains placeholders. Use delete(endpoint, params).", endpoint)
             );
         }
-
-        return executeWithRetry(() -> requestSpec.delete(endpoint));
+        return executeWithRetry(() -> newRequest().delete(endpoint));
     }
-
-    // ===== МЕТОДЫ С КАСТОМНЫМИ ЗАГОЛОВКАМИ (НОВЫЕ) =====
 
     @Override
     public Response get(String endpoint, Map<String, String> headers, Object... pathParams) {
         return executeWithRetry(() -> {
-            RequestSpecification spec = requestSpec.given();
+            RequestSpecification spec = newRequest();
             if (headers != null && !headers.isEmpty()) {
                 spec.headers(headers);
             }
@@ -221,7 +127,7 @@ public class RestClient implements ApiClient {
     @Override
     public Response post(String endpoint, Object body, Map<String, String> headers, Object... pathParams) {
         return executeWithRetry(() -> {
-            RequestSpecification spec = requestSpec.given();
+            RequestSpecification spec = newRequest();
             if (headers != null && !headers.isEmpty()) {
                 spec.headers(headers);
             }
@@ -232,7 +138,7 @@ public class RestClient implements ApiClient {
     @Override
     public Response put(String endpoint, Object body, Map<String, String> headers, Object... pathParams) {
         return executeWithRetry(() -> {
-            RequestSpecification spec = requestSpec.given();
+            RequestSpecification spec = newRequest();
             if (headers != null && !headers.isEmpty()) {
                 spec.headers(headers);
             }
@@ -243,7 +149,7 @@ public class RestClient implements ApiClient {
     @Override
     public Response delete(String endpoint, Map<String, String> headers, Object... pathParams) {
         return executeWithRetry(() -> {
-            RequestSpecification spec = requestSpec.given();
+            RequestSpecification spec = newRequest();
             if (headers != null && !headers.isEmpty()) {
                 spec.headers(headers);
             }
@@ -251,34 +157,21 @@ public class RestClient implements ApiClient {
         });
     }
 
-    // ===== МЕТОДЫ С RequestType =====
-
-    /**
-     * GET запрос с явным указанием типа Accept
-     */
+    @Override
     public Response get(String endpoint, RequestType requestType, Object... pathParams) {
         return get(endpoint, requestType.toHeaderConfig().build(), pathParams);
     }
 
-    /**
-     * POST запрос с кастомными заголовками через RequestType
-     */
+    @Override
     public Response post(String endpoint, Object body, RequestType requestType, Object... pathParams) {
         return post(endpoint, body, requestType.toHeaderConfig().build(), pathParams);
     }
 
-    /**
-     * PUT запрос с кастомными заголовками через RequestType
-     */
+    @Override
     public Response put(String endpoint, Object body, RequestType requestType, Object... pathParams) {
         return put(endpoint, body, requestType.toHeaderConfig().build(), pathParams);
     }
 
-    // ===== СПЕЦИАЛЬНЫЕ МЕТОДЫ =====
-
-    /**
-     * GET запрос с текстовым ответом
-     */
     public Response getText(String endpoint, Object... pathParams) {
         return get(endpoint, RequestType.TEXT_ACCEPT_JSON, pathParams);
     }
@@ -293,22 +186,16 @@ public class RestClient implements ApiClient {
         return putText(endpoint, String.valueOf(body), pathParams);
     }
 
-    // ===== EXECUTE МЕТОДЫ =====
-
     @Override
-    public <T> T execute(ApiRequest request, Class<T> responseType) {
+    public <T> T execute(HttpRequest request, Class<T> responseType) {
         return execute(request, response -> response.as(responseType));
     }
 
     @Override
-    public <T> T execute(ApiRequest request, ResponseHandler<T> handler) {
-        return (T) executeWithRetry(() -> {
-            Response response = sendRequest(request);
-            return (Response) responseValidator.validate(response, handler);
-        });
+    public <T> T execute(HttpRequest request, ResponseHandler<T> handler) {
+        Response response = executeWithRetry(() -> sendRequest(request));
+        return responseValidator.validate(response, handler);
     }
-
-    // ===== ПРИВАТНЫЕ МЕТОДЫ =====
 
     private Response executeWithRetry(Supplier<Response> request) {
         Exception lastException = null;
@@ -321,19 +208,15 @@ public class RestClient implements ApiClient {
 
                 long startTime = System.nanoTime();
                 Response response = request.get();
-
                 responseValidator.validateStatus(response);
                 logRequestDetails(response, System.nanoTime() - startTime);
                 return response;
-
             } catch (ApiException e) {
                 lastException = e;
-
                 if (NON_RETRYABLE_STATUSES.contains(e.getStatusCode())) {
                     log.debug("Non-retryable status {}: throwing immediately", e.getStatusCode());
                     throw e;
                 }
-
                 if (attempt < maxRetries) {
                     long delay = calculateDelay(attempt);
                     log.warn("Attempt {}/{} failed: {}. Retrying in {}ms",
@@ -342,16 +225,17 @@ public class RestClient implements ApiClient {
                 } else {
                     log.error("Attempt {}/{} failed: {}", attempt, maxRetries, e.getMessage());
                 }
-
             } catch (Exception e) {
                 lastException = e;
                 log.warn("Attempt {}/{} failed: {}", attempt, maxRetries, e.getMessage());
-
                 if (attempt < maxRetries) {
-                    long delay = calculateDelay(attempt);
-                    sleep(delay);
+                    sleep(calculateDelay(attempt));
                 }
             }
+        }
+
+        if (lastException instanceof ApiException apiException) {
+            throw apiException;
         }
 
         throw new ApiException(
@@ -375,25 +259,21 @@ public class RestClient implements ApiClient {
         }
     }
 
-    private Response sendRequest(ApiRequest request) {
-        RequestSpecification spec = requestSpec.given();
+    private Response sendRequest(HttpRequest request) {
+        RequestSpecification spec = newRequest();
 
-        if (request.getHeaders() != null && !request.getHeaders().isEmpty()) {
+        if (!request.getHeaders().isEmpty()) {
             spec.headers(request.getHeaders());
         }
-
         if (request.getContentType() != null) {
             spec.contentType(request.getContentType().getValue());
         }
-
-        if (request.getQueryParams() != null && !request.getQueryParams().isEmpty()) {
+        if (!request.getQueryParams().isEmpty()) {
             spec.queryParams(request.getQueryParams());
         }
-
-        if (request.getPathParams() != null && !request.getPathParams().isEmpty()) {
+        if (!request.getPathParams().isEmpty()) {
             spec.pathParams(request.getPathParams());
         }
-
         if (request.getBody() != null) {
             spec.body(request.getBody());
         }
@@ -401,18 +281,59 @@ public class RestClient implements ApiClient {
         return spec.request(request.getMethod().name(), request.getEndpoint());
     }
 
+    private void validatePathParams(String endpoint, Object... pathParams) {
+        boolean hasPlaceholders = endpoint != null && endpoint.contains("{") && endpoint.contains("}");
+        if (!hasPlaceholders && pathParams != null && pathParams.length > 0) {
+            throw new IllegalArgumentException(
+                    String.format("Endpoint '%s' has no placeholders but %d parameters provided",
+                            endpoint, pathParams.length)
+            );
+        }
+        if (hasPlaceholders) {
+            int expected = countPlaceholders(endpoint);
+            int actual = pathParams != null ? pathParams.length : 0;
+            if (actual != expected) {
+                throw new IllegalArgumentException(
+                        String.format("Endpoint '%s' expects %d parameter(s) but got %d",
+                                endpoint, expected, actual)
+                );
+            }
+        }
+    }
+
+    private int countPlaceholders(String endpoint) {
+        if (endpoint == null || endpoint.isEmpty()) {
+            return 0;
+        }
+        int count = 0;
+        int index = 0;
+        while ((index = endpoint.indexOf('{', index)) != -1) {
+            int endIndex = endpoint.indexOf('}', index);
+            if (endIndex == -1) {
+                throw new IllegalArgumentException(
+                        String.format("Invalid endpoint: '%s' - unclosed placeholder at %d", endpoint, index)
+                );
+            }
+            if (endpoint.substring(index + 1, endIndex).trim().isEmpty()) {
+                throw new IllegalArgumentException(
+                        String.format("Invalid endpoint: '%s' - empty placeholder at %d", endpoint, index)
+                );
+            }
+            count++;
+            index = endIndex + 1;
+        }
+        return count;
+    }
+
     private void logRequestDetails(Response response, long durationNanos) {
         long durationMs = TimeUnit.NANOSECONDS.toMillis(durationNanos);
         String requestId = response.getHeader("X-Request-ID");
         log.debug("Request completed in {}ms, X-Request-ID: {}", durationMs, requestId);
-
         Allure.addAttachment("Response Time", "text/plain", durationMs + " ms");
         if (requestId != null) {
             Allure.addAttachment("Request ID", "text/plain", requestId);
         }
     }
-
-    // ===== BUILDER =====
 
     public static class Builder {
         private String baseUrl;
@@ -460,7 +381,6 @@ public class RestClient implements ApiClient {
                 );
             }
             this.retryCount = retryCount;
-            log.debug("Retry count set to {}", retryCount);
             return this;
         }
 
@@ -472,17 +392,7 @@ public class RestClient implements ApiClient {
                 );
             }
             this.retryDelay = retryDelayMs;
-            log.debug("Retry delay set to {} ms", retryDelayMs);
             return this;
-        }
-
-        public Builder retryDelaySeconds(int retryDelaySec) {
-            if (retryDelaySec < 1 || retryDelaySec > 5) {
-                throw new IllegalArgumentException(
-                        String.format("Retry delay must be between 1 and 5 seconds, got: %d", retryDelaySec)
-                );
-            }
-            return retryDelay(retryDelaySec * 1000L);
         }
 
         public Builder withRetry(int retryCount) {
@@ -491,7 +401,7 @@ public class RestClient implements ApiClient {
 
         public RestClient build() {
             if (baseUrl == null) {
-                throw new IllegalStateException("Base URL must be set");
+                this.baseUrl = ConfigManager.getApiBaseUrl();
             }
             log.info("Building RestClient with baseUrl: {}, retryCount: {}, retryDelay: {}ms",
                     baseUrl, retryCount, retryDelay);

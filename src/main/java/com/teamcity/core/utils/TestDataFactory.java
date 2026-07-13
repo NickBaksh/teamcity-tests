@@ -1,105 +1,110 @@
 package com.teamcity.core.utils;
 
-import com.teamcity.core.models.Build;
+import com.teamcity.core.generators.RandomData;
+import com.teamcity.core.generators.RandomModelGenerator;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.Project;
 import com.teamcity.core.models.User;
 
-import java.util.UUID;
-
+/**
+ * Фабрика тестовых данных. Делегирует генерацию в {@link RandomData} / {@link RandomModelGenerator}.
+ */
 public class TestDataFactory {
 
     public static final String DEFAULT_PASSWORD = "TestPass123!";
 
-    // ===== Генерация проектов =====
     public Project createRandomProject() {
-        String name = "Project_" + System.currentTimeMillis();
-        return Project.builder()
-                .name(name)
-                .description("Auto-generated project: " + name)
-                .parentProjectId("_Root")
-                .build();
+        Project project = RandomModelGenerator.generate(Project.class);
+        project.setId(null);
+        project.setHref(null);
+        project.setWebUrl(null);
+        project.setParentProjectId("_Root");
+        project.setDescription("Auto-generated project: " + project.getName());
+        return project;
     }
 
     public Project createRandomProject(String parentProjectId) {
-        String name = "Project_" + System.currentTimeMillis();
-        return Project.builder()
-                .name(name)
-                .description("Auto-generated project: " + name)
-                .parentProjectId(parentProjectId)
-                .build();
+        Project project = createRandomProject();
+        project.setParentProjectId(parentProjectId);
+        return project;
     }
 
-    // ===== Генерация пользователей =====
     public User createRandomUser() {
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        String username = "testuser_" + timestamp;
+        User user = RandomModelGenerator.generate(User.class);
+        user.setId(null);
+        user.setHref(null);
+        user.setPassword(DEFAULT_PASSWORD);
+        user.setName("Test User " + RandomData.shortId());
+        return user;
+    }
+
+    public User createUserWithEmail(String email) {
+        User user = createRandomUser();
+        user.setEmail(email);
+        return user;
+    }
+
+    public User createUserWithPassword(String password) {
+        User user = createRandomUser();
+        user.setPassword(password);
+        return user;
+    }
+
+    public User createMinimalUser() {
         return User.builder()
-                .username(username)
+                .username(generateUniqueUsername())
                 .password(DEFAULT_PASSWORD)
-                .email("test_" + timestamp + "@example.com")
-                .name("Test User " + timestamp)
                 .build();
     }
 
-    // ===== Генерация Build Configs =====
     public BuildConfig createRandomBuildConfig(String projectId) {
-        String name = "BuildConfig_" + System.currentTimeMillis();
-        return BuildConfig.builder()
-                .name(name)
-                .projectId(projectId)
-                .description("Auto-generated build config: " + name)
-                .build();
+        BuildConfig config = RandomModelGenerator.generate(BuildConfig.class);
+        config.setId(null);
+        config.setHref(null);
+        config.setWebUrl(null);
+        config.setPaused(null);
+        config.setProjectId(projectId);
+        config.setDescription("Auto-generated build config: " + config.getName());
+        return config;
     }
 
-    // ===== НОВЫЕ МЕТОДЫ ДЛЯ ГЕНЕРАЦИИ УНИКАЛЬНЫХ ИМЕН =====
+    public BuildConfig createBuildConfigWithDescription(String projectId, String description) {
+        BuildConfig config = createRandomBuildConfig(projectId);
+        config.setDescription(description);
+        return config;
+    }
 
-    /**
-     * Генерирует уникальное имя с указанным префиксом.
-     */
+    public Project createProjectWithName(String name) {
+        Project project = createRandomProject();
+        project.setName(name);
+        return project;
+    }
+
     public String generateUniqueName(String prefix) {
-        return prefix + "_" + System.currentTimeMillis();
+        return RandomData.unique(prefix);
     }
 
-    /**
-     * Генерирует уникальное имя проекта.
-     */
     public String generateUniqueProjectName() {
-        return "Project_" + System.currentTimeMillis();
+        return RandomData.unique("Project");
     }
 
-    /**
-     * Генерирует уникальное имя для Build Config.
-     */
     public String generateUniqueBuildConfigName() {
-        return "BuildConfig_" + System.currentTimeMillis();
+        return RandomData.unique("BuildConfig");
     }
 
-    /**
-     * Генерирует уникальное имя пользователя.
-     */
     public String generateUniqueUsername() {
-        return "user_" + System.currentTimeMillis();
+        return RandomData.unique("user");
     }
 
-    /**
-     * Генерирует уникальный email.
-     */
     public String generateUniqueEmail() {
-        return "test_" + System.currentTimeMillis() + "@example.com";
+        return RandomData.email();
     }
 
-    /**
-     * Генерирует случайную строку заданной длины.
-     */
     public String randomString(int length) {
-        return UUID.randomUUID().toString().substring(0, Math.min(length, 36));
+        return RandomData.string(length);
     }
 
-    /**
-     * Генерирует случайный пароль.
-     */
     public String randomPassword() {
-        return "P@ssw0rd_" + randomString(6);
+        return RandomData.password();
     }
 }

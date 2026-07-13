@@ -1,15 +1,21 @@
 package com.teamcity.api;
 
 import com.teamcity.core.client.ApiClient;
-import com.teamcity.core.client.RestClient;
-import com.teamcity.core.config.ConfigManager;
-import com.teamcity.core.exceptions.ApiException;
+import com.teamcity.core.client.ClientFactory;
+import com.teamcity.core.models.BuildConfig;
+import com.teamcity.core.models.Project;
+import com.teamcity.core.models.User;
+import com.teamcity.core.steps.AdminSteps;
+import com.teamcity.core.steps.AuthSteps;
+import com.teamcity.core.steps.BuildConfigSteps;
+import com.teamcity.core.steps.BuildRunSteps;
+import com.teamcity.core.steps.ProjectSteps;
+import com.teamcity.core.steps.UserSteps;
 import com.teamcity.core.utils.TestDataFactory;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.ArrayList;
@@ -23,6 +29,13 @@ public abstract class BaseApiTest {
     protected ApiClient userClient;
     protected TestDataFactory dataFactory;
 
+    protected AdminSteps adminSteps;
+    protected AuthSteps authSteps;
+    protected ProjectSteps projectSteps;
+    protected BuildConfigSteps buildConfigSteps;
+    protected BuildRunSteps buildRunSteps;
+    protected UserSteps userSteps;
+
     private final List<String> createdProjects = new ArrayList<>();
     private final List<String> createdUsers = new ArrayList<>();
     private final List<String> createdBuildConfigs = new ArrayList<>();
@@ -31,82 +44,89 @@ public abstract class BaseApiTest {
     @Step("Initialize API test environment")
     public void setUp() {
         log.info("Setting up API test...");
-
-        adminClient = RestClient.builder()
-                .baseUrl(ConfigManager.getApiBaseUrl())
-                .basicAuth(ConfigManager.getAdminLogin(), ConfigManager.getAdminPassword())
-                .withRetry(ConfigManager.getRetryCount())
-                .build();
-
-        userClient = RestClient.builder()
-                .baseUrl(ConfigManager.getApiBaseUrl())
-                .basicAuth(ConfigManager.getUserLogin(), ConfigManager.getUserPassword())
-                .withRetry(ConfigManager.getRetryCount())
-                .build();
-
+        adminClient = ClientFactory.createAdminClient();
+        userClient = ClientFactory.createUserClient();
         dataFactory = new TestDataFactory();
+
+        adminSteps = new AdminSteps(adminClient);
+        authSteps = adminSteps.auth();
+        projectSteps = adminSteps.projects();
+        buildConfigSteps = adminSteps.buildConfigs();
+        buildRunSteps = adminSteps.builds();
+        userSteps = adminSteps.users();
     }
 
     @AfterEach
     @Step("Cleanup test resources")
     public void cleanUp() {
-        cleanupBuildConfigs();
-        cleanupProjects();
-        cleanupUsers();
-    }
-
-    private void cleanupBuildConfigs() {
-        if (createdBuildConfigs.isEmpty()) return;
-
-        for (String configId : createdBuildConfigs) {
+        createdBuildConfigs.forEach(id -> {
             try {
-                log.info("Cleaning up build config: {}", configId);
-                adminClient.delete("/app/rest/buildTypes/{btLocator}", configId);
-            } catch (ApiException e) {
-                if (e.getStatusCode() != 404) {
-                    log.warn("Failed to delete build config: {} - {}", configId, e.getMessage());
-                }
+                buildConfigSteps.deleteBuildConfigIfExists(id);
             } catch (Exception e) {
-                log.warn("Unexpected error cleaning build config: {}", configId, e);
+                log.warn("Failed to cleanup build config {}: {}", id, e.getMessage());
             }
-        }
+        });
         createdBuildConfigs.clear();
-    }
 
-    private void cleanupProjects() {
-        if (createdProjects.isEmpty()) return;
-
-        for (String projectId : createdProjects) {
+        createdProjects.forEach(id -> {
             try {
-                log.info("Cleaning up project: {}", projectId);
-                adminClient.delete("/app/rest/projects/{projectLocator}", projectId);
-            } catch (ApiException e) {
-                if (e.getStatusCode() != 404) {
-                    log.warn("Failed to delete project: {} - {}", projectId, e.getMessage());
-                }
+                projectSteps.deleteProjectIfExists(id);
             } catch (Exception e) {
-                log.warn("Unexpected error cleaning project: {}", projectId, e);
+                log.warn("Failed to cleanup project {}: {}", id, e.getMessage());
             }
-        }
+        });
         createdProjects.clear();
+
+        createdUsers.forEach(username -> {
+            try {
+                userSteps.deleteUserIfExists(username);
+            } catch (Exception e) {
+                log.warn("Failed to cleanup user {}: {}", username, e.getMessage());
+            }
+        });
+        createdUsers.clear();
     }
 
-    private void cleanupUsers() {
-        if (createdUsers.isEmpty()) return;
+    @Step("Create tracked project")
+    protected Project givenProject() {
+        Project created = projectSteps.createProject(dataFactory.createRandomProject());
+        trackProject(created.getId());
+        return created;
+    }
 
-        for (String username : createdUsers) {
-            try {
-                log.info("Cleaning up user: {}", username);
-                adminClient.delete("/app/rest/users/{userLocator}", username);
-            } catch (ApiException e) {
-                if (e.getStatusCode() != 404) {
-                    log.warn("Failed to delete user: {} - {}", username, e.getMessage());
-                }
-            } catch (Exception e) {
-                log.warn("Unexpected error cleaning user: {}", username, e);
-            }
-        }
-        createdUsers.clear();
+    @Step("Create tracked project from request")
+    protected Project givenProject(Project request) {
+        Project created = projectSteps.createProject(request);
+        trackProject(created.getId());
+        return created;
+    }
+
+    @Step("Create tracked build config in project: {projectId}")
+    protected BuildConfig givenBuildConfig(String projectId) {
+        BuildConfig created = buildConfigSteps.createBuildConfig(dataFactory.createRandomBuildConfig(projectId));
+        trackBuildConfig(created.getId());
+        return created;
+    }
+
+    @Step("Create tracked build config from request")
+    protected BuildConfig givenBuildConfig(BuildConfig request) {
+        BuildConfig created = buildConfigSteps.createBuildConfig(request);
+        trackBuildConfig(created.getId());
+        return created;
+    }
+
+    @Step("Create tracked user")
+    protected User givenUser() {
+        User created = userSteps.createUser(dataFactory.createRandomUser());
+        trackUser(created.getUsername());
+        return created;
+    }
+
+    @Step("Create tracked user from request")
+    protected User givenUser(User request) {
+        User created = userSteps.createUser(request);
+        trackUser(created.getUsername());
+        return created;
     }
 
     @Step("Track project for cleanup: {projectId}")

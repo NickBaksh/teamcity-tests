@@ -2,6 +2,7 @@ package com.teamcity.core.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.teamcity.core.generators.GeneratingRule;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,7 +16,10 @@ import lombok.NoArgsConstructor;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Project {
     private String id;
+
+    @GeneratingRule(regex = "Project_[0-9]{10,13}_[a-z0-9]{8}")
     private String name;
+
     private String description;
     private String parentProjectId;
     private String parentProjectName;

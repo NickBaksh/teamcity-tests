@@ -34,16 +34,16 @@ public class NewProjectDescription {
                 .build();
     }
 
-    // Внутренний класс для ссылки на проект
+    /** Parent/source project ref for create/copy — TeamCity expects locator, not bare id. */
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ProjectReference {
-        private String id;
+        private String locator;
 
-        public static ProjectReference of(String id) {
-            return ProjectReference.builder().id(id).build();
+        public static ProjectReference of(String projectId) {
+            return ProjectReference.builder().locator("id:" + projectId).build();
         }
     }
 }
