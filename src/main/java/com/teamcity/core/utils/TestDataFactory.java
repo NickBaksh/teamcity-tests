@@ -5,10 +5,8 @@ import com.teamcity.core.generators.RandomModelGenerator;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.Project;
 import com.teamcity.core.models.User;
+import com.teamcity.core.testdata.TestDataValues;
 
-/**
- * Фабрика тестовых данных. Делегирует генерацию в {@link RandomData} / {@link RandomModelGenerator}.
- */
 public class TestDataFactory {
 
     public static final String DEFAULT_PASSWORD = "TestPass123!";
@@ -18,7 +16,7 @@ public class TestDataFactory {
         project.setId(null);
         project.setHref(null);
         project.setWebUrl(null);
-        project.setParentProjectId("_Root");
+        project.setParentProjectId(TestDataValues.ROOT_PROJECT_ID);
         project.setDescription("Auto-generated project: " + project.getName());
         return project;
     }

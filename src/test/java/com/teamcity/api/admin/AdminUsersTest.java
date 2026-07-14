@@ -5,8 +5,9 @@ import com.teamcity.core.assertions.ApiAssertions;
 import com.teamcity.core.exceptions.ValidationException;
 import com.teamcity.core.models.User;
 import com.teamcity.core.testdata.InvalidTestData;
+import com.teamcity.core.testdata.TestDataValues;
+import com.teamcity.core.utils.TestDataFactory;
 import io.qameta.allure.Description;
-import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import org.junit.jupiter.api.Disabled;
@@ -22,7 +23,6 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@Feature("User Management")
 @Tag("admin")
 public class AdminUsersTest extends BaseApiTest {
 
@@ -73,18 +73,18 @@ public class AdminUsersTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     @Description("Documents TeamCity behavior: invalid email format is accepted")
     void shouldCreateUserWithInvalidEmail() {
-        User request = dataFactory.createUserWithEmail("invalid-email");
+        User request = dataFactory.createUserWithEmail(TestDataValues.INVALID_EMAIL);
 
         User created = givenUser(request);
 
-        assertThat(created.getEmail()).isEqualTo("invalid-email");
+        assertThat(created.getEmail()).isEqualTo(TestDataValues.INVALID_EMAIL);
         assertThat(created.getId()).isNotNull();
     }
 
     @Test
     @Severity(SeverityLevel.NORMAL)
     void shouldCreateUserWithShortPassword() {
-        User request = dataFactory.createUserWithPassword("123");
+        User request = dataFactory.createUserWithPassword(TestDataValues.SHORT_PASSWORD);
 
         User created = givenUser(request);
 
@@ -108,7 +108,7 @@ public class AdminUsersTest extends BaseApiTest {
 
         assertThatThrownBy(() -> userSteps.createUser(invalidUser))
                 .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Username must not be empty");
+                .hasMessageContaining(TestDataValues.MSG_USERNAME_EMPTY);
     }
 
     @ParameterizedTest
@@ -146,15 +146,21 @@ public class AdminUsersTest extends BaseApiTest {
 
     static Stream<Arguments> emailCases() {
         return Stream.of(
-                Arguments.of("valid@example.com", "valid@example.com"),
-                Arguments.of("valid+test@example.com", "valid+test@example.com"),
-                Arguments.of("invalid-email", "invalid-email"),
+                Arguments.of(TestDataValues.VALID_EMAIL, TestDataValues.VALID_EMAIL),
+                Arguments.of(TestDataValues.VALID_PLUS_EMAIL, TestDataValues.VALID_PLUS_EMAIL),
+                Arguments.of(TestDataValues.INVALID_EMAIL, TestDataValues.INVALID_EMAIL),
                 Arguments.of("", null),
                 Arguments.of(null, null)
         );
     }
 
     static Stream<String> acceptedPasswords() {
-        return Stream.of("123", "TestPass123!", "a".repeat(100), "", null);
+        return Stream.of(
+                TestDataValues.SHORT_PASSWORD,
+                TestDataFactory.DEFAULT_PASSWORD,
+                TestDataValues.LONG_PASSWORD,
+                "",
+                null
+        );
     }
 }

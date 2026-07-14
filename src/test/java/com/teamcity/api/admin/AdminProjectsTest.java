@@ -5,8 +5,8 @@ import com.teamcity.core.assertions.ApiAssertions;
 import com.teamcity.core.exceptions.ValidationException;
 import com.teamcity.core.models.Project;
 import com.teamcity.core.testdata.InvalidTestData;
+import com.teamcity.core.testdata.TestDataValues;
 import io.qameta.allure.Description;
-import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import org.junit.jupiter.api.Tag;
@@ -22,11 +22,8 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@Feature("Project Management")
 @Tag("admin")
 public class AdminProjectsTest extends BaseApiTest {
-
-    private static final String NON_EXISTENT_ID = "non-existent-id-12345";
 
     @Test
     @Severity(SeverityLevel.BLOCKER)
@@ -37,7 +34,7 @@ public class AdminProjectsTest extends BaseApiTest {
         trackProject(created.getId());
 
         ApiAssertions.assertProjectCreated(request, created);
-        assertThat(created.getParentProjectId()).isEqualTo("_Root");
+        assertThat(created.getParentProjectId()).isEqualTo(TestDataValues.ROOT_PROJECT_ID);
     }
 
     @Test
@@ -89,7 +86,7 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void shouldUpdateProjectDescription() {
         Project created = givenProject();
-        String newDescription = "Updated description " + System.currentTimeMillis();
+        String newDescription = TestDataValues.updatedDescription();
 
         Project updated = projectSteps.updateProjectDescription(created.getId(), newDescription);
 
@@ -100,11 +97,11 @@ public class AdminProjectsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void shouldCreateProjectWithDescription() {
         Project request = dataFactory.createRandomProject();
-        request.setDescription("Test project description");
+        request.setDescription(TestDataValues.PROJECT_DESCRIPTION);
 
         Project created = givenProject(request);
 
-        assertThat(created.getDescription()).isEqualTo("Test project description");
+        assertThat(created.getDescription()).isEqualTo(TestDataValues.PROJECT_DESCRIPTION);
     }
 
     @Test
@@ -130,7 +127,7 @@ public class AdminProjectsTest extends BaseApiTest {
 
         assertThatThrownBy(() -> projectSteps.createProject(request))
                 .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Project name cannot be empty");
+                .hasMessageContaining(TestDataValues.MSG_PROJECT_NAME_EMPTY);
     }
 
     @ParameterizedTest
@@ -155,19 +152,20 @@ public class AdminProjectsTest extends BaseApiTest {
     @Test
     @Severity(SeverityLevel.NORMAL)
     void shouldReturn404ForNonExistentProject() {
-        ApiAssertions.assertNotFound(() -> projectSteps.getProject(NON_EXISTENT_ID));
+        ApiAssertions.assertNotFound(() -> projectSteps.getProject(TestDataValues.NON_EXISTENT_ID));
     }
 
     @Test
     @Severity(SeverityLevel.NORMAL)
     void shouldReturn404WhenUpdatingNonExistentProject() {
-        ApiAssertions.assertNotFound(() -> projectSteps.updateProject(NON_EXISTENT_ID, "New Name"));
+        ApiAssertions.assertNotFound(() ->
+                projectSteps.updateProject(TestDataValues.NON_EXISTENT_ID, TestDataValues.UPDATED_PROJECT_NAME));
     }
 
     @Test
     @Severity(SeverityLevel.NORMAL)
     void shouldReturn404WhenDeletingNonExistentProject() {
-        ApiAssertions.assertNotFound(() -> projectSteps.deleteProject(NON_EXISTENT_ID));
+        ApiAssertions.assertNotFound(() -> projectSteps.deleteProject(TestDataValues.NON_EXISTENT_ID));
     }
 
     @ParameterizedTest
@@ -184,10 +182,10 @@ public class AdminProjectsTest extends BaseApiTest {
 
     static Stream<Arguments> parentProjectConfigurations() {
         return Stream.of(
-                Arguments.of("_Root", "_Root"),
-                Arguments.of("non-existent-id-12345", "_Root"),
-                Arguments.of("", "_Root"),
-                Arguments.of(null, "_Root")
+                Arguments.of(TestDataValues.ROOT_PROJECT_ID, TestDataValues.ROOT_PROJECT_ID),
+                Arguments.of(TestDataValues.NON_EXISTENT_ID, TestDataValues.ROOT_PROJECT_ID),
+                Arguments.of("", TestDataValues.ROOT_PROJECT_ID),
+                Arguments.of(null, TestDataValues.ROOT_PROJECT_ID)
         );
     }
 }

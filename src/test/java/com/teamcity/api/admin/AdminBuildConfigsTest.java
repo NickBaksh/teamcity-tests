@@ -6,8 +6,8 @@ import com.teamcity.core.exceptions.ApiException;
 import com.teamcity.core.exceptions.ValidationException;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.testdata.InvalidTestData;
+import com.teamcity.core.testdata.TestDataValues;
 import io.qameta.allure.Description;
-import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import org.assertj.core.api.SoftAssertions;
@@ -25,13 +25,8 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@Feature("Build Configuration Management")
 @Tag("admin")
 public class AdminBuildConfigsTest extends BaseApiTest {
-
-    private static final String NON_EXISTENT_ID = "non-existent-id-12345";
-    private static final String INVALID_PROJECT_ID = "invalid-project-id";
-    private static final String ROOT_PROJECT_ID = "_Root";
 
     private String testProjectId;
 
@@ -134,11 +129,11 @@ public class AdminBuildConfigsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void shouldCreateBuildConfigWithDescription() {
         BuildConfig request = dataFactory.createBuildConfigWithDescription(
-                testProjectId, "This is a test build config");
+                testProjectId, TestDataValues.BUILD_CONFIG_DESCRIPTION);
 
         BuildConfig created = givenBuildConfig(request);
 
-        assertThat(created.getDescription()).isEqualTo("This is a test build config");
+        assertThat(created.getDescription()).isEqualTo(TestDataValues.BUILD_CONFIG_DESCRIPTION);
     }
 
     @Test
@@ -180,17 +175,17 @@ public class AdminBuildConfigsTest extends BaseApiTest {
     void shouldNotCreateBuildConfigWithInvalidProjectId() {
         BuildConfig invalid = InvalidTestData.buildConfigForMissingProject(
                 dataFactory.generateUniqueBuildConfigName(),
-                INVALID_PROJECT_ID);
+                TestDataValues.INVALID_PROJECT_ID);
 
         assertThatThrownBy(() -> buildConfigSteps.createBuildConfig(invalid))
                 .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Cannot find project");
+                .hasMessageContaining(TestDataValues.MSG_PROJECT_NOT_FOUND);
     }
 
     @Test
     @Severity(SeverityLevel.CRITICAL)
     void shouldReturn404ForNonExistentBuildConfig() {
-        ApiAssertions.assertNotFound(() -> buildConfigSteps.getBuildConfig(NON_EXISTENT_ID));
+        ApiAssertions.assertNotFound(() -> buildConfigSteps.getBuildConfig(TestDataValues.NON_EXISTENT_ID));
     }
 
     @ParameterizedTest
@@ -206,7 +201,7 @@ public class AdminBuildConfigsTest extends BaseApiTest {
     @Test
     @Severity(SeverityLevel.MINOR)
     void shouldVerifyBuildConfigExists() {
-        assertThat(buildConfigSteps.buildConfigExists(NON_EXISTENT_ID)).isFalse();
+        assertThat(buildConfigSteps.buildConfigExists(TestDataValues.NON_EXISTENT_ID)).isFalse();
 
         BuildConfig created = givenBuildConfig(testProjectId);
 
@@ -216,14 +211,14 @@ public class AdminBuildConfigsTest extends BaseApiTest {
     @Test
     @Severity(SeverityLevel.MINOR)
     void shouldHandleNonExistentDeletion() {
-        buildConfigSteps.deleteBuildConfigIfExists(NON_EXISTENT_ID);
-        buildConfigSteps.deleteBuildConfigIfExists(NON_EXISTENT_ID);
+        buildConfigSteps.deleteBuildConfigIfExists(TestDataValues.NON_EXISTENT_ID);
+        buildConfigSteps.deleteBuildConfigIfExists(TestDataValues.NON_EXISTENT_ID);
     }
 
     static Stream<Arguments> invalidProjectLocators() {
         return Stream.of(
-                Arguments.of(ROOT_PROJECT_ID),
-                Arguments.of(INVALID_PROJECT_ID),
+                Arguments.of(TestDataValues.ROOT_PROJECT_ID),
+                Arguments.of(TestDataValues.INVALID_PROJECT_ID),
                 Arguments.of(""),
                 Arguments.of((String) null)
         );
