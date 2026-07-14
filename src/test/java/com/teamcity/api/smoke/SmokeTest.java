@@ -7,7 +7,7 @@ import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.Project;
 import com.teamcity.core.models.User;
 import com.teamcity.core.steps.AdminSteps;
-import io.qameta.allure.Feature;
+import com.teamcity.core.testdata.TestDataValues;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import org.junit.jupiter.api.Tag;
@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Feature("Smoke")
 @Tag("smoke")
 public class SmokeTest extends BaseApiTest {
 
@@ -77,7 +76,11 @@ public class SmokeTest extends BaseApiTest {
         Build current = buildRunSteps.getBuild(String.valueOf(run.getBuild().getId()));
 
         ApiAssertions.assertBuildTriggered(run.getBuild());
-        ApiAssertions.assertBuildState(current, "queued", "running", "finished");
+        ApiAssertions.assertBuildState(
+                current,
+                TestDataValues.BUILD_STATE_QUEUED,
+                TestDataValues.BUILD_STATE_RUNNING,
+                TestDataValues.BUILD_STATE_FINISHED);
         assertThat(current.getId()).isEqualTo(run.getBuild().getId());
     }
 
