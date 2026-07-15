@@ -7,6 +7,7 @@ import com.teamcity.core.endpoints.Endpoint;
 import com.teamcity.core.models.Build;
 import com.teamcity.core.models.dto.BuildCancelRequest;
 import com.teamcity.core.models.dto.RunBuildRequest;
+import com.teamcity.core.testdata.TestDataValues;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
@@ -128,7 +129,7 @@ public class BuildRunSteps extends BaseSteps {
                 .pollInterval(Duration.ofMillis(ConfigManager.getBuildPollInterval()))
                 .until(() -> getBuild(buildId), build -> {
                     String state = build.getState();
-                    return "finished".equalsIgnoreCase(state) || "failed".equalsIgnoreCase(state);
+                    return TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(state) || TestDataValues.BUILD_STATUS_FAILED.equalsIgnoreCase(state);
                 });
     }
 }

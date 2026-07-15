@@ -1,12 +1,11 @@
 package com.teamcity.api;
 
+import com.teamcity.core.assertions.ApiAssertions;
 import com.teamcity.core.client.ApiClient;
 import com.teamcity.core.client.ClientFactory;
-import com.teamcity.core.models.Agent;
-import com.teamcity.core.models.BuildConfig;
-import com.teamcity.core.models.Project;
-import com.teamcity.core.models.User;
+import com.teamcity.core.models.*;
 import com.teamcity.core.steps.*;
+import com.teamcity.core.testdata.TestDataValues;
 import com.teamcity.core.utils.TestDataFactory;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +15,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
 @ExtendWith(TestListener.class)
@@ -172,9 +173,6 @@ public abstract class BaseApiTest {
     @Step("Create BuildRunSteps for user: {user.username}")
 
     protected BuildRunSteps givenBuildRunSteps(User user) {
-        System.out.println("username = " + user.getUsername());
-
-        System.out.println("password = " + user.getPassword());
         return new BuildRunSteps(
                 adminSteps.createClientForUser(user.getUsername(), user.getPassword()));
     }
@@ -201,10 +199,44 @@ public abstract class BaseApiTest {
     }
 
     @Step("Get first available agent")
-
     protected Agent givenAgent() {
         return agentSteps.getAllAgents()
                 .getAgent()
                 .getFirst();
+    }
+
+    @Step("Create tracked build config in a new project")
+    protected BuildConfig givenBuildConfig() {
+        Project project = givenProject();
+        return givenBuildConfig(project.getId());
+    }
+
+    @Step("Run build and wait for finish")
+    protected Build givenFinishedBuild(String buildConfigId) {
+        Build build = buildRunSteps.runBuild(buildConfigId);
+        return buildRunSteps.waitForBuildFinish(build.getId());
+    }
+
+    @Step("Get NBank build configuration")
+    protected BuildConfig givenNBankBuildConfig() {
+        return buildConfigSteps.getBuildConfig(TestDataValues.NBANK_BUILD_CONFIG_ID);
+    }
+
+    @Step("Run finished NBank build")
+    protected Build givenFinishedNBankBuild() {
+        Build finished = givenFinishedBuild(givenNBankBuildConfig().getId());
+        ApiAssertions.assertBuildFinished(
+                finished,
+                finished.getId(),
+                TestDataValues.BUILD_STATUS_SUCCESS
+        );
+        return finished;
+    }
+
+    @Step("Get artifacts for build: {build.id}")
+    protected Files givenArtifacts(Build build) {
+        Files artifacts = artifactSteps.getArtifacts(build.getId());
+        ApiAssertions.assertArtifactsExist(artifacts);
+        return artifacts;
     }
 }

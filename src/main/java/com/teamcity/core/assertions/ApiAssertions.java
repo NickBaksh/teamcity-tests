@@ -9,6 +9,8 @@ import org.apache.http.HttpStatus;
 import org.assertj.core.api.SoftAssertions;
 import org.assertj.core.api.ThrowableAssert;
 
+import java.nio.charset.StandardCharsets;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -177,6 +179,92 @@ public final class ApiAssertions {
         softly.assertThat(authorizedInfo.getStatus())
                 .as("Agent authorized")
                 .isTrue();
+        softly.assertAll();
+    }
+
+    public static void assertArtifactsExist(Files artifacts) {
+        SoftAssertions softly = new SoftAssertions();
+
+        softly.assertThat(artifacts)
+                .as("Artifacts response")
+                .isNotNull();
+        softly.assertThat(artifacts.getCount())
+                .as("Artifacts count")
+                .isGreaterThan(0);
+
+        softly.assertThat(artifacts.getFile())
+                .as("Artifacts list")
+                .isNotEmpty();
+        softly.assertAll();
+    }
+
+    public static void assertArtifactsEmpty(Files artifacts) {
+        SoftAssertions softly = new SoftAssertions();
+        softly.assertThat(artifacts)
+                .as("Artifacts response")
+                .isNotNull();
+
+        softly.assertThat(artifacts.getCount())
+                .as("Artifacts count")
+                .isZero();
+
+        softly.assertThat(artifacts.getFile())
+                .as("Artifacts list")
+                .isEmpty();
+
+        softly.assertAll();
+    }
+
+    public static void assertArtifactContent(byte[] content) {
+        SoftAssertions softly = new SoftAssertions();
+        softly.assertThat(content)
+                .as("Downloaded artifact content")
+                .isNotNull()
+                .isNotEmpty();
+
+        String artifactText = new String(content, StandardCharsets.UTF_8);
+
+        softly.assertThat(artifactText)
+                .as("Downloaded artifact text")
+                .contains(TestDataValues.SUREFIRE_REPORT_MARKER);
+
+        softly.assertAll();
+    }
+
+    public static void assertArchiveContent(byte[] archive) {
+        SoftAssertions softly = new SoftAssertions();
+        softly.assertThat(archive)
+                .as("Downloaded archive")
+                .isNotNull()
+                .isNotEmpty();
+        softly.assertAll();
+    }
+
+    public static void assertArtifactMetadata(File expected, File actual) {
+        SoftAssertions softly = new SoftAssertions();
+        softly.assertThat(actual)
+                .as("Artifact metadata")
+                .isNotNull();
+        softly.assertThat(actual.getName())
+                .as("Artifact name")
+                .isEqualTo(expected.getName());
+        softly.assertThat(actual.getSize())
+                .as("Artifact size")
+                .isEqualTo(expected.getSize());
+        softly.assertThat(actual.getHref())
+                .as("Artifact href")
+                .isNotBlank();
+        softly.assertAll();
+    }
+
+    public static void assertArtifact(File artifact) {
+        SoftAssertions softly = new SoftAssertions();
+        softly.assertThat(artifact)
+                .as("Artifact")
+                .isNotNull();
+        softly.assertThat(artifact.getName())
+                .as("Artifact name")
+                .isNotBlank();
         softly.assertAll();
     }
 }
