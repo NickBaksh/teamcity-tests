@@ -51,6 +51,14 @@ public final class ClientFactory {
                 .build();
     }
 
+    public static ApiClient createNegativeBasicAuthClient(String username, String password) {
+        return RestClient.builder()
+                .baseUrl(ConfigManager.getApiBaseUrl())
+                .basicAuth(username, password)
+                .withRetry(1)
+                .build();
+    }
+
     public static ApiClient createInvalidAuthClient() {
         return RestClient.builder()
                 .baseUrl(ConfigManager.getApiBaseUrl())

@@ -2,15 +2,11 @@ package com.teamcity.api;
 
 import com.teamcity.core.client.ApiClient;
 import com.teamcity.core.client.ClientFactory;
+import com.teamcity.core.models.Agent;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.Project;
 import com.teamcity.core.models.User;
-import com.teamcity.core.steps.AdminSteps;
-import com.teamcity.core.steps.AuthSteps;
-import com.teamcity.core.steps.BuildConfigSteps;
-import com.teamcity.core.steps.BuildRunSteps;
-import com.teamcity.core.steps.ProjectSteps;
-import com.teamcity.core.steps.UserSteps;
+import com.teamcity.core.steps.*;
 import com.teamcity.core.utils.TestDataFactory;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +31,8 @@ public abstract class BaseApiTest {
     protected BuildConfigSteps buildConfigSteps;
     protected BuildRunSteps buildRunSteps;
     protected UserSteps userSteps;
+    protected ArtifactSteps artifactSteps;
+    protected AgentSteps agentSteps;
 
     private final List<String> createdProjects = new ArrayList<>();
     private final List<String> createdUsers = new ArrayList<>();
@@ -54,6 +52,8 @@ public abstract class BaseApiTest {
         buildConfigSteps = adminSteps.buildConfigs();
         buildRunSteps = adminSteps.builds();
         userSteps = adminSteps.users();
+        artifactSteps = adminSteps.artifacts();
+        agentSteps = adminSteps.agents();
     }
 
     @AfterEach
@@ -115,18 +115,68 @@ public abstract class BaseApiTest {
         return created;
     }
 
+//    @Step("Create tracked user")
+//    protected User givenUser() {
+//        User created = userSteps.createUser(dataFactory.createRandomUser());
+//        trackUser(created.getUsername());
+//        return created;
+//    }
     @Step("Create tracked user")
     protected User givenUser() {
-        User created = userSteps.createUser(dataFactory.createRandomUser());
+        User request = dataFactory.createRandomUser();
+        User created = userSteps.createUser(request);
+        // TeamCity не возвращает пароль в ответе,
+    // поэтому переносим его из исходного объекта
+        created.setPassword(request.getPassword());
         trackUser(created.getUsername());
         return created;
-    }
+}
 
     @Step("Create tracked user from request")
     protected User givenUser(User request) {
         User created = userSteps.createUser(request);
         trackUser(created.getUsername());
         return created;
+    }
+
+    @Step("Create BuildConfigSteps for a new user")
+    protected BuildConfigSteps givenUserBuildConfigSteps() {
+        User request = dataFactory.createRandomUser();
+        givenUser(request);
+        return new BuildConfigSteps(
+                adminSteps.createClientForUser(
+                        request.getUsername(),
+                        request.getPassword()));
+    }
+
+    @Step("Create BuildRunSteps for a new user")
+    protected BuildRunSteps givenUserBuildRunSteps() {
+        User request = dataFactory.createRandomUser();
+        givenUser(request);
+        return new BuildRunSteps(
+                adminSteps.createClientForUser(
+                        request.getUsername(),
+                        request.getPassword()));
+    }
+
+    @Step("Create negative BuildRunSteps for user")
+    protected BuildRunSteps givenNegativeBuildRunSteps(User user) {
+        return new BuildRunSteps(
+                ClientFactory.createNegativeBasicAuthClient(
+                        user.getUsername(),
+                        user.getPassword()
+                )
+        );
+    }
+
+    @Step("Create BuildRunSteps for user: {user.username}")
+
+    protected BuildRunSteps givenBuildRunSteps(User user) {
+        System.out.println("username = " + user.getUsername());
+
+        System.out.println("password = " + user.getPassword());
+        return new BuildRunSteps(
+                adminSteps.createClientForUser(user.getUsername(), user.getPassword()));
     }
 
     @Step("Track project for cleanup: {projectId}")
@@ -148,5 +198,13 @@ public abstract class BaseApiTest {
         if (configId != null && !configId.isEmpty()) {
             createdBuildConfigs.add(configId);
         }
+    }
+
+    @Step("Get first available agent")
+
+    protected Agent givenAgent() {
+        return agentSteps.getAllAgents()
+                .getAgent()
+                .getFirst();
     }
 }

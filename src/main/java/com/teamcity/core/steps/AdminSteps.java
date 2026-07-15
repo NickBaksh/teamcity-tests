@@ -25,6 +25,8 @@ public class AdminSteps {
     private final BuildRunSteps buildRunSteps;
     private final UserSteps userSteps;
     private final AuthSteps authSteps;
+    private final ArtifactSteps artifactSteps;
+    private final AgentSteps agentSteps;
 
     public AdminSteps(ApiClient client) {
         this.client = client;
@@ -34,6 +36,8 @@ public class AdminSteps {
         this.buildRunSteps = new BuildRunSteps(client, validator);
         this.userSteps = new UserSteps(client, validator);
         this.authSteps = new AuthSteps(client, validator);
+        this.artifactSteps = new ArtifactSteps(client, validator);
+        this.agentSteps = new AgentSteps(client, validator);
     }
 
     public ProjectSteps projects() {
@@ -55,6 +59,10 @@ public class AdminSteps {
     public AuthSteps auth() {
         return authSteps;
     }
+
+    public ArtifactSteps artifacts() { return artifactSteps;}
+
+    public AgentSteps agents() {return agentSteps;}
 
     @Step("Create project ready for build configs")
     public Project createProjectForBuilds(Project project) {
