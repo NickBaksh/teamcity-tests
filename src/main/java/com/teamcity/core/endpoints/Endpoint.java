@@ -82,6 +82,10 @@ public enum Endpoint {
     BUILD_LOG("/app/rest/builds/{buildLocator}/log"),
     BUILD_ARTIFACT_DEPENDENCY_CHANGES("/app/rest/builds/{buildLocator}/artifactDependencyChanges"),
     BUILD_CACHES_FINISH_PROPERTIES("/app/rest/builds/{buildLocator}/caches/finishProperties"),
+    BUILD_ARTIFACT_METADATA("/app/rest/builds/{buildLocator}/artifacts/metadata{path}"),
+    BUILD_ARTIFACT_FILE("/app/rest/builds/{buildLocator}/artifacts/files{path}"),
+    BUILD_ARTIFACT_ARCHIVE("/app/rest/builds/{buildLocator}/artifacts/archived{path}"),
+    BUILD_ARTIFACT_CHILDREN("/app/rest/builds/{buildLocator}/artifacts/{path}"),
 
     // ===== BUILD QUEUE =====
     BUILD_QUEUE("/app/rest/buildQueue"),

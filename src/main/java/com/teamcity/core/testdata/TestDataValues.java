@@ -1,9 +1,11 @@
 package com.teamcity.core.testdata;
 
 public final class TestDataValues {
-
     private TestDataValues() {
     }
+
+    public static final String NBANK_BUILD_CONFIG_ID = "NBank_BuildNBank";
+    public static final int BUILD_WAIT_TIMEOUT_SECONDS = 30;
 
     public static final String ROOT_PROJECT_ID = "_Root";
     public static final String NON_EXISTENT_ID = "non-existent-id-12345";
@@ -27,10 +29,6 @@ public final class TestDataValues {
     public static final String BUILD_STATE_QUEUED = "queued";
     public static final String BUILD_STATE_RUNNING = "running";
     public static final String BUILD_STATE_FINISHED = "finished";
-
-    public static final String NBANK_BUILD_CONFIG_ID = "NBank_BuildNBank";
-    public static final int BUILD_WAIT_TIMEOUT_SECONDS = 30;
-
     public static final String BUILD_STATUS_SUCCESS = "SUCCESS";
     public static final String BUILD_STATUS_UNKNOWN = "UNKNOWN";
     public static final String BUILD_STATUS_CANCEL = "cancel";

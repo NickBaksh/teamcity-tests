@@ -19,12 +19,12 @@ public class ResponseValidator {
     private static final Set<Integer> CLIENT_ERROR_CODES = Set.of(400, 401, 403, 404, 405, 406, 409, 422);
 
     private static final Map<Integer, Function<String, RuntimeException>> ERROR_HANDLERS = Map.of(
-            401, message -> new AuthenticationException("Authentication failed: " + message),
-            403, message -> new AuthenticationException("Access denied: " + message),
-            404, message -> new ResourceNotFoundException("Resource not found: " + message),
-            406, message -> new ValidationException("Not acceptable: " + message),
-            409, message -> new DuplicateResourceException("Conflict: " + message)
-    );
+        401, message -> new AuthenticationException("Authentication failed: " + message, 401),
+        403, message -> new AuthenticationException("Access denied: " + message, 403),
+        404, message -> new ResourceNotFoundException("Resource not found: " + message),
+        406, message -> new ValidationException("Not acceptable: " + message),
+        409, message -> new DuplicateResourceException("Conflict: " + message)
+        );
 
     public void validateStatus(Response response) {
         int statusCode = response.statusCode();
