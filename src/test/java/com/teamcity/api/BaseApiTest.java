@@ -16,8 +16,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 @Slf4j
 @ExtendWith(TestListener.class)
 public abstract class BaseApiTest {
@@ -116,12 +114,6 @@ public abstract class BaseApiTest {
         return created;
     }
 
-//    @Step("Create tracked user")
-//    protected User givenUser() {
-//        User created = userSteps.createUser(dataFactory.createRandomUser());
-//        trackUser(created.getUsername());
-//        return created;
-//    }
     @Step("Create tracked user")
     protected User givenUser() {
         User request = dataFactory.createRandomUser();
