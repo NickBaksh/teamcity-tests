@@ -5,6 +5,7 @@ public final class TestDataValues {
 private TestDataValues() {
 }
 
+public static final String NBANK_BUILD_CONFIG_ID = "NBank_BuildNBank";
 public static final int BUILD_WAIT_TIMEOUT_SECONDS = 30;
 
 public static final String ROOT_PROJECT_ID = "_Root";
@@ -32,9 +33,16 @@ public static final String BUILD_STATE_FINISHED = "finished";
 public static final String BUILD_STATUS_SUCCESS = "SUCCESS";
 public static final String BUILD_STATUS_UNKNOWN = "UNKNOWN";
 public static final String BUILD_STATUS_CANCEL = "cancel";
+public static final String BUILD_STATUS_FAILED = "failed";
 
 public static final String NON_EXISTENT_AGENT_ID = String.valueOf(Integer.MAX_VALUE);
+public static final String NON_EXISTENT_BUILD_ID = String.valueOf(Integer.MAX_VALUE);
 public static final String INVALID_AGENT_ID = "non-existent-id-12345";
+
+public static final String TXT_ARTIFACT_EXTENSION = ".txt";
+public static final String SUREFIRE_REPORT_MARKER = "Tests run:";
+public static final String NON_EXISTENT_ARTIFACT_NAME = "non-existing-artifact.txt";
+public static final String ROOT_ARTIFACT_PATH = "";
 
 public static String updatedDescription() {
     return UPDATED_DESCRIPTION_PREFIX + System.currentTimeMillis();
