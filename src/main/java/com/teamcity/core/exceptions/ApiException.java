@@ -1,5 +1,6 @@
 package com.teamcity.core.exceptions;
 
+import com.teamcity.core.client.HttpStatusCodes;
 import lombok.Getter;
 
 @Getter
@@ -36,41 +37,41 @@ public class ApiException extends RuntimeException {
         this.requestId = requestId;
     }
 
-    // ===== Методы для проверки статусов =====
-
     public boolean isNotFound() {
-        return statusCode == 404;
+        return statusCode == HttpStatusCodes.NOT_FOUND;
     }
 
     public boolean isBadRequest() {
-        return statusCode == 400;
+        return statusCode == HttpStatusCodes.BAD_REQUEST;
     }
 
     public boolean isUnauthorized() {
-        return statusCode == 401;
+        return statusCode == HttpStatusCodes.UNAUTHORIZED;
     }
 
     public boolean isForbidden() {
-        return statusCode == 403;
+        return statusCode == HttpStatusCodes.FORBIDDEN;
     }
 
     public boolean isConflict() {
-        return statusCode == 409;
+        return statusCode == HttpStatusCodes.CONFLICT;
     }
 
     public boolean isServerError() {
-        return statusCode >= 500 && statusCode < 600;
+        return statusCode >= HttpStatusCodes.SERVER_ERROR_MIN && statusCode < HttpStatusCodes.SERVER_ERROR_MAX;
     }
 
     public boolean isClientError() {
-        return statusCode >= 400 && statusCode < 500;
+        return statusCode >= HttpStatusCodes.CLIENT_ERROR_MIN && statusCode < HttpStatusCodes.CLIENT_ERROR_MAX;
     }
 
     public boolean isRetryable() {
-        return statusCode == 408 || statusCode == 429 || isServerError();
+        return statusCode == HttpStatusCodes.REQUEST_TIMEOUT
+                || statusCode == HttpStatusCodes.TOO_MANY_REQUESTS
+                || isServerError();
     }
 
     public boolean isSuccess() {
-        return statusCode >= 200 && statusCode < 300;
+        return statusCode >= HttpStatusCodes.SUCCESS_MIN && statusCode < HttpStatusCodes.SUCCESS_MAX;
     }
 }

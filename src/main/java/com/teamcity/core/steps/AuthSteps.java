@@ -2,6 +2,7 @@ package com.teamcity.core.steps;
 
 import com.teamcity.core.client.ApiClient;
 import com.teamcity.core.client.ClientFactory;
+import com.teamcity.core.client.HttpStatusCodes;
 import com.teamcity.core.client.ResponseValidator;
 import com.teamcity.core.endpoints.Endpoint;
 import com.teamcity.core.exceptions.ApiException;
@@ -35,7 +36,8 @@ public class AuthSteps extends BaseSteps {
             invalidClient.get(Endpoint.SERVER.getPath());
             throw new AssertionError("Expected authentication failure for user: " + username);
         } catch (ApiException e) {
-            if (e.getStatusCode() != 401 && e.getStatusCode() != 403) {
+            if (e.getStatusCode() != HttpStatusCodes.UNAUTHORIZED
+                    && e.getStatusCode() != HttpStatusCodes.FORBIDDEN) {
                 throw e;
             }
             log.info("Credentials rejected as expected: status={}", e.getStatusCode());
@@ -49,7 +51,8 @@ public class AuthSteps extends BaseSteps {
             invalidClient.get(Endpoint.SERVER.getPath());
             throw new AssertionError("Expected authentication failure for invalid credentials");
         } catch (ApiException e) {
-            if (e.getStatusCode() != 401 && e.getStatusCode() != 403) {
+            if (e.getStatusCode() != HttpStatusCodes.UNAUTHORIZED
+                    && e.getStatusCode() != HttpStatusCodes.FORBIDDEN) {
                 throw e;
             }
             log.info("Invalid auth rejected as expected: status={}", e.getStatusCode());

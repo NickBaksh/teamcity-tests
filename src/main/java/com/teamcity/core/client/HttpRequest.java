@@ -6,10 +6,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Универсальный HTTP-запрос вместо прямого {@code given()} в тестах и steps.
- * Собирает method, endpoint, body, headers и params; выполняется через {@link ApiClient#execute}.
- */
 @Getter
 public final class HttpRequest {
 

@@ -4,7 +4,7 @@ import lombok.Getter;
 
 @Getter
 public enum ContentType {
-    // Стандартные типы
+
     JSON("application/json"),
     TEXT_PLAIN("text/plain"),
     XML("application/xml"),
@@ -12,7 +12,6 @@ public enum ContentType {
     FORM_URLENCODED("application/x-www-form-urlencoded"),
     MULTIPART_FORM("multipart/form-data"),
 
-    // TeamCity специфичные
     TEAMCITY_JSON("application/json"),
     TEAMCITY_XML("application/xml"),
     TEAMCITY_PLAIN("text/plain");
@@ -23,9 +22,6 @@ public enum ContentType {
         this.value = value;
     }
 
-    /**
-     * Получить ContentType по строковому значению
-     */
     public static ContentType fromString(String value) {
         if (value == null || value.isEmpty()) {
             return JSON;
@@ -33,7 +29,6 @@ public enum ContentType {
 
         String normalized = value.toLowerCase().trim();
 
-        // Убираем параметры из Content-Type (например, charset)
         if (normalized.contains(";")) {
             normalized = normalized.split(";")[0].trim();
         }
@@ -44,7 +39,6 @@ public enum ContentType {
             }
         }
 
-        // Определяем по ключевым словам
         if (normalized.contains("json")) {
             return JSON;
         }
@@ -67,30 +61,18 @@ public enum ContentType {
         return JSON;
     }
 
-    /**
-     * Проверка, является ли тип JSON
-     */
     public boolean isJson() {
         return this == JSON || this == TEAMCITY_JSON;
     }
 
-    /**
-     * Проверка, является ли тип XML
-     */
     public boolean isXml() {
         return this == XML || this == TEAMCITY_XML;
     }
 
-    /**
-     * Проверка, является ли тип текстовым
-     */
     public boolean isText() {
         return this == TEXT_PLAIN || this == TEAMCITY_PLAIN;
     }
 
-    /**
-     * Получить RestAssured ContentType
-     */
     public io.restassured.http.ContentType toRestAssured() {
         switch (this) {
             case JSON:

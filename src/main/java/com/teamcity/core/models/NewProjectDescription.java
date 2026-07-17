@@ -26,7 +26,6 @@ public class NewProjectDescription {
     @JsonProperty("sourceProject")
     private ProjectReference sourceProject;
 
-    // Factory method для создания подпроекта
     public static NewProjectDescription createChild(String name, String parentId) {
         return NewProjectDescription.builder()
                 .name(name)
@@ -34,7 +33,6 @@ public class NewProjectDescription {
                 .build();
     }
 
-    /** Parent/source project ref for create/copy — TeamCity expects locator, not bare id. */
     @Data
     @Builder
     @NoArgsConstructor

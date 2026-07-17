@@ -9,9 +9,6 @@ import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Сравнение полученных и ожидаемых моделей с правилами из {@code model-comparison.properties}.
- */
 public final class ModelAssertions {
 
     private ModelAssertions() {

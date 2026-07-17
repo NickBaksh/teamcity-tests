@@ -4,9 +4,6 @@ import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.specification.ResponseSpecification;
 import org.apache.http.HttpStatus;
 
-/**
- * Переиспользуемые ResponseSpecification для ожидаемых статус-кодов.
- */
 public final class ResponseSpecs {
 
     private ResponseSpecs() {

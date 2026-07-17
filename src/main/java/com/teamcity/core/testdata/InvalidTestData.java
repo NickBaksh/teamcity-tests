@@ -11,11 +11,6 @@ public final class InvalidTestData {
     private static final String REJECTED_BUILD_CONFIG_DESCRIPTION = "Should be rejected";
     private static final String EDGE_BUILD_CONFIG_DESCRIPTION = "Edge-case build config name";
 
-    private static final String EDGE_EMAIL = "test@test.com";
-    private static final String EDGE_PROJECT_DESCRIPTION = "Invalid/edge project name case";
-    private static final String REJECTED_BUILD_CONFIG_DESCRIPTION = "Should be rejected";
-    private static final String EDGE_BUILD_CONFIG_DESCRIPTION = "Edge-case build config name";
-
     private InvalidTestData() {
     }
 

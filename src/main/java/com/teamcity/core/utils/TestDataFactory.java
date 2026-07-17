@@ -20,7 +20,7 @@ public class TestDataFactory {
         project.setHref(null);
         project.setWebUrl(null);
         project.setParentProjectId(TestDataValues.ROOT_PROJECT_ID);
-        project.setDescription("Auto-generated project: " + project.getName());
+        project.setDescription(TestDataValues.AUTO_PROJECT_DESCRIPTION_PREFIX + project.getName());
         return project;
     }
 
@@ -35,7 +35,7 @@ public class TestDataFactory {
         user.setId(null);
         user.setHref(null);
         user.setPassword(DEFAULT_PASSWORD);
-        user.setName("Test User " + RandomData.shortId());
+        user.setName(TestDataValues.USER_NAME_PREFIX + RandomData.shortId());
         return user;
     }
 
@@ -65,7 +65,7 @@ public class TestDataFactory {
         config.setWebUrl(null);
         config.setPaused(null);
         config.setProjectId(projectId);
-        config.setDescription("Auto-generated build config: " + config.getName());
+        config.setDescription(TestDataValues.AUTO_BUILD_CONFIG_DESCRIPTION_PREFIX + config.getName());
         return config;
     }
 

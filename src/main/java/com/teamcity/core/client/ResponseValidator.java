@@ -15,15 +15,31 @@ import java.util.function.Function;
 @Slf4j
 public class ResponseValidator {
 
-    private static final Set<Integer> SUCCESS_CODES = Set.of(200, 201, 202, 204);
-    private static final Set<Integer> CLIENT_ERROR_CODES = Set.of(400, 401, 403, 404, 405, 406, 409, 422);
+    private static final Set<Integer> SUCCESS_CODES = Set.of(
+            HttpStatusCodes.OK,
+            HttpStatusCodes.CREATED,
+            HttpStatusCodes.ACCEPTED,
+            HttpStatusCodes.NO_CONTENT
+    );
+    private static final Set<Integer> CLIENT_ERROR_CODES = Set.of(
+            HttpStatusCodes.BAD_REQUEST,
+            HttpStatusCodes.UNAUTHORIZED,
+            HttpStatusCodes.FORBIDDEN,
+            HttpStatusCodes.NOT_FOUND,
+            HttpStatusCodes.METHOD_NOT_ALLOWED,
+            HttpStatusCodes.NOT_ACCEPTABLE,
+            HttpStatusCodes.CONFLICT,
+            HttpStatusCodes.UNPROCESSABLE_ENTITY
+    );
 
     private static final Map<Integer, Function<String, RuntimeException>> ERROR_HANDLERS = Map.of(
-        401, message -> new AuthenticationException("Authentication failed: " + message, 401),
-        403, message -> new AuthenticationException("Access denied: " + message, 403),
-        404, message -> new ResourceNotFoundException("Resource not found: " + message),
-        406, message -> new ValidationException("Not acceptable: " + message),
-        409, message -> new DuplicateResourceException("Conflict: " + message)
+        HttpStatusCodes.UNAUTHORIZED, message -> new AuthenticationException(
+                "Authentication failed: " + message, HttpStatusCodes.UNAUTHORIZED),
+        HttpStatusCodes.FORBIDDEN, message -> new AuthenticationException(
+                "Access denied: " + message, HttpStatusCodes.FORBIDDEN),
+        HttpStatusCodes.NOT_FOUND, message -> new ResourceNotFoundException("Resource not found: " + message),
+        HttpStatusCodes.NOT_ACCEPTABLE, message -> new ValidationException("Not acceptable: " + message),
+        HttpStatusCodes.CONFLICT, message -> new DuplicateResourceException("Conflict: " + message)
         );
 
     public void validateStatus(Response response) {
@@ -99,7 +115,7 @@ public class ResponseValidator {
 
     public void validateNegativeStatus(Response response) {
         int statusCode = response.statusCode();
-        if (statusCode >= 400) {
+        if (statusCode >= HttpStatusCodes.CLIENT_ERROR_MIN) {
             log.debug("Negative test successful: {}", statusCode);
             return;
         }
@@ -119,13 +135,11 @@ public class ResponseValidator {
     }
 
     public boolean isServerError(int statusCode) {
-        return statusCode >= 500 && statusCode < 600;
+        return statusCode >= HttpStatusCodes.SERVER_ERROR_MIN && statusCode < HttpStatusCodes.SERVER_ERROR_MAX;
     }
 
-    // ===== Приватные методы =====
-
     private void handleError(int statusCode, String errorMessage, Response response) {
-        if (statusCode == 400) {
+        if (statusCode == HttpStatusCodes.BAD_REQUEST) {
             handleBadRequest(errorMessage, response);
             return;
         }

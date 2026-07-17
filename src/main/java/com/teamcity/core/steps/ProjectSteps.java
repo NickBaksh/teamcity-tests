@@ -103,7 +103,7 @@ public class ProjectSteps extends BaseSteps {
 
     @Step("Get child projects: {parentProjectId}")
     public List<Project> getChildProjects(String parentProjectId) {
-        // ProjectLocator uses `project` (direct parent), not parentProject — see TeamCity REST swagger
+
         String endpoint = Endpoint.PROJECTS.getPath()
                 + "?locator=project:(id:" + parentProjectId + ")";
         Response response = client.get(endpoint);

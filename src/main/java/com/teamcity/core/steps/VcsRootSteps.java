@@ -1,6 +1,7 @@
 package com.teamcity.core.steps;
 
 import com.teamcity.core.client.ApiClient;
+import com.teamcity.core.client.HttpStatusCodes;
 import com.teamcity.core.client.ResponseValidator;
 import com.teamcity.core.endpoints.Endpoint;
 import com.teamcity.core.exceptions.ApiException;
@@ -26,16 +27,11 @@ public class VcsRootSteps extends BaseSteps {
         super(client, validator);
     }
 
-    // ============================================
-    // 1. Создание VCS Root
-    // ============================================
-
     @Step("Create VCS Root: {request.name}")
     public VcsRoot createVcsRoot(CreateVcsRootRequest request) {
         if (request.getVcsName() == null) {
             request.setVcsName("jetbrains.git");
         }
-
 
         Response response = client.post(Endpoint.VCS_ROOTS.getPath(), request);
         return validator.validate(response, VcsRoot.class);
@@ -81,19 +77,11 @@ public class VcsRootSteps extends BaseSteps {
                 .build();
     }
 
-    // ============================================
-    // 2. Получение VCS Root по ID
-    // ============================================
-
     @Step("Get VCS Root by ID: {vcsRootId}")
     public VcsRoot getVcsRoot(String vcsRootId) {
         Response response = client.get(Endpoint.VCS_ROOT.format(vcsRootId));
         return validator.validate(response, VcsRoot.class);
     }
-
-    // ============================================
-    // 3. Получение всех VCS Root'ов
-    // ============================================
 
     @Step("Get all VCS Roots")
     public List<VcsRoot> getAllVcsRoots() {
@@ -103,10 +91,6 @@ public class VcsRootSteps extends BaseSteps {
             return list.getVcsRoot();
         });
     }
-
-    // ============================================
-    // 4. Получение VCS Root'ов по проекту
-    // ============================================
 
     @Step("Get VCS Roots in project: {projectId}")
     public List<VcsRoot> getVcsRootsByProject(String projectId) {
@@ -118,19 +102,11 @@ public class VcsRootSteps extends BaseSteps {
         });
     }
 
-    // ============================================
-    // 5. Обновление VCS Root
-    // ============================================
-
     @Step("Update VCS Root: {vcsRootId}")
     public VcsRoot updateVcsRoot(String vcsRootId, VcsRootUpdateRequest request) {
         Response response = client.post(Endpoint.VCS_ROOT.format(vcsRootId), request);
         return validator.validate(response, VcsRoot.class);
     }
-
-    // ============================================
-    // 6. Обновление VCS Root (упрощенный вариант)
-    // ============================================
 
     @Step("Update VCS Root: {vcsRootId} with name: {newName}")
     public VcsRoot updateVcsRoot(String vcsRootId, String newName, String newUrl) {
@@ -141,20 +117,12 @@ public class VcsRootSteps extends BaseSteps {
         return updateVcsRoot(vcsRootId, request);
     }
 
-    // ============================================
-    // 7. Удаление VCS Root
-    // ============================================
-
     @Step("Delete VCS Root: {vcsRootId}")
     public void deleteVcsRoot(String vcsRootId) {
         Response response = client.delete(Endpoint.VCS_ROOT.format(vcsRootId));
         validator.validateStatus(response);
         log.info("VCS Root deleted: {}", vcsRootId);
     }
-
-    // ============================================
-    // 8. Проверка существования VCS Root
-    // ============================================
 
     @Step("Check if VCS Root exists: {vcsRootId}")
     public boolean vcsRootExists(String vcsRootId) {
@@ -164,16 +132,12 @@ public class VcsRootSteps extends BaseSteps {
         } catch (ResourceNotFoundException e) {
             return false;
         } catch (ApiException e) {
-            if (e.getStatusCode() == 404) {
+            if (e.getStatusCode() == HttpStatusCodes.NOT_FOUND) {
                 return false;
             }
             throw e;
         }
     }
-
-    // ============================================
-    // 9. Удаление VCS Root если существует
-    // ============================================
 
     @Step("Delete VCS Root if exists: {vcsRootId}")
     public boolean deleteVcsRootIfExists(String vcsRootId) {
@@ -184,10 +148,6 @@ public class VcsRootSteps extends BaseSteps {
         return true;
     }
 
-    // ============================================
-    // 10. Проверка соединения с VCS Root
-    // ============================================
-
     @Step("Test connection for VCS Root: {vcsRootId}")
     public void testConnection(String vcsRootId) {
         Response response = client.post(Endpoint.VCS_ROOT_TEST_CONNECTION.format(vcsRootId), null);
@@ -195,29 +155,17 @@ public class VcsRootSteps extends BaseSteps {
         log.info("VCS Root connection tested: {}", vcsRootId);
     }
 
-    // ============================================
-    // 11. Получение статуса VCS Root
-    // ============================================
-
     @Step("Get VCS Root status: {vcsRootId}")
     public String getVcsRootStatus(String vcsRootId) {
         Response response = client.get(Endpoint.VCS_ROOT_STATUS.format(vcsRootId));
         return validator.validate(response, res -> res.path("status"));
     }
 
-    // ============================================
-    // 12. Получение полей VCS Root
-    // ============================================
-
     @Step("Get VCS Root fields: {vcsRootId}")
     public PropertiesContainer getVcsRootFields(String vcsRootId) {
         Response response = client.get(Endpoint.VCS_ROOT_FIELDS.format(vcsRootId));
         return validator.validate(response, PropertiesContainer.class);
     }
-
-    // ============================================
-    // 13. Поиск VCS Root по имени
-    // ============================================
 
     @Step("Find VCS Root by name: {name}")
     public VcsRoot findVcsRootByName(String name) {

@@ -2,12 +2,13 @@ package com.teamcity.api.admin;
 
 import com.teamcity.api.BaseApiTest;
 import com.teamcity.core.assertions.ApiAssertions;
+import com.teamcity.core.client.HttpStatusCodes;
 import com.teamcity.core.exceptions.ValidationException;
 import com.teamcity.core.models.User;
 import com.teamcity.core.testdata.InvalidTestData;
 import com.teamcity.core.testdata.TestDataValues;
 import com.teamcity.core.utils.TestDataFactory;
-import io.qameta.allure.Description;
+import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import org.junit.jupiter.api.Disabled;
@@ -23,6 +24,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@Feature("User Management")
 @Tag("admin")
 public class AdminUsersTest extends BaseApiTest {
 
@@ -71,13 +73,12 @@ public class AdminUsersTest extends BaseApiTest {
 
     @Test
     @Severity(SeverityLevel.NORMAL)
-    @Description("Documents TeamCity behavior: invalid email format is accepted")
     void shouldCreateUserWithInvalidEmail() {
         User request = dataFactory.createUserWithEmail(TestDataValues.INVALID_EMAIL);
 
         User created = givenUser(request);
 
-        assertThat(created.getEmail()).isEqualTo(TestDataValues.INVALID_EMAIL);
+        assertThat(created.getEmail()).isEqualTo(request.getEmail());
         assertThat(created.getId()).isNotNull();
     }
 
@@ -118,7 +119,7 @@ public class AdminUsersTest extends BaseApiTest {
     void shouldRejectWhitespaceUsernameWithServerError(String whitespaceUsername) {
         User user = InvalidTestData.userWithUsername(whitespaceUsername);
 
-        ApiAssertions.assertStatus(() -> userSteps.createUser(user), 500);
+        ApiAssertions.assertStatus(() -> userSteps.createUser(user), HttpStatusCodes.INTERNAL_SERVER_ERROR);
     }
 
     @ParameterizedTest

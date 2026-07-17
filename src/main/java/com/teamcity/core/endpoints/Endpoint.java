@@ -4,13 +4,12 @@ import lombok.Getter;
 
 @Getter
 public enum Endpoint {
-    // ===== ROOT =====
+
     ROOT("/app/rest"),
     API_VERSION("/app/rest/apiVersion"),
     VERSION("/app/rest/version"),
     INFO("/app/rest/info"),
 
-    // ===== SERVER =====
     SERVER("/app/rest/server"),
     SERVER_AUTH_SETTINGS("/app/rest/server/authSettings"),
     SERVER_GLOBAL_SETTINGS("/app/rest/server/globalSettings"),
@@ -25,7 +24,6 @@ public enum Endpoint {
     SERVER_NODES("/app/rest/server/nodes"),
     SERVER_NODE("/app/rest/server/nodes/{nodeLocator}"),
 
-    // ===== AGENTS =====
     AGENTS("/app/rest/agents"),
     AGENT("/app/rest/agents/{agentLocator}"),
     AGENT_AUTHORIZED_INFO("/app/rest/agents/{agentLocator}/authorizedInfo"),
@@ -37,22 +35,18 @@ public enum Endpoint {
     AGENT_TYPES("/app/rest/agentTypes"),
     AGENT_TYPE("/app/rest/agentTypes/{agentTypeLocator}"),
 
-    // ===== AGENT POOLS =====
     AGENT_POOLS("/app/rest/agentPools"),
     AGENT_POOL_LOCATOR("/app/rest/agentPools/{agentPoolLocator}"),
     AGENT_POOL_AGENTS("/app/rest/agentPools/{agentPoolLocator}/agents"),
     AGENT_POOL_PROJECTS("/app/rest/agentPools/{agentPoolLocator}/projects"),
     AGENT_POOL_AUTHORIZATION_TOKENS("/app/rest/agentPools/{agentPoolLocator}/authorizationTokens"),
 
-    // ===== AUDIT =====
     AUDIT("/app/rest/audit"),
     AUDIT_EVENT("/app/rest/audit/{auditEventLocator}"),
 
-    // ===== AVATAR =====
     AVATAR("/app/rest/avatars/{userLocator}"),
     AVATAR_IMAGE("/app/rest/avatars/{userLocator}/{size}/avatar.png"),
 
-    // ===== BUILDS =====
     BUILDS("/app/rest/builds"),
     BUILD("/app/rest/builds/{buildLocator}"),
     BUILD_MULTIPLE("/app/rest/builds/multiple/{buildLocator}"),
@@ -87,7 +81,6 @@ public enum Endpoint {
     BUILD_ARTIFACT_ARCHIVE("/app/rest/builds/{buildLocator}/artifacts/archived{path}"),
     BUILD_ARTIFACT_CHILDREN("/app/rest/builds/{buildLocator}/artifacts/{path}"),
 
-    // ===== BUILD QUEUE =====
     BUILD_QUEUE("/app/rest/buildQueue"),
     BUILD_QUEUE_ITEM("/app/rest/buildQueue/{queuedBuildLocator}"),
     BUILD_QUEUE_ORDER("/app/rest/buildQueue/order"),
@@ -98,7 +91,6 @@ public enum Endpoint {
     BUILD_QUEUE_TAGS("/app/rest/buildQueue/{buildLocator}/tags"),
     BUILD_QUEUE_COMPATIBLE_AGENTS("/app/rest/buildQueue/{queuedBuildLocator}/compatibleAgents"),
 
-    // ===== BUILD TYPES =====
     BUILD_TYPES("/app/rest/buildTypes"),
     BUILD_TYPE("/app/rest/buildTypes/{btLocator}"),
     BUILD_TYPE_NAME("/app/rest/buildTypes/{btLocator}/name"),
@@ -133,7 +125,6 @@ public enum Endpoint {
     BUILD_TYPE_VCS_ROOT_INSTANCES("/app/rest/buildTypes/{btLocator}/vcsRootInstances"),
     BUILD_TYPE_VCS_FILES_LATEST("/app/rest/buildTypes/{btLocator}/vcs/files/latest"),
 
-    // ===== CHANGES =====
     CHANGES("/app/rest/changes"),
     CHANGE("/app/rest/changes/{changeLocator}"),
     CHANGE_ATTRIBUTES("/app/rest/changes/{changeLocator}/attributes"),
@@ -144,7 +135,6 @@ public enum Endpoint {
     CHANGE_PARENT_REVISIONS("/app/rest/changes/{changeLocator}/parentRevisions"),
     CHANGE_VCS_ROOT_INSTANCE("/app/rest/changes/{changeLocator}/vcsRootInstance"),
 
-    // ===== CLOUD =====
     CLOUD_IMAGES("/app/rest/cloud/images"),
     CLOUD_IMAGE("/app/rest/cloud/images/{imageLocator}"),
     CLOUD_INSTANCES("/app/rest/cloud/instances"),
@@ -152,13 +142,11 @@ public enum Endpoint {
     CLOUD_PROFILES("/app/rest/cloud/profiles"),
     CLOUD_PROFILE("/app/rest/cloud/profiles/{profileLocator}"),
 
-    // ===== DEPLOYMENT DASHBOARD =====
     DEPLOYMENT_DASHBOARDS("/app/rest/deploymentDashboards"),
     DEPLOYMENT_DASHBOARD("/app/rest/deploymentDashboards/{deploymentDashboardLocator}"),
     DEPLOYMENT_INSTANCES("/app/rest/deploymentDashboards/{deploymentDashboardLocator}/instances"),
     DEPLOYMENT_INSTANCE("/app/rest/deploymentDashboards/{deploymentDashboardLocator}/instances/{deploymentInstanceLocator}"),
 
-    // ===== USER GROUPS (все группы, их свойства и роли) =====
     GROUPS("/app/rest/userGroups"),
     GROUP("/app/rest/userGroups/{groupLocator}"),
     GROUP_PARENT_GROUPS("/app/rest/userGroups/{groupLocator}/parent-groups"),
@@ -167,29 +155,24 @@ public enum Endpoint {
     GROUP_ROLES("/app/rest/userGroups/{groupLocator}/roles"),
     GROUP_ROLE("/app/rest/userGroups/{groupLocator}/roles/{roleId}/{scope}"),
 
-    // ===== HEALTH =====
     HEALTH("/app/rest/health"),
     HEALTH_CATEGORY("/app/rest/health/category"),
     HEALTH_CATEGORY_SINGLE("/app/rest/health/category/{locator}"),
     HEALTH_ITEM("/app/rest/health/{locator}"),
 
-    // ===== INVESTIGATIONS =====
     INVESTIGATIONS("/app/rest/investigations"),
     INVESTIGATION("/app/rest/investigations/{investigationLocator}"),
     INVESTIGATIONS_MULTIPLE("/app/rest/investigations/multiple"),
 
-    // ===== MUTES =====
     MUTES("/app/rest/mutes"),
     MUTE("/app/rest/mutes/{muteLocator}"),
     MUTES_MULTIPLE("/app/rest/mutes/multiple"),
 
-    // ===== PROBLEMS =====
     PROBLEMS("/app/rest/problems"),
     PROBLEM("/app/rest/problems/{problemLocator}"),
     PROBLEM_OCCURRENCES("/app/rest/problemOccurrences"),
     PROBLEM_OCCURRENCE("/app/rest/problemOccurrences/{problemLocator}"),
 
-    // ===== PROJECTS =====
     PROJECTS("/app/rest/projects"),
     PROJECT("/app/rest/projects/{projectLocator}"),
     PROJECT_NAME("/app/rest/projects/{projectLocator}/name"),
@@ -215,22 +198,18 @@ public enum Endpoint {
     PROJECT_VERSIONED_SETTINGS_COMMIT("/app/rest/projects/{locator}/versionedSettings/commitCurrentSettings"),
     PROJECT_VERSIONED_SETTINGS_CHECK("/app/rest/projects/{locator}/versionedSettings/checkForChanges"),
 
-    // ===== ROLES =====
     ROLES("/app/rest/roles"),
     ROLE("/app/rest/roles/id:{id}"),
     ROLE_INCLUDED("/app/rest/roles/id:{roleId}/included/{includedId}"),
     ROLE_PERMISSION("/app/rest/roles/id:{roleId}/permissions/{permissionId}"),
 
-    // ===== STATISTICS =====
     STATISTICS("/app/rest/statistics"),
 
-    // ===== TESTS =====
     TESTS("/app/rest/tests"),
     TEST("/app/rest/tests/{testLocator}"),
     TEST_OCCURRENCES("/app/rest/testOccurrences"),
     TEST_OCCURRENCE("/app/rest/testOccurrences/{testLocator}"),
 
-    // ===== USERS =====
     USERS("/app/rest/users"),
     USER("/app/rest/users/{userLocator}"),
     USER_NAME("/app/rest/users/{userLocator}/name"),
@@ -248,7 +227,6 @@ public enum Endpoint {
     USER_LOGOUT("/app/rest/users/{userLocator}/logout"),
     USER_DEBUG_REMEMBER_ME("/app/rest/users/{userLocator}/debug/rememberMe"),
 
-    // ===== VCS ROOTS =====
     VCS_ROOTS("/app/rest/vcs-roots"),
     VCS_ROOT("/app/rest/vcs-roots/{vcsRootLocator}"),
     VCS_ROOT_NAME("/app/rest/vcs-roots/{vcsRootLocator}/name"),
@@ -260,7 +238,6 @@ public enum Endpoint {
     VCS_ROOT_FIELDS("/app/rest/vcs-roots/{vcsRootId}/fields"),
     VCS_ROOT_TEST_CONNECTION("/app/rest/vcs-roots/{vcsRootId}/testConnection"),
 
-    // ===== VCS ROOT INSTANCES =====
     VCS_ROOT_INSTANCES_ALL("/app/rest/vcs-root-instances"),
     VCS_ROOT_INSTANCE("/app/rest/vcs-root-instances/{vcsRootInstanceLocator}"),
     VCS_ROOT_INSTANCE_PROPERTIES("/app/rest/vcs-root-instances/{vcsRootInstanceLocator}/properties"),

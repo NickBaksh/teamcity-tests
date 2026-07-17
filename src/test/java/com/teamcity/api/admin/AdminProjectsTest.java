@@ -2,11 +2,12 @@ package com.teamcity.api.admin;
 
 import com.teamcity.api.BaseApiTest;
 import com.teamcity.core.assertions.ApiAssertions;
+import com.teamcity.core.client.HttpStatusCodes;
 import com.teamcity.core.exceptions.ValidationException;
 import com.teamcity.core.models.Project;
 import com.teamcity.core.testdata.InvalidTestData;
 import com.teamcity.core.testdata.TestDataValues;
-import io.qameta.allure.Description;
+import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import org.junit.jupiter.api.Tag;
@@ -22,6 +23,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@Feature("Project Management")
 @Tag("admin")
 public class AdminProjectsTest extends BaseApiTest {
 
@@ -101,12 +103,11 @@ public class AdminProjectsTest extends BaseApiTest {
 
         Project created = givenProject(request);
 
-        assertThat(created.getDescription()).isEqualTo(TestDataValues.PROJECT_DESCRIPTION);
+        assertThat(created.getDescription()).isEqualTo(request.getDescription());
     }
 
     @Test
     @Severity(SeverityLevel.NORMAL)
-    @Description("Create under parent via newProjectDescription.parentProject.locator; list children via locator=project:(id:...)")
     void shouldCreateProjectWithParent() {
         Project parent = givenProject();
         Project childRequest = dataFactory.createRandomProject();
@@ -133,11 +134,10 @@ public class AdminProjectsTest extends BaseApiTest {
     @ParameterizedTest
     @ValueSource(strings = {" ", "\t"})
     @Severity(SeverityLevel.CRITICAL)
-    @Description("TeamCity returns HTTP 500 for whitespace-only project names")
     void shouldRejectWhitespaceProjectName(String whitespaceName) {
         Project request = InvalidTestData.projectWithName(whitespaceName);
 
-        ApiAssertions.assertStatus(() -> projectSteps.createProject(request), 500);
+        ApiAssertions.assertStatus(() -> projectSteps.createProject(request), HttpStatusCodes.INTERNAL_SERVER_ERROR);
     }
 
     @Test

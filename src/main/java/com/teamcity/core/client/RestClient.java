@@ -16,15 +16,18 @@ import java.util.function.Supplier;
 
 import static io.restassured.RestAssured.given;
 
-/**
- * Реализация {@link ApiClient} на RestAssured.
- * Спецификации и логирование берутся из {@link RequestSpecs}; в тестах {@code given()} не используется.
- */
 @Slf4j
 public class RestClient implements ApiClient {
 
     private static final Set<Integer> NON_RETRYABLE_STATUSES = Set.of(
-            400, 401, 403, 404, 405, 406, 409, 422
+            HttpStatusCodes.BAD_REQUEST,
+            HttpStatusCodes.UNAUTHORIZED,
+            HttpStatusCodes.FORBIDDEN,
+            HttpStatusCodes.NOT_FOUND,
+            HttpStatusCodes.METHOD_NOT_ALLOWED,
+            HttpStatusCodes.NOT_ACCEPTABLE,
+            HttpStatusCodes.CONFLICT,
+            HttpStatusCodes.UNPROCESSABLE_ENTITY
     );
 
     private static final long MIN_RETRY_DELAY_MS = 100;
