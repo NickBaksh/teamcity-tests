@@ -99,6 +99,52 @@ public final class ApiAssertions {
         softly.assertAll();
     }
 
+    public static void assertVcsRootCreated(VcsRoot vcsRoot) {
+        SoftAssertions softly = new SoftAssertions();
+        softly.assertThat(vcsRoot)
+                .as("VCS Root should be created")
+                .isNotNull();
+        softly.assertThat(vcsRoot.getId())
+                .as("VCS Root ID should not be empty")
+                .isNotEmpty();
+        softly.assertThat(vcsRoot.getName())
+                .as("VCS Root name should not be empty")
+                .isNotEmpty();
+        softly.assertThat(vcsRoot.getUrl())
+                .as("VCS Root URL should not be empty")
+                .isNotEmpty();
+    }
+
+    public static void assertVcsRootExists(VcsRoot vcsRoot) {
+        SoftAssertions softly = new SoftAssertions();
+        softly.assertThat(vcsRoot)
+                .as("VCS Root should exist")
+                .isNotNull();
+        softly.assertThat(vcsRoot.getId())
+                .as("VCS Root ID should not be empty")
+                .isNotEmpty();
+    }
+
+    public static void assertVcsRootUpdated(VcsRoot vcsRoot) {
+        SoftAssertions softly = new SoftAssertions();
+        softly.assertThat(vcsRoot)
+                .as("VCS Root should be updated")
+                .isNotNull();
+        softly.assertThat(vcsRoot.getId())
+                .as("VCS Root ID should not be empty")
+                .isNotEmpty();
+        softly.assertThat(vcsRoot.getName())
+                .as("VCS Root name should not be empty")
+                .isNotEmpty();
+    }
+
+    public static void assertVcsRootDeleted(VcsRoot vcsRoot) {
+        SoftAssertions softly = new SoftAssertions();
+        softly.assertThat(vcsRoot)
+                .as("VCS Root should be deleted")
+                .isNull();
+    }
+
     public static void assertNotFound(ThrowableAssert.ThrowingCallable action) {
         assertThatThrownBy(action)
                 .as("Expected HTTP 404")

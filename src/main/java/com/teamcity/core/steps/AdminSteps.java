@@ -27,6 +27,7 @@ public class AdminSteps {
     private final AuthSteps authSteps;
     private final ArtifactSteps artifactSteps;
     private final AgentSteps agentSteps;
+    private final VcsRootSteps vcsRootSteps;
 
     public AdminSteps(ApiClient client) {
         this.client = client;
@@ -38,6 +39,7 @@ public class AdminSteps {
         this.authSteps = new AuthSteps(client, validator);
         this.artifactSteps = new ArtifactSteps(client, validator);
         this.agentSteps = new AgentSteps(client, validator);
+        this.vcsRootSteps = new VcsRootSteps(client, validator);
     }
 
     public ProjectSteps projects() {
@@ -63,6 +65,8 @@ public class AdminSteps {
     public ArtifactSteps artifacts() { return artifactSteps;}
 
     public AgentSteps agents() {return agentSteps;}
+
+    public VcsRootSteps vcs() {return vcsRootSteps;}
 
     @Step("Create project ready for build configs")
     public Project createProjectForBuilds(Project project) {
