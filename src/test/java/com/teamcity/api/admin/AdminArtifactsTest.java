@@ -9,9 +9,12 @@ import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 @Feature("Artifact Management")
 @Tag("admin")
+@Execution(ExecutionMode.SAME_THREAD)
 public class AdminArtifactsTest extends BaseApiTest {
 
     @Test
