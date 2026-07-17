@@ -9,6 +9,8 @@ public final class TestDataValues {
 
     public static final String ROOT_PROJECT_ID = "_Root";
     public static final String NON_EXISTENT_ID = "non-existent-id-12345";
+    public static final String NON_EXISTENT_ID_V2 = "999999999999999999";
+    public static final String NON_EXISTENT_ID_RANDOM = String.valueOf(System.currentTimeMillis());
     public static final String INVALID_PROJECT_ID = "invalid-project-id";
 
     public static final String PROJECT_DESCRIPTION = "Test project description";
@@ -40,6 +42,8 @@ public final class TestDataValues {
 
     public static final String TXT_ARTIFACT_EXTENSION = ".txt";
     public static final String SUREFIRE_REPORT_MARKER = "Tests run:";
+    public static final String VCS_ROOT_RANDOM_NAME = "Updated VCS Root_" + System.currentTimeMillis();
+    public static final String VCS_ROOT_URL = "https://github.com/example/updated-repo.git";
     public static final String NON_EXISTENT_ARTIFACT_NAME = "non-existing-artifact.txt";
     public static final String ROOT_ARTIFACT_PATH = "";
 

@@ -37,16 +37,6 @@ public class BuildRunSteps extends BaseSteps {
                         .build()
         );
     }
-//    @Step("Run build: {buildTypeId}")
-//    public Build runBuild(String buildTypeId) {
-//        RunBuildRequest request = RunBuildRequest.builder()
-//                .buildTypeId(buildTypeId)
-//                .build();
-//        Response response = client.post(Endpoint.BUILD_QUEUE.getPath(), request);
-//        Build created = validator.validate(response, Build.class);
-//        log.info("Build triggered: id={}, state={}", created.getId(), created.getState());
-//        return created;
-//    }
 
     @Step("Run build with parameters: {buildTypeId}")
     public Build runBuild(String buildTypeId, Map<String, String> parameters) {

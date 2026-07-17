@@ -256,6 +256,9 @@ public enum Endpoint {
     VCS_ROOT_PROPERTY("/app/rest/vcs-roots/{vcsRootLocator}/properties/{name}"),
     VCS_ROOT_INSTANCES("/app/rest/vcs-roots/{vcsRootLocator}/instances"),
     VCS_ROOT_SETTINGS_FILE("/app/rest/vcs-roots/{vcsRootLocator}/settingsFile"),
+    VCS_ROOT_STATUS("/app/rest/vcs-roots/{vcsRootId}/status"),
+    VCS_ROOT_FIELDS("/app/rest/vcs-roots/{vcsRootId}/fields"),
+    VCS_ROOT_TEST_CONNECTION("/app/rest/vcs-roots/{vcsRootId}/testConnection"),
 
     // ===== VCS ROOT INSTANCES =====
     VCS_ROOT_INSTANCES_ALL("/app/rest/vcs-root-instances"),

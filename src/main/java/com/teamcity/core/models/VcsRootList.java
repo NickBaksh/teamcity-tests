@@ -1,7 +1,6 @@
 package com.teamcity.core.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,9 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class PropertiesContainer {
-    private String href;
+public class VcsRootList {
     private Integer count;
-    private List<Property> property;
+    private List<VcsRoot> vcsRoot;
 }

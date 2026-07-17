@@ -1,10 +1,13 @@
 package com.teamcity.core.utils;
 
+import com.teamcity.core.config.ConfigManager;
 import com.teamcity.core.generators.RandomData;
 import com.teamcity.core.generators.RandomModelGenerator;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.Project;
 import com.teamcity.core.models.User;
+import com.teamcity.core.models.VcsRootConfig;
+import com.teamcity.core.steps.AdminSteps;
 import com.teamcity.core.testdata.TestDataValues;
 
 public class TestDataFactory {
@@ -76,6 +79,40 @@ public class TestDataFactory {
         Project project = createRandomProject();
         project.setName(name);
         return project;
+    }
+
+    public VcsRootConfig createRandomVcsRootConfig(String projectId) {
+        VcsRootConfig config = RandomModelGenerator.generate(VcsRootConfig.class);
+        config.setProjectId(projectId);
+        config.setDescription("Auto-generated VCS Root: " + config.getName());
+        config.setUsername(generateUniqueUsername());
+        config.setPassword(randomPassword());
+        config.setVcsName(randomString(5) + ".git");
+        return config;
+    }
+
+    public VcsRootConfig createVcsRootConfigWithUrl(String projectId, String url) {
+        VcsRootConfig config = createRandomVcsRootConfig(projectId);
+        config.setUrl(url);
+        return config;
+    }
+
+    public VcsRootConfig createVcsRootConfigWithEmptyUrl(String projectId) {
+        VcsRootConfig config = createRandomVcsRootConfig(projectId);
+        config.setUrl("");
+        return config;
+    }
+
+    public VcsRootConfig createInvalidVcsRootConfig(String projectId) {
+        VcsRootConfig config = createRandomVcsRootConfig(projectId);
+        config.setUrl(null);
+        return config;
+    }
+
+    public VcsRootConfig createVcsRootConfigWithBranch(String projectId, String branch) {
+        VcsRootConfig config = createRandomVcsRootConfig(projectId);
+        config.setBranch(branch);
+        return config;
     }
 
     public String generateUniqueName(String prefix) {
