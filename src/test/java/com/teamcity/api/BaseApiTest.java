@@ -30,6 +30,7 @@ public abstract class BaseApiTest {
     protected AuthSteps authSteps;
     protected ProjectSteps projectSteps;
     protected BuildConfigSteps buildConfigSteps;
+    protected VcsRootSteps vcsRootSteps;
     protected BuildRunSteps buildRunSteps;
     protected UserSteps userSteps;
     protected ArtifactSteps artifactSteps;
@@ -38,6 +39,7 @@ public abstract class BaseApiTest {
     private final List<String> createdProjects = new ArrayList<>();
     private final List<String> createdUsers = new ArrayList<>();
     private final List<String> createdBuildConfigs = new ArrayList<>();
+    private final List<String> createdVcsRoots = new ArrayList<>();
 
     @BeforeEach
     @Step("Initialize API test environment")
@@ -55,11 +57,21 @@ public abstract class BaseApiTest {
         userSteps = adminSteps.users();
         artifactSteps = adminSteps.artifacts();
         agentSteps = adminSteps.agents();
+        vcsRootSteps = adminSteps.vcs();
     }
 
     @AfterEach
     @Step("Cleanup test resources")
     public void cleanUp() {
+        createdVcsRoots.forEach(id -> {
+            try {
+                vcsRootSteps.deleteVcsRootIfExists(id);
+            } catch (Exception e) {
+                log.warn("Failed to cleanup VCS Root {}: {}", id, e.getMessage());
+            }
+        });
+        createdVcsRoots.clear();
+
         createdBuildConfigs.forEach(id -> {
             try {
                 buildConfigSteps.deleteBuildConfigIfExists(id);
@@ -109,6 +121,24 @@ public abstract class BaseApiTest {
         return created;
     }
 
+    @Step("Create tracked VCS Root in project: {projectId}")
+    protected VcsRoot givenVcsRoot(String projectId) {
+        VcsRootConfig config = dataFactory.createRandomVcsRootConfig(projectId);
+
+        VcsRoot created = vcsRootSteps.createVcsRoot(config);
+        trackVcsRoot(created.getId());
+        return created;
+    }
+
+    @Step("Create tracked VCS Root with empty URL in project: {projectId}")
+    protected VcsRoot givenVcsRootWithEmptyUrl(String projectId) {
+        VcsRootConfig config = dataFactory.createVcsRootConfigWithEmptyUrl(projectId);
+
+        VcsRoot created = vcsRootSteps.createVcsRoot(config);
+        trackVcsRoot(created.getId());
+        return created;
+    }
+
     @Step("Create tracked build config from request")
     protected BuildConfig givenBuildConfig(BuildConfig request) {
         BuildConfig created = buildConfigSteps.createBuildConfig(request);
@@ -122,6 +152,7 @@ public abstract class BaseApiTest {
 //        trackUser(created.getUsername());
 //        return created;
 //    }
+
     @Step("Create tracked user")
     protected User givenUser() {
         User request = dataFactory.createRandomUser();
@@ -160,6 +191,12 @@ public abstract class BaseApiTest {
                         request.getPassword()));
     }
 
+    @Step("Create BuildRunSteps for admin")
+    protected BuildRunSteps givenAdminBuildRunSteps() {
+        ApiClient admin = adminClient;
+        return new BuildRunSteps(admin);
+    }
+
     @Step("Create negative BuildRunSteps for user")
     protected BuildRunSteps givenNegativeBuildRunSteps(User user) {
         return new BuildRunSteps(
@@ -195,6 +232,13 @@ public abstract class BaseApiTest {
     protected void trackBuildConfig(String configId) {
         if (configId != null && !configId.isEmpty()) {
             createdBuildConfigs.add(configId);
+        }
+    }
+
+    @Step("Track vcs root for cleanup: {}")
+    protected void trackVcsRoot(String vcsRootId) {
+        if (vcsRootId != null && !vcsRootId.isEmpty()) {
+            createdVcsRoots.add(vcsRootId);
         }
     }
 
