@@ -95,6 +95,7 @@ public class AdminBuildsTest extends BaseApiTest {
     @Test
     @Severity(SeverityLevel.NORMAL)
     void shouldGetFinishedBuildStatus() {
+        // TODO: flaky test, иногда возвращается статус "UNKNOWN" в проверке assertBuildFinished
         BuildConfig config = givenBuildConfig(testProjectId);
 
         // Запускаем и ждем завершения сборки
@@ -150,12 +151,6 @@ public class AdminBuildsTest extends BaseApiTest {
         ApiAssertions.assertNotFound(
                 () -> givenAdminBuildRunSteps().getBuild(TestDataValues.NON_EXISTENT_ID_RANDOM)
         );
-    }
-
-    @Test
-    @Severity(SeverityLevel.NORMAL)
-    void shouldCancelQueuedBuild() {
-        // TODO: реализовать тест для отмены сборки в очереди
     }
 
     @Test
