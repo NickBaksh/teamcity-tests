@@ -27,3 +27,7 @@ infra/teamcity-server/
 infra/teamcity-agent/
 infra/selenoid/video/
 infra/selenoid/logs/
+
+# Selenide screenshots / UI locator dumps
+build/
+

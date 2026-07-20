@@ -20,6 +20,8 @@
         <assertj.version>3.27.7</assertj.version>
         <logback.version>1.5.13</logback.version>
         <awaitility.version>4.2.0</awaitility.version>
+        <selenide.version>7.7.3</selenide.version>
+        <exclude.groups>ui</exclude.groups>
     </properties>
 
     <dependencies>
@@ -104,6 +106,13 @@
             <version>4.2.0</version>
         </dependency>
 
+        <!-- ===== Selenide (UI) ===== -->
+        <dependency>
+            <groupId>com.codeborne</groupId>
+            <artifactId>selenide</artifactId>
+            <version>${selenide.version}</version>
+        </dependency>
+
         <!-- ===== Swagger Coverage ===== -->
         <dependency>
             <groupId>com.github.viclovsky</groupId>
@@ -163,6 +172,7 @@
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
+                    <excludedGroups>${exclude.groups}</excludedGroups>
                     <systemPropertyVariables>
                         <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
                     </systemPropertyVariables>
