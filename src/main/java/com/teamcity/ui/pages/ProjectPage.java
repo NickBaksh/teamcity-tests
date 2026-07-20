@@ -28,13 +28,13 @@ public class ProjectPage {
 
     @Step("Open project by id: {projectId}")
     public ProjectPage openById(String projectId) {
-        open("/project/" + projectId);
+        open(UiRoutes.project(projectId));
         return this;
     }
 
     @Step("Open project edit settings: {projectId}")
     public ProjectPage openEdit(String projectId) {
-        open("/admin/editProject.html?projectId=" + projectId);
+        open(UiRoutes.editProject(projectId));
         return this;
     }
 
@@ -54,11 +54,11 @@ public class ProjectPage {
         if (createBuildConfigButton.exists()) {
             createBuildConfigButton.shouldBe(visible).click();
         } else {
-            String url = com.codeborne.selenide.WebDriverRunner.url();
+            String url = WebDriverRunner.url();
             String projectId = url.contains("projectId=")
                     ? url.substring(url.indexOf("projectId=") + "projectId=".length()).split("&")[0]
                     : "";
-            open("/admin/createBuildType.html?projectId=" + projectId);
+            open(UiRoutes.classicCreateBuildType(projectId));
         }
         return new BuildConfigPage();
     }

@@ -23,7 +23,7 @@ public class ProjectsPage {
 
     @Step("Open projects overview")
     public ProjectsPage openPage() {
-        open("/overview.html");
+        open(UiRoutes.OVERVIEW);
         return this;
     }
 

@@ -2,6 +2,7 @@ package com.teamcity.ui.pages;
 
 import com.codeborne.selenide.SelenideElement;
 import com.codeborne.selenide.WebDriverRunner;
+import com.teamcity.ui.testdata.UiTestData;
 import io.qameta.allure.Step;
 
 import static com.codeborne.selenide.Condition.visible;
@@ -9,6 +10,7 @@ import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.open;
 import static com.codeborne.selenide.Selenide.sleep;
 import static com.codeborne.selenide.Selenide.$x;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class CreateProjectPage {
 
@@ -23,7 +25,7 @@ public class CreateProjectPage {
 
     @Step("Open create project page under Root")
     public CreateProjectPage openPage() {
-        open("/admin/createProject.html?projectId=_Root");
+        open(UiRoutes.createProjectUnderRoot());
         nameInput.shouldBe(visible);
         return this;
     }
@@ -54,11 +56,25 @@ public class CreateProjectPage {
     @Step("Check validation error is present")
     public boolean hasValidationError() {
         String source = WebDriverRunner.source();
-        return source.contains("emptyProjectName")
-                || source.contains("duplicateProjectId")
-                || source.contains("Project name is empty")
-                || source.contains("already used by another project")
+        return source.contains(UiTestData.ERROR_EMPTY_PROJECT_NAME_CODE)
+                || source.contains(UiTestData.ERROR_DUPLICATE_PROJECT_ID_CODE)
+                || source.contains(UiTestData.ERROR_PROJECT_NAME_EMPTY_TEXT)
+                || source.contains(UiTestData.ERROR_PROJECT_ID_USED_TEXT)
                 || (errorMessage.exists() && errorMessage.is(visible));
+    }
+
+    @Step("Assert empty project name validation error")
+    public CreateProjectPage shouldShowEmptyNameError() {
+        assertThat(hasValidationError()).isTrue();
+        assertThat(errorText()).containsIgnoringCase(UiTestData.ERROR_EMPTY);
+        return this;
+    }
+
+    @Step("Assert duplicate project id validation error")
+    public CreateProjectPage shouldShowDuplicateIdError() {
+        assertThat(hasValidationError()).isTrue();
+        assertThat(errorText()).containsIgnoringCase(UiTestData.ERROR_ALREADY_USED);
+        return this;
     }
 
     private void fill(String name, String id) {

@@ -3,6 +3,7 @@ package com.teamcity.ui.pages;
 import com.codeborne.selenide.SelenideElement;
 import com.codeborne.selenide.WebDriverRunner;
 import com.teamcity.ui.pages.elements.ConfirmDialog;
+import com.teamcity.ui.testdata.UiTestData;
 import io.qameta.allure.Step;
 
 import java.util.regex.Matcher;
@@ -15,6 +16,7 @@ import static com.codeborne.selenide.Selenide.executeJavaScript;
 import static com.codeborne.selenide.Selenide.open;
 import static com.codeborne.selenide.Selenide.sleep;
 import static com.codeborne.selenide.Selenide.$x;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class BuildConfigPage {
 
@@ -38,7 +40,8 @@ public class BuildConfigPage {
     );
     private final SelenideElement commandLineRunner = $("[data-key='simpleRunner']");
     private final SelenideElement commandLineByText = $x(
-            "//*[contains(@class,'BuildStepSelectorItem') and .//span[contains(.,'Command Line')]]"
+            "//*[contains(@class,'BuildStepSelectorItem') and .//span[contains(.,'"
+                    + UiTestData.MARKER_COMMAND_LINE + "')]]"
     );
     private final SelenideElement stepNameInput = $("#buildStepName");
     private final SelenideElement scriptContent = $("#script\\.content, textarea[name='prop:script.content']");
@@ -48,33 +51,33 @@ public class BuildConfigPage {
 
     @Step("Open create build config wizard for project: {projectId}")
     public BuildConfigPage openCreate(String projectId) {
-        open("/projects/create?projectId=" + projectId + "&setup=build");
+        open(UiRoutes.createBuildConfig(projectId));
         setupPage.shouldBe(visible);
         return this;
     }
 
     @Step("Open classic create build config form for project: {projectId}")
     public BuildConfigPage openClassicCreate(String projectId) {
-        open("/admin/createBuildType.html?projectId=" + projectId);
+        open(UiRoutes.classicCreateBuildType(projectId));
         classicNameInput.shouldBe(visible);
         return this;
     }
 
     @Step("Open build config by id: {buildConfigId}")
     public BuildConfigPage openById(String buildConfigId) {
-        open("/buildConfiguration/" + buildConfigId);
+        open(UiRoutes.buildConfiguration(buildConfigId));
         return this;
     }
 
     @Step("Open edit build config general: {buildConfigId}")
     public BuildConfigPage openEdit(String buildConfigId) {
-        open("/admin/editBuild.html?id=buildType:" + buildConfigId);
+        open(UiRoutes.editBuild(buildConfigId));
         return this;
     }
 
     @Step("Open build steps page: {buildConfigId}")
     public BuildConfigPage openSteps(String buildConfigId) {
-        open("/admin/editBuildRunners.html?id=buildType:" + buildConfigId);
+        open(UiRoutes.editBuildRunners(buildConfigId));
         return this;
     }
 
@@ -143,10 +146,16 @@ public class BuildConfigPage {
     @Step("Check validation error is present")
     public boolean hasValidationError() {
         String source = WebDriverRunner.source();
-        return source.contains("empty")
+        return source.contains(UiTestData.ERROR_EMPTY)
                 || source.contains("Error")
                 || source.contains("<error")
                 || $(".error, .errorMessage, error").exists();
+    }
+
+    @Step("Assert empty build config name validation error")
+    public BuildConfigPage shouldShowEmptyNameError() {
+        assertThat(hasValidationError()).isTrue();
+        return this;
     }
 
     @Step("Get error text / page source for assertions")
@@ -173,8 +182,7 @@ public class BuildConfigPage {
         } else if (commandLineByText.exists()) {
             commandLineByText.shouldBe(visible).click();
         } else {
-            open("/admin/editRunType.html?id=buildType:" + buildConfigId
-                    + "&runnerId=__NEW_RUNNER__&init=1");
+            open(UiRoutes.editRunTypeNew(buildConfigId));
             sleep(1000);
             if (commandLineRunner.exists()) {
                 commandLineRunner.click();
@@ -187,7 +195,7 @@ public class BuildConfigPage {
         SelenideElement useCustomScript = $("#use\\.custom\\.script, select[name='prop:use.custom.script']");
         if (useCustomScript.exists()) {
             try {
-                useCustomScript.selectOptionContainingText("Custom script");
+                useCustomScript.selectOptionContainingText(UiTestData.CUSTOM_SCRIPT_OPTION);
             } catch (Exception ignored) {
                 executeJavaScript(
                         "arguments[0].value='true';"
@@ -202,6 +210,7 @@ public class BuildConfigPage {
             stepNameInput.setValue(stepName);
         }
 
+        String script = UiTestData.COMMAND_LINE_SCRIPT;
         if (scriptContent.exists()) {
             executeJavaScript(
                     "arguments[0].removeAttribute('readonly');"
@@ -210,7 +219,7 @@ public class BuildConfigPage {
                             + "arguments[0].dispatchEvent(new Event('input', {bubbles:true}));"
                             + "arguments[0].dispatchEvent(new Event('change', {bubbles:true}));",
                     scriptContent,
-                    "echo hello"
+                    script
             );
         }
         SelenideElement codeMirror = $(".CodeMirror");
@@ -218,7 +227,7 @@ public class BuildConfigPage {
             executeJavaScript(
                     "if (arguments[0].CodeMirror) { arguments[0].CodeMirror.setValue(arguments[1]); }",
                     codeMirror,
-                    "echo hello"
+                    script
             );
         }
 
@@ -228,6 +237,20 @@ public class BuildConfigPage {
             $x("//input[@value='Save'] | //button[contains(.,'Save')]").shouldBe(visible).click();
         }
         sleep(2000);
+        return this;
+    }
+
+    @Step("Assert build steps page reflects added step: {stepName}")
+    public BuildConfigPage shouldReflectAddedStep(String stepName) {
+        String page = WebDriverRunner.source();
+        assertThat(page)
+                .as("Build Steps page should reflect added runner")
+                .containsAnyOf(
+                        stepName,
+                        UiTestData.MARKER_COMMAND_LINE,
+                        UiTestData.MARKER_SIMPLE_RUNNER,
+                        UiTestData.MARKER_ECHO
+                );
         return this;
     }
 
@@ -259,7 +282,8 @@ public class BuildConfigPage {
                         + "  }"
                         + "  if (!form) return false;"
                         + "  var comment = form.querySelector('[name=pauseComment]');"
-                        + "  if (comment) comment.value = arguments[1] ? 'paused by ui test' : 'activated by ui test';"
+                        + "  if (comment) comment.value = arguments[1] ? '" + UiTestData.PAUSE_COMMENT
+                        + "' : '" + UiTestData.RESUME_COMMENT + "';"
                         + "  if (window.BS && BS.PauseBuildTypeForm && BS.PauseBuildTypeForm.submit) {"
                         + "    BS.PauseBuildTypeForm.submit(); return true;"
                         + "  }"

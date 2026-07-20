@@ -1,10 +1,10 @@
 package com.teamcity.ui.smoke;
 
 import com.teamcity.core.config.ConfigManager;
-import com.teamcity.core.generators.RandomData;
 import com.teamcity.core.models.Project;
 import com.teamcity.ui.BaseUiTest;
 import com.teamcity.ui.extensions.AdminUiSessionExtension;
+import com.teamcity.ui.testdata.UiTestData;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
@@ -32,8 +32,8 @@ public class UiSmokeTest extends BaseUiTest {
     @Severity(SeverityLevel.BLOCKER)
     @ExtendWith(AdminUiSessionExtension.class)
     void shouldCreateProjectViaUi() {
-        String name = "ui_smoke_" + RandomData.shortId();
-        String id = "UISmoke" + RandomData.shortId();
+        String name = UiTestData.smokeProjectName();
+        String id = UiTestData.smokeProjectId();
 
         createProjectPage.openPage().create(name, id);
         trackProject(id);

@@ -1,10 +1,10 @@
 package com.teamcity.ui.admin;
 
-import com.teamcity.core.generators.RandomData;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.Project;
 import com.teamcity.ui.BaseUiTest;
 import com.teamcity.ui.extensions.AdminUiSessionExtension;
+import com.teamcity.ui.testdata.UiTestData;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
@@ -26,13 +26,13 @@ public class BuildConfigsUiTest extends BaseUiTest {
     @Severity(SeverityLevel.CRITICAL)
     void shouldCreateBuildConfigViaUi() {
         Project project = givenProject();
-        String name = "ui_bc_" + RandomData.shortId();
+        String name = UiTestData.buildConfigName();
 
         buildConfigPage.openCreate(project.getId()).create(name, null);
 
         BuildConfig created = Awaitility.await()
-                .pollInterval(Duration.ofSeconds(2))
-                .atMost(Duration.ofSeconds(45))
+                .pollInterval(Duration.ofSeconds(UiTestData.UI_POLL_INTERVAL_LONG_SECONDS))
+                .atMost(Duration.ofSeconds(UiTestData.UI_LONG_TIMEOUT_SECONDS))
                 .until(() -> {
                     try {
                         return buildConfigSteps.findBuildConfigByName(name);
@@ -54,25 +54,21 @@ public class BuildConfigsUiTest extends BaseUiTest {
     @Severity(SeverityLevel.NORMAL)
     void shouldAddBuildStepViaUi() {
         BuildConfig config = givenBuildConfig();
-        String stepName = "echo_step_" + RandomData.shortId();
+        String stepName = UiTestData.buildStepName();
         int before = buildConfigSteps.getBuildStepsCount(config.getId());
 
         buildConfigPage.addCommandLineStep(config.getId(), stepName);
 
         Awaitility.await()
-                .pollInterval(Duration.ofSeconds(1))
-                .atMost(Duration.ofSeconds(20))
+                .pollInterval(Duration.ofSeconds(UiTestData.UI_POLL_INTERVAL_SECONDS))
+                .atMost(Duration.ofSeconds(UiTestData.UI_SHORT_TIMEOUT_SECONDS))
                 .untilAsserted(() ->
                         assertThat(buildConfigSteps.getBuildStepsCount(config.getId()))
                                 .as("Command Line step should be saved")
                                 .isGreaterThan(before)
                 );
 
-        buildConfigPage.openSteps(config.getId());
-        String page = com.codeborne.selenide.WebDriverRunner.source();
-        assertThat(page)
-                .as("Build Steps page should reflect added runner")
-                .containsAnyOf(stepName, "Command Line", "simpleRunner", "echo");
+        buildConfigPage.openSteps(config.getId()).shouldReflectAddedStep(stepName);
     }
 
     @Test
@@ -82,14 +78,18 @@ public class BuildConfigsUiTest extends BaseUiTest {
         BuildConfig config = givenBuildConfig();
 
         buildConfigPage.pause(config.getId());
-        Awaitility.await().atMost(Duration.ofSeconds(30)).untilAsserted(() ->
-                assertThat(buildConfigSteps.getBuildConfig(config.getId()).getPaused()).isTrue()
-        );
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(UiTestData.UI_DEFAULT_TIMEOUT_SECONDS))
+                .untilAsserted(() ->
+                        assertThat(buildConfigSteps.getBuildConfig(config.getId()).getPaused()).isTrue()
+                );
 
         buildConfigPage.resume(config.getId());
-        Awaitility.await().atMost(Duration.ofSeconds(30)).untilAsserted(() ->
-                assertThat(buildConfigSteps.getBuildConfig(config.getId()).getPaused()).isFalse()
-        );
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(UiTestData.UI_DEFAULT_TIMEOUT_SECONDS))
+                .untilAsserted(() ->
+                        assertThat(buildConfigSteps.getBuildConfig(config.getId()).getPaused()).isFalse()
+                );
     }
 
     @Test
@@ -97,8 +97,8 @@ public class BuildConfigsUiTest extends BaseUiTest {
     void shouldRejectEmptyBuildConfigName() {
         Project project = givenProject();
 
-        buildConfigPage.openClassicCreate(project.getId()).createExpectingError("");
-
-        assertThat(buildConfigPage.hasValidationError()).isTrue();
+        buildConfigPage.openClassicCreate(project.getId())
+                .createExpectingError("")
+                .shouldShowEmptyNameError();
     }
 }
