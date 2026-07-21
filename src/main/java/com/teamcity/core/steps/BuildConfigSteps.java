@@ -40,6 +40,32 @@ public class BuildConfigSteps extends BaseSteps {
         return validator.validate(response, BuildConfig.class);
     }
 
+    @Step("Find build config by name: {name}")
+    public BuildConfig findBuildConfigByName(String name) {
+        String endpoint = Endpoint.BUILD_TYPES.getPath() + "?locator=name:" + name;
+        Response response = client.get(endpoint, RequestType.JSON);
+        List<BuildConfig> configs = validator.validate(
+                response,
+                res -> res.jsonPath().getList("buildType", BuildConfig.class)
+        );
+        if (configs == null || configs.isEmpty()) {
+            throw new ResourceNotFoundException("Build config not found by name: " + name);
+        }
+        return configs.getFirst();
+    }
+
+    @Step("Get build steps count for: {configId}")
+    public int getBuildStepsCount(String configId) {
+        Response response = client.get(Endpoint.BUILD_TYPE_STEPS.format(configId), RequestType.JSON);
+        validator.validateStatus(response);
+        Integer count = response.jsonPath().getInt("count");
+        if (count != null) {
+            return count;
+        }
+        List<?> steps = response.jsonPath().getList("step");
+        return steps == null ? 0 : steps.size();
+    }
+
     @Step("Get all build configs")
     public List<BuildConfig> getAllBuildConfigs() {
         Response response = client.get(Endpoint.BUILD_TYPES.getPath());
