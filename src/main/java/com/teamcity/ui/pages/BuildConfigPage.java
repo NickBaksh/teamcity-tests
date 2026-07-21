@@ -2,21 +2,24 @@ package com.teamcity.ui.pages;
 
 import com.codeborne.selenide.SelenideElement;
 import com.codeborne.selenide.WebDriverRunner;
-import com.teamcity.ui.pages.elements.ConfirmDialog;
 import com.teamcity.ui.testdata.UiTestData;
 import io.qameta.allure.Step;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.codeborne.selenide.Condition.appear;
+import static com.codeborne.selenide.Condition.disappear;
+import static com.codeborne.selenide.Condition.partialText;
+import static com.codeborne.selenide.Condition.text;
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$$;
 import static com.codeborne.selenide.Selenide.executeJavaScript;
 import static com.codeborne.selenide.Selenide.open;
-import static com.codeborne.selenide.Selenide.sleep;
 import static com.codeborne.selenide.Selenide.$x;
-import static org.assertj.core.api.Assertions.assertThat;
+import static com.codeborne.selenide.Selenide.webdriver;
+import static com.codeborne.selenide.WebDriverConditions.urlContaining;
 
 public class BuildConfigPage {
 
@@ -47,7 +50,8 @@ public class BuildConfigPage {
     private final SelenideElement scriptContent = $("#script\\.content, textarea[name='prop:script.content']");
     private final SelenideElement saveStepButton = $("input[name='save'], input[name='submitButton'].submitButton");
     private final SelenideElement title = $("h1, .buildTypeName, [data-test='build-config-title']");
-    private final ConfirmDialog confirmDialog = new ConfirmDialog();
+    private final SelenideElement body = $("body");
+    private final SelenideElement visibleError = $(".error, .errorMessage, [data-test='error'], error");
 
     @Step("Open create build config wizard for project: {projectId}")
     public BuildConfigPage openCreate(String projectId) {
@@ -95,19 +99,17 @@ public class BuildConfigPage {
             );
             if (showMore.exists() && showMore.is(visible)) {
                 showMore.click();
-                sleep(500);
-            }
-            SelenideElement idField = $x(
-                    "//div[@data-test='setup-project-page']"
-                            + "//label[contains(.,'ID') or contains(.,'Id')]/following::input[1]"
-            );
-            if (idField.exists() && idField.is(visible)) {
+                SelenideElement idField = $x(
+                        "//div[@data-test='setup-project-page']"
+                                + "//label[contains(.,'ID') or contains(.,'Id')]/following::input[1]"
+                );
+                idField.shouldBe(visible);
                 idField.clear();
                 idField.setValue(id);
             }
         }
         setupCreateButton.shouldBe(visible).click();
-        sleep(3000);
+        setupPage.should(disappear);
         return this;
     }
 
@@ -123,12 +125,6 @@ public class BuildConfigPage {
         if (matcher.find()) {
             return matcher.group(1);
         }
-
-        String source = WebDriverRunner.source();
-        matcher = Pattern.compile("buildType:([A-Za-z0-9_]+)").matcher(source);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
         return null;
     }
 
@@ -139,32 +135,17 @@ public class BuildConfigPage {
             classicIdInput.clear();
         }
         classicCreateButton.shouldBe(visible).click();
-        sleep(1000);
         return this;
-    }
-
-    @Step("Check validation error is present")
-    public boolean hasValidationError() {
-        String source = WebDriverRunner.source();
-        return source.contains(UiTestData.ERROR_EMPTY)
-                || source.contains("Error")
-                || source.contains("<error")
-                || $(".error, .errorMessage, error").exists();
     }
 
     @Step("Assert empty build config name validation error")
     public BuildConfigPage shouldShowEmptyNameError() {
-        assertThat(hasValidationError()).isTrue();
-        return this;
-    }
-
-    @Step("Get error text / page source for assertions")
-    public String errorText() {
-        SelenideElement error = $(".error, .errorMessage, [data-test='error'], error");
-        if (error.exists() && error.is(visible)) {
-            return error.getText();
+        if (visibleError.exists()) {
+            visibleError.shouldBe(visible);
+        } else {
+            body.shouldHave(partialText(UiTestData.ERROR_EMPTY).or(partialText("<error")));
         }
-        return WebDriverRunner.source();
+        return this;
     }
 
     @Step("Add simple command-line build step")
@@ -175,7 +156,7 @@ public class BuildConfigPage {
         } else {
             addStepByText.shouldBe(visible).click();
         }
-        sleep(1500);
+        waitForRunnerSelector();
 
         if (commandLineRunner.exists()) {
             commandLineRunner.shouldBe(visible).click();
@@ -183,14 +164,14 @@ public class BuildConfigPage {
             commandLineByText.shouldBe(visible).click();
         } else {
             open(UiRoutes.editRunTypeNew(buildConfigId));
-            sleep(1000);
+            waitForRunnerSelector();
             if (commandLineRunner.exists()) {
                 commandLineRunner.click();
             } else if (commandLineByText.exists()) {
                 commandLineByText.click();
             }
         }
-        sleep(1500);
+        stepNameInput.should(appear);
 
         SelenideElement useCustomScript = $("#use\\.custom\\.script, select[name='prop:use.custom.script']");
         if (useCustomScript.exists()) {
@@ -203,10 +184,9 @@ public class BuildConfigPage {
                         useCustomScript
                 );
             }
-            sleep(500);
         }
 
-        if (stepNameInput.exists() && stepNameInput.is(visible)) {
+        if (stepNameInput.is(visible)) {
             stepNameInput.setValue(stepName);
         }
 
@@ -224,6 +204,7 @@ public class BuildConfigPage {
         }
         SelenideElement codeMirror = $(".CodeMirror");
         if (codeMirror.exists()) {
+            codeMirror.should(appear);
             executeJavaScript(
                     "if (arguments[0].CodeMirror) { arguments[0].CodeMirror.setValue(arguments[1]); }",
                     codeMirror,
@@ -236,75 +217,32 @@ public class BuildConfigPage {
         } else {
             $x("//input[@value='Save'] | //button[contains(.,'Save')]").shouldBe(visible).click();
         }
-        sleep(2000);
+        webdriver().shouldHave(urlContaining("editBuildRunners"));
         return this;
     }
 
     @Step("Assert build steps page reflects added step: {stepName}")
     public BuildConfigPage shouldReflectAddedStep(String stepName) {
-        String page = WebDriverRunner.source();
-        assertThat(page)
-                .as("Build Steps page should reflect added runner")
-                .containsAnyOf(
-                        stepName,
-                        UiTestData.MARKER_COMMAND_LINE,
-                        UiTestData.MARKER_SIMPLE_RUNNER,
-                        UiTestData.MARKER_ECHO
-                );
+        $x("//*[contains(.,'" + stepName + "') or contains(.,'" + UiTestData.MARKER_COMMAND_LINE + "')]")
+                .shouldBe(visible)
+                .shouldHave(text(stepName).or(partialText(UiTestData.MARKER_COMMAND_LINE)));
         return this;
     }
 
-    @Step("Pause build configuration via UI: {buildConfigId}")
-    public BuildConfigPage pause(String buildConfigId) {
-        openEdit(buildConfigId);
-        submitPauseBuildTypeForm(buildConfigId, true);
-        sleep(1500);
-        return this;
-    }
-
-    @Step("Resume/activate build configuration via UI: {buildConfigId}")
-    public BuildConfigPage resume(String buildConfigId) {
-        openEdit(buildConfigId);
-        submitPauseBuildTypeForm(buildConfigId, false);
-        sleep(1500);
-        return this;
-    }
-
-    private void submitPauseBuildTypeForm(String buildConfigId, boolean pause) {
-        Boolean submitted = executeJavaScript(
-                "try {"
-                        + "  var form = document.getElementById('pauseBuildTypeForm');"
-                        + "  if (!form) {"
-                        + "    if (window.BS && BS.PauseBuildTypeDialog && BS.PauseBuildTypeDialog.showPauseBuildTypeDialog) {"
-                        + "      BS.PauseBuildTypeDialog.showPauseBuildTypeDialog(arguments[0]);"
-                        + "      form = document.getElementById('pauseBuildTypeForm');"
-                        + "    }"
-                        + "  }"
-                        + "  if (!form) return false;"
-                        + "  var comment = form.querySelector('[name=pauseComment]');"
-                        + "  if (comment) comment.value = arguments[1] ? '" + UiTestData.PAUSE_COMMENT
-                        + "' : '" + UiTestData.RESUME_COMMENT + "';"
-                        + "  if (window.BS && BS.PauseBuildTypeForm && BS.PauseBuildTypeForm.submit) {"
-                        + "    BS.PauseBuildTypeForm.submit(); return true;"
-                        + "  }"
-                        + "  form.submit(); return true;"
-                        + "} catch (e) { return false; }",
-                buildConfigId,
-                pause
-        );
-        if (!Boolean.TRUE.equals(submitted)) {
-            SelenideElement button = $x(pause
-                    ? "//input[@value='Pause'] | //button[contains(.,'Pause')]"
-                    : "//input[@value='Activate'] | //button[contains(.,'Activate')]");
-            if (button.exists()) {
-                executeJavaScript("arguments[0].click();", button);
-            }
+    private void waitForRunnerSelector() {
+        if (commandLineRunner.exists()) {
+            commandLineRunner.should(appear);
+        } else if (commandLineByText.exists()) {
+            commandLineByText.should(appear);
+        } else {
+            $("[data-test='build-step-selector-item'], .BuildStepSelectorItem-module__item--it, [data-key]")
+                    .should(appear);
         }
     }
 
     @Step("Check build config title contains: {name}")
     public BuildConfigPage shouldHaveName(String name) {
-        title.shouldBe(visible).shouldHave(com.codeborne.selenide.Condition.text(name));
+        title.shouldBe(visible).shouldHave(text(name));
         return this;
     }
 }

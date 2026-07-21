@@ -3,6 +3,7 @@ package com.teamcity.ui.pages.elements;
 import com.codeborne.selenide.SelenideElement;
 import io.qameta.allure.Step;
 
+import static com.codeborne.selenide.Condition.disappear;
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$x;
@@ -25,12 +26,11 @@ public class ConfirmDialog {
 
     @Step("Confirm dialog action")
     public void confirm() {
-        if (dialog.exists() && dialog.is(visible)) {
-            confirmButton.shouldBe(visible).click();
-            return;
-        }
-        if (confirmButton.exists()) {
-            confirmButton.click();
+        confirmButton.shouldBe(visible).click();
+        if (dialog.exists()) {
+            dialog.should(disappear);
+        } else {
+            confirmButton.should(disappear);
         }
     }
 
@@ -42,5 +42,15 @@ public class ConfirmDialog {
     @Step("Check confirm dialog is visible")
     public boolean isVisible() {
         return (dialog.exists() && dialog.is(visible)) || (confirmButton.exists() && confirmButton.is(visible));
+    }
+
+    @Step("Wait until confirm dialog is visible")
+    public ConfirmDialog shouldBeVisible() {
+        if (dialog.exists()) {
+            dialog.shouldBe(visible);
+        } else {
+            confirmButton.shouldBe(visible);
+        }
+        return this;
     }
 }

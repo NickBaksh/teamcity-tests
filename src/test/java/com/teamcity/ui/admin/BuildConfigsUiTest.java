@@ -72,27 +72,6 @@ public class BuildConfigsUiTest extends BaseUiTest {
     }
 
     @Test
-    @Severity(SeverityLevel.NORMAL)
-    @org.junit.jupiter.api.Disabled("Pause/Activate in TC 2026 UI is behind Actions popup; dialog submit is unstable in headless. Cover via API pause until Actions locator is fixed.")
-    void shouldPauseAndResumeBuildConfigViaUi() {
-        BuildConfig config = givenBuildConfig();
-
-        buildConfigPage.pause(config.getId());
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(UiTestData.UI_DEFAULT_TIMEOUT_SECONDS))
-                .untilAsserted(() ->
-                        assertThat(buildConfigSteps.getBuildConfig(config.getId()).getPaused()).isTrue()
-                );
-
-        buildConfigPage.resume(config.getId());
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(UiTestData.UI_DEFAULT_TIMEOUT_SECONDS))
-                .untilAsserted(() ->
-                        assertThat(buildConfigSteps.getBuildConfig(config.getId()).getPaused()).isFalse()
-                );
-    }
-
-    @Test
     @Severity(SeverityLevel.CRITICAL)
     void shouldRejectEmptyBuildConfigName() {
         Project project = givenProject();

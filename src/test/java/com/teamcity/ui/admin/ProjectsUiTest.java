@@ -8,9 +8,12 @@ import com.teamcity.ui.testdata.UiTestData;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,8 +51,13 @@ public class ProjectsUiTest extends BaseUiTest {
 
         projectPage.deleteProject(project.getId());
 
-        assertThatThrownBy(() -> projectSteps.getProject(project.getId()))
-                .isInstanceOf(ResourceNotFoundException.class);
+        Awaitility.await()
+                .pollInterval(Duration.ofSeconds(UiTestData.UI_POLL_INTERVAL_SECONDS))
+                .atMost(Duration.ofSeconds(UiTestData.UI_DEFAULT_TIMEOUT_SECONDS))
+                .untilAsserted(() ->
+                        assertThatThrownBy(() -> projectSteps.getProject(project.getId()))
+                                .isInstanceOf(ResourceNotFoundException.class)
+                );
         projectsPage.openPage().search(project.getName()).shouldNotContainProject(project.getName());
     }
 

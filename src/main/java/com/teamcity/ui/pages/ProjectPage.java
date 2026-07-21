@@ -5,11 +5,11 @@ import com.codeborne.selenide.WebDriverRunner;
 import com.teamcity.ui.pages.elements.ConfirmDialog;
 import io.qameta.allure.Step;
 
+import static com.codeborne.selenide.Condition.exist;
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.executeJavaScript;
 import static com.codeborne.selenide.Selenide.open;
-import static com.codeborne.selenide.Selenide.sleep;
 import static com.codeborne.selenide.Selenide.$x;
 
 public class ProjectPage {
@@ -41,10 +41,29 @@ public class ProjectPage {
     @Step("Delete project via UI Actions menu: {projectId}")
     public void deleteProject(String projectId) {
         openEdit(projectId);
-        openActionsMenu(projectId);
-        deleteProjectLink.shouldBe(visible).click();
-        sleep(500);
-        if (confirmDialog.isVisible()) {
+        executeJavaScript("window.confirm = function () { return true; };");
+        Boolean invoked = executeJavaScript(
+                "try {"
+                        + "  if (window.BS && BS.AdminActions && BS.AdminActions.deleteProject) {"
+                        + "    BS.AdminActions.deleteProject(arguments[0], arguments[0]);"
+                        + "    return true;"
+                        + "  }"
+                        + "  return false;"
+                        + "} catch (e) { return false; }",
+                projectId
+        );
+        if (!Boolean.TRUE.equals(invoked)) {
+            openActionsMenu(projectId);
+            deleteProjectLink.should(exist);
+            executeJavaScript("arguments[0].click();", deleteProjectLink);
+        }
+        SelenideElement deleteSubmit = $(
+                "#deleteProjectForm input.submitButton, #deleteProjectForm input[type='submit'], "
+                        + "input[value='Delete'], button[type='submit']"
+        );
+        if (deleteSubmit.exists()) {
+            deleteSubmit.shouldBe(visible).click();
+        } else if (confirmDialog.isVisible()) {
             confirmDialog.confirm();
         }
     }

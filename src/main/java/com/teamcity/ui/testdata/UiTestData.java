@@ -24,8 +24,6 @@ public final class UiTestData {
 
     public static final String COMMAND_LINE_SCRIPT = "echo hello";
     public static final String CUSTOM_SCRIPT_OPTION = "Custom script";
-    public static final String PAUSE_COMMENT = "paused by ui test";
-    public static final String RESUME_COMMENT = "activated by ui test";
 
     public static final String ERROR_EMPTY = "empty";
     public static final String ERROR_ALREADY_USED = "already used";
