@@ -1,11 +1,11 @@
 package com.teamcity.core.assertions;
 
+import com.teamcity.core.client.HttpStatusCodes;
 import com.teamcity.core.exceptions.ApiException;
 import com.teamcity.core.models.*;
 import com.teamcity.core.models.dto.AuthorizedInfo;
 import com.teamcity.core.models.dto.EnabledInfo;
 import com.teamcity.core.testdata.TestDataValues;
-import org.apache.http.HttpStatus;
 import org.assertj.core.api.SoftAssertions;
 import org.assertj.core.api.ThrowableAssert;
 
@@ -14,10 +14,6 @@ import java.nio.charset.StandardCharsets;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Доменные проверки для тестов: модели, списки, HTTP-ошибки.
- * Steps делают действия — assertions остаются в тестах через этот класс.
- */
 public final class ApiAssertions {
 
     private ApiAssertions() {
@@ -146,23 +142,19 @@ public final class ApiAssertions {
     }
 
     public static void assertNotFound(ThrowableAssert.ThrowingCallable action) {
-        assertThatThrownBy(action)
-                .as("Expected HTTP 404")
-                .isInstanceOf(ApiException.class)
-                .extracting("statusCode")
-                .isEqualTo(404);
+        assertStatus(action, HttpStatusCodes.NOT_FOUND);
     }
 
     public static void assertForbidden(ThrowableAssert.ThrowingCallable action) {
-        assertStatus(action, HttpStatus.SC_FORBIDDEN);
+        assertStatus(action, HttpStatusCodes.FORBIDDEN);
     }
 
     public static void assertUnauthorized(ThrowableAssert.ThrowingCallable action) {
-        assertStatus(action, HttpStatus.SC_UNAUTHORIZED);
+        assertStatus(action, HttpStatusCodes.UNAUTHORIZED);
     }
 
     public static void assertBadRequest(ThrowableAssert.ThrowingCallable action) {
-        assertStatus(action, HttpStatus.SC_BAD_REQUEST);
+        assertStatus(action, HttpStatusCodes.BAD_REQUEST);
     }
 
     public static void assertStatus(ThrowableAssert.ThrowingCallable action, int expectedStatus) {
@@ -176,7 +168,7 @@ public final class ApiAssertions {
         assertThatThrownBy(action)
                 .as("Expected duplicate resource")
                 .isInstanceOf(com.teamcity.core.exceptions.DuplicateResourceException.class)
-                .hasMessageContaining("already exists");
+                .hasMessageContaining(TestDataValues.MSG_ALREADY_EXISTS);
     }
 
     public static void assertAgentsEqual(Agent expected, Agent actual) {

@@ -6,9 +6,6 @@ import java.security.SecureRandom;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * Набор функций для генерации случайных тестовых данных.
- */
 public final class RandomData {
 
     private static final String ALPHA = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";

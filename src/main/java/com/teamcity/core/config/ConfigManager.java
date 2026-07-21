@@ -29,7 +29,6 @@ public class ConfigManager {
         }
     }
 
-    // ===== СУЩЕСТВУЮЩИЕ МЕТОДЫ (не меняем) =====
     public static String getApiBaseUrl() {
         return properties.getProperty("api.base.url", "http://localhost:8111");
     }
@@ -70,116 +69,66 @@ public class ConfigManager {
         return properties.getProperty("api.token", "");
     }
 
-    // ===== НОВЫЕ МЕТОДЫ ДЛЯ SENIOR УРОВНЯ =====
-
-    /**
-     * Получить количество попыток ретрая
-     */
     public static int getRetryCount() {
         return Integer.parseInt(properties.getProperty("api.retry.count", "3"));
     }
 
-    /**
-     * Получить задержку между ретраями в миллисекундах
-     */
     public static long getRetryDelay() {
         return Long.parseLong(properties.getProperty("api.retry.delay", "1000"));
     }
 
-    /**
-     * Использовать ли экспоненциальную задержку
-     */
     public static boolean isRetryExponential() {
         return Boolean.parseBoolean(properties.getProperty("api.retry.exponential", "true"));
     }
 
-    /**
-     * Получить таймаут для ожидания сборки в секундах
-     */
     public static int getBuildTimeout() {
         return Integer.parseInt(properties.getProperty("build.timeout", "300"));
     }
 
-    /**
-     * Получить интервал опроса статуса сборки в миллисекундах
-     */
     public static long getBuildPollInterval() {
         return Long.parseLong(properties.getProperty("build.poll.interval", "2000"));
     }
 
-    /**
-     * Получить уровень логирования
-     */
     public static String getLogLevel() {
         return properties.getProperty("log.level", "INFO");
     }
 
-    /**
-     * Включена ли Allure отчетность
-     */
     public static boolean isAllureEnabled() {
         return Boolean.parseBoolean(properties.getProperty("allure.enabled", "true"));
     }
 
-    /**
-     * Получить путь к директории с отчетами
-     */
     public static String getAllureReportPath() {
         return properties.getProperty("allure.report.path", "target/allure-results");
     }
 
-    /**
-     * Получить размер таймаута по умолчанию в миллисекундах
-     */
     public static long getDefaultTimeout() {
         return Long.parseLong(properties.getProperty("default.timeout", "30000"));
     }
 
-    /**
-     * Получить интервал опроса по умолчанию в миллисекундах
-     */
     public static long getDefaultPollInterval() {
         return Long.parseLong(properties.getProperty("default.poll.interval", "1000"));
     }
 
-    /**
-     * Включен ли CI режим
-     */
     public static boolean isCiMode() {
         return Boolean.parseBoolean(properties.getProperty("ci.mode", "false"));
     }
 
-    /**
-     * Получить количество параллельных потоков для тестов
-     */
     public static int getParallelThreads() {
         return Integer.parseInt(properties.getProperty("parallel.threads", "4"));
     }
 
-    /**
-     * Получить полный URL для эндпоинта
-     */
     public static String getFullUrl(String endpoint) {
         return getApiBaseUrl() + endpoint;
     }
 
-    /**
-     * Проверить, запущены ли тесты в CI окружении
-     */
     public static boolean isCiEnvironment() {
         return System.getenv("CI") != null || isCiMode();
     }
 
-    /**
-     * Получить текущее окружение
-     */
     public static String getEnvironment() {
         return ENV;
     }
 
-    /**
-     * Перезагрузить конфигурацию (полезно для тестов)
-     */
     public static void reload() {
         properties.clear();
         try {
@@ -195,16 +144,10 @@ public class ConfigManager {
         }
     }
 
-    /**
-     * Получить значение свойства с дефолтом
-     */
     public static String getProperty(String key, String defaultValue) {
         return properties.getProperty(key, defaultValue);
     }
 
-    /**
-     * Получить свойство как целое число
-     */
     public static int getIntProperty(String key, int defaultValue) {
         try {
             return Integer.parseInt(properties.getProperty(key, String.valueOf(defaultValue)));
@@ -213,16 +156,10 @@ public class ConfigManager {
         }
     }
 
-    /**
-     * Получить свойство как булево значение
-     */
     public static boolean getBooleanProperty(String key, boolean defaultValue) {
         return Boolean.parseBoolean(properties.getProperty(key, String.valueOf(defaultValue)));
     }
 
-    /**
-     * Получить свойство как long
-     */
     public static long getLongProperty(String key, long defaultValue) {
         try {
             return Long.parseLong(properties.getProperty(key, String.valueOf(defaultValue)));
@@ -231,9 +168,6 @@ public class ConfigManager {
         }
     }
 
-    /**
-     * Алиасы для обратной совместимости
-     */
     public static String getAdminUsername() {
         return getAdminLogin();
     }

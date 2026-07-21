@@ -1,6 +1,7 @@
 package com.teamcity.core.steps;
 
 import com.teamcity.core.client.ApiClient;
+import com.teamcity.core.client.HttpStatusCodes;
 import com.teamcity.core.client.ResponseValidator;
 import com.teamcity.core.endpoints.Endpoint;
 import com.teamcity.core.exceptions.ApiException;
@@ -65,7 +66,7 @@ public class UserSteps extends BaseSteps {
         } catch (ResourceNotFoundException e) {
             return false;
         } catch (ApiException e) {
-            if (e.getStatusCode() == 404) {
+            if (e.getStatusCode() == HttpStatusCodes.NOT_FOUND) {
                 return false;
             }
             throw e;

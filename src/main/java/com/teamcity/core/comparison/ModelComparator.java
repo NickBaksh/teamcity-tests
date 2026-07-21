@@ -13,11 +13,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Загружает правила сравнения моделей из {@code model-comparison.properties}.
- * Формат: RequestClass=ResponseClass:field1=field2,field3=field4
- * Игнор: RequestClass.ignore=password,id
- */
 @Slf4j
 public final class ModelComparator {
 

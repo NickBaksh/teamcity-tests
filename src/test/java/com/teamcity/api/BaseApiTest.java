@@ -3,6 +3,7 @@ package com.teamcity.api;
 import com.teamcity.core.assertions.ApiAssertions;
 import com.teamcity.core.client.ApiClient;
 import com.teamcity.core.client.ClientFactory;
+import com.teamcity.core.generators.RandomData;
 import com.teamcity.core.models.*;
 import com.teamcity.core.steps.*;
 import com.teamcity.core.testdata.TestDataValues;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.teamcity.core.generators.RandomModelGenerator.generate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
@@ -102,7 +104,14 @@ public abstract class BaseApiTest {
 
     @Step("Create tracked project")
     protected Project givenProject() {
-        Project created = projectSteps.createProject(dataFactory.createRandomProject());
+        Project request = generate(Project.class);
+        request.setId(null);
+        request.setHref(null);
+        request.setWebUrl(null);
+        request.setParentProjectId(TestDataValues.ROOT_PROJECT_ID);
+        request.setDescription(TestDataValues.AUTO_PROJECT_DESCRIPTION_PREFIX + request.getName());
+
+        Project created = projectSteps.createProject(request);
         trackProject(created.getId());
         return created;
     }
@@ -116,7 +125,15 @@ public abstract class BaseApiTest {
 
     @Step("Create tracked build config in project: {projectId}")
     protected BuildConfig givenBuildConfig(String projectId) {
-        BuildConfig created = buildConfigSteps.createBuildConfig(dataFactory.createRandomBuildConfig(projectId));
+        BuildConfig request = generate(BuildConfig.class);
+        request.setId(null);
+        request.setHref(null);
+        request.setWebUrl(null);
+        request.setPaused(null);
+        request.setProjectId(projectId);
+        request.setDescription(TestDataValues.AUTO_BUILD_CONFIG_DESCRIPTION_PREFIX + request.getName());
+
+        BuildConfig created = buildConfigSteps.createBuildConfig(request);
         trackBuildConfig(created.getId());
         return created;
     }
@@ -146,23 +163,19 @@ public abstract class BaseApiTest {
         return created;
     }
 
-//    @Step("Create tracked user")
-//    protected User givenUser() {
-//        User created = userSteps.createUser(dataFactory.createRandomUser());
-//        trackUser(created.getUsername());
-//        return created;
-//    }
-
     @Step("Create tracked user")
     protected User givenUser() {
-        User request = dataFactory.createRandomUser();
+        User request = generate(User.class);
+        request.setId(null);
+        request.setHref(null);
+        request.setPassword(TestDataFactory.DEFAULT_PASSWORD);
+        request.setName(TestDataValues.USER_NAME_PREFIX + RandomData.shortId());
+
         User created = userSteps.createUser(request);
-        // TeamCity не возвращает пароль в ответе,
-    // поэтому переносим его из исходного объекта
         created.setPassword(request.getPassword());
         trackUser(created.getUsername());
         return created;
-}
+    }
 
     @Step("Create tracked user from request")
     protected User givenUser(User request) {
@@ -173,7 +186,12 @@ public abstract class BaseApiTest {
 
     @Step("Create BuildConfigSteps for a new user")
     protected BuildConfigSteps givenUserBuildConfigSteps() {
-        User request = dataFactory.createRandomUser();
+        User request = generate(User.class);
+        request.setId(null);
+        request.setHref(null);
+        request.setPassword(TestDataFactory.DEFAULT_PASSWORD);
+        request.setName(TestDataValues.USER_NAME_PREFIX + RandomData.shortId());
+
         givenUser(request);
         return new BuildConfigSteps(
                 adminSteps.createClientForUser(
@@ -183,7 +201,12 @@ public abstract class BaseApiTest {
 
     @Step("Create BuildRunSteps for a new user")
     protected BuildRunSteps givenUserBuildRunSteps() {
-        User request = dataFactory.createRandomUser();
+        User request = generate(User.class);
+        request.setId(null);
+        request.setHref(null);
+        request.setPassword(TestDataFactory.DEFAULT_PASSWORD);
+        request.setName(TestDataValues.USER_NAME_PREFIX + RandomData.shortId());
+
         givenUser(request);
         return new BuildRunSteps(
                 adminSteps.createClientForUser(

@@ -5,10 +5,6 @@ import com.teamcity.core.models.Project;
 import com.teamcity.core.models.User;
 import com.teamcity.core.utils.TestDataFactory;
 
-/**
- * Явные payload'ы для негативных и граничных кейсов.
- * Happy-path остаётся в {@link TestDataFactory}.
- */
 public final class InvalidTestData {
     private static final String EDGE_EMAIL = "test@test.com";
     private static final String EDGE_PROJECT_DESCRIPTION = "Invalid/edge project name case";

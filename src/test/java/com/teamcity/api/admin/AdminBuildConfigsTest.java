@@ -7,7 +7,6 @@ import com.teamcity.core.exceptions.ValidationException;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.testdata.InvalidTestData;
 import com.teamcity.core.testdata.TestDataValues;
-import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
@@ -135,7 +134,7 @@ public class AdminBuildConfigsTest extends BaseApiTest {
 
         BuildConfig created = givenBuildConfig(request);
 
-        assertThat(created.getDescription()).isEqualTo(TestDataValues.BUILD_CONFIG_DESCRIPTION);
+        assertThat(created.getDescription()).isEqualTo(request.getDescription());
     }
 
     @Test
@@ -150,7 +149,6 @@ public class AdminBuildConfigsTest extends BaseApiTest {
     @ParameterizedTest
     @ValueSource(strings = {" ", "\t", "\n", "\r", "  ", " \t "})
     @Severity(SeverityLevel.NORMAL)
-    @Description("Documents TeamCity behavior: whitespace names are accepted")
     void shouldCreateBuildConfigWithWhitespaceName(String whitespaceName) {
         BuildConfig request = InvalidTestData.buildConfigWithName(testProjectId, whitespaceName);
 

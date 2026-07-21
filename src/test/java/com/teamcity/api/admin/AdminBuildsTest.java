@@ -57,13 +57,10 @@ public class AdminBuildsTest extends BaseApiTest {
     void shouldGetQueuedBuildStatus() {
         BuildConfig config = givenBuildConfig(testProjectId);
 
-        // Запускаем сборку, она будет в очереди
         Build build = givenAdminBuildRunSteps().runBuild(config.getId());
 
-        // Получаем статус сборки в очереди
         Build queuedBuild = givenAdminBuildRunSteps().getBuild(build.getId());
 
-        // Проверяем, что сборка находится в очереди
         assertThat(queuedBuild.getState())
                 .isEqualTo(TestDataValues.BUILD_STATE_QUEUED);
         assertThat(queuedBuild.getBuildTypeId())
@@ -75,17 +72,14 @@ public class AdminBuildsTest extends BaseApiTest {
     void shouldGetRunningBuildStatus() {
         BuildConfig config = givenBuildConfig(testProjectId);
 
-        // Запускаем сборку
         Build build = givenAdminBuildRunSteps().runBuild(config.getId());
 
-        // Ждем, пока сборка начнет выполняться
         Build runningBuild = givenAdminBuildRunSteps().waitForBuildState(
                 build.getId(),
                 TestDataValues.BUILD_STATE_RUNNING,
                 TestDataValues.BUILD_WAIT_TIMEOUT_SECONDS
         );
 
-        // Проверяем, что сборка выполняется
         assertThat(runningBuild.getState())
                 .isEqualTo(TestDataValues.BUILD_STATE_RUNNING);
         assertThat(runningBuild.getBuildTypeId())
@@ -95,13 +89,11 @@ public class AdminBuildsTest extends BaseApiTest {
     @Test
     @Severity(SeverityLevel.NORMAL)
     void shouldGetFinishedBuildStatus() {
-        // TODO: flaky test, иногда возвращается статус "UNKNOWN" в проверке assertBuildFinished
+
         BuildConfig config = givenBuildConfig(testProjectId);
 
-        // Запускаем и ждем завершения сборки
         Build finishedBuild = givenFinishedBuild(config.getId());
 
-        // Получаем статус завершенной сборки
         Build actualBuild = givenAdminBuildRunSteps().getBuild(finishedBuild.getId());
 
         ApiAssertions.assertBuildFinished(
@@ -126,10 +118,8 @@ public class AdminBuildsTest extends BaseApiTest {
     void shouldGetBuildDetails() {
         BuildConfig config = givenBuildConfig(testProjectId);
 
-        // Запускаем и ждем завершения сборки
         Build finishedBuild = givenFinishedBuild(config.getId());
 
-        // Получаем детали сборки
         Build details = givenAdminBuildRunSteps().getBuild(finishedBuild.getId());
 
         ApiAssertions.assertBuildFinished(
@@ -166,13 +156,10 @@ public class AdminBuildsTest extends BaseApiTest {
     void shouldDeleteFinishedBuild() {
         BuildConfig config = givenBuildConfig(testProjectId);
 
-        // Запускаем и ждем завершения сборки
         Build finishedBuild = givenFinishedBuild(config.getId());
 
-        // Админ может удалить любую завершенную сборку
         givenAdminBuildRunSteps().deleteBuild(finishedBuild.getId());
 
-        // Проверяем, что сборка удалена
         ApiAssertions.assertNotFound(
                 () -> givenAdminBuildRunSteps().getBuild(finishedBuild.getId())
         );

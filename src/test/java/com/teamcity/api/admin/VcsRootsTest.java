@@ -104,7 +104,7 @@ public class VcsRootsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     @Disabled
     void shouldUpdateVcsRoot() {
-        // TODO: Поправить ошибку 405
+
         VcsRoot createdVcsRoot = givenVcsRoot(testProjectId);
 
         String newName = TestDataValues.VCS_ROOT_RANDOM_NAME;

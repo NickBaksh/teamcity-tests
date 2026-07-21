@@ -9,10 +9,6 @@ import io.restassured.filter.log.ResponseLoggingFilter;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 
-/**
- * Переиспользуемые RequestSpecification: base URI, логирование, Content-Type, auth.
- * Логирование запросов/ответов задаётся один раз на уровне фреймворка.
- */
 public final class RequestSpecs {
 
     private RequestSpecs() {
