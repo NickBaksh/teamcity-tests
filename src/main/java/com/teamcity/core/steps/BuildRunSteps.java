@@ -79,6 +79,16 @@ public class BuildRunSteps extends BaseSteps {
         return builds != null ? builds : Collections.emptyList();
     }
 
+    @Step("Get latest build for config: {buildTypeId}")
+    public Build getLatestBuild(String buildTypeId) {
+        return getBuildsForConfig(buildTypeId)
+                .stream()
+                .findFirst()
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "No builds found for config: " + buildTypeId));
+    }
+
     @Step("Cancel build: {buildId}")
     public void cancelBuild(String buildId, String comment) {
         BuildCancelRequest request = new BuildCancelRequest();
