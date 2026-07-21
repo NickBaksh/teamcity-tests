@@ -1,5 +1,6 @@
 package com.teamcity.ui.admin;
 
+import com.teamcity.core.exceptions.ResourceNotFoundException;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.Project;
 import com.teamcity.ui.BaseUiTest;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.time.Duration;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,22 +30,14 @@ public class BuildConfigsUiTest extends BaseUiTest {
         Project project = givenProject();
         String name = UiTestData.buildConfigName();
 
-        buildConfigPage.openCreate(project.getId()).create(name, null);
+        // Sakura setup wizard does not expose an ID field; TC auto-generates it from the name.
+        buildConfigPage.openCreate(project.getId()).create(name);
 
         BuildConfig created = Awaitility.await()
                 .pollInterval(Duration.ofSeconds(UiTestData.UI_POLL_INTERVAL_LONG_SECONDS))
                 .atMost(Duration.ofSeconds(UiTestData.UI_LONG_TIMEOUT_SECONDS))
-                .until(() -> {
-                    try {
-                        return buildConfigSteps.findBuildConfigByName(name);
-                    } catch (Exception e) {
-                        String fromUi = buildConfigPage.readCreatedBuildConfigId();
-                        if (fromUi != null && buildConfigSteps.buildConfigExists(fromUi)) {
-                            return buildConfigSteps.getBuildConfig(fromUi);
-                        }
-                        return null;
-                    }
-                }, config -> config != null);
+                .ignoreException(ResourceNotFoundException.class)
+                .until(() -> buildConfigSteps.findBuildConfigByName(name), Objects::nonNull);
 
         trackBuildConfig(created.getId());
         assertThat(created.getName()).isEqualTo(name);

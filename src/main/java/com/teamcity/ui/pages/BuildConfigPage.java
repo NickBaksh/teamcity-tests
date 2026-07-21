@@ -1,12 +1,8 @@
 package com.teamcity.ui.pages;
 
 import com.codeborne.selenide.SelenideElement;
-import com.codeborne.selenide.WebDriverRunner;
 import com.teamcity.ui.testdata.UiTestData;
 import io.qameta.allure.Step;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static com.codeborne.selenide.Condition.appear;
 import static com.codeborne.selenide.Condition.disappear;
@@ -86,46 +82,16 @@ public class BuildConfigPage {
     }
 
     @Step("Create build config via Sakura setup wizard name={name}")
-    public BuildConfigPage create(String name, String id) {
+    public BuildConfigPage create(String name) {
         setupPage.shouldBe(visible);
         SelenideElement nameField = setupNameInput;
         if (!nameField.exists() || !nameField.is(visible)) {
             nameField = $$("[data-test='setup-project-page'] div[data-test='ring-input'] input").get(1);
         }
         nameField.shouldBe(visible).setValue(name == null ? "" : name);
-        if (id != null) {
-            SelenideElement showMore = $x(
-                    "//div[@data-test='setup-project-page']//button[contains(.,'Show more')]"
-            );
-            if (showMore.exists() && showMore.is(visible)) {
-                showMore.click();
-                SelenideElement idField = $x(
-                        "//div[@data-test='setup-project-page']"
-                                + "//label[contains(.,'ID') or contains(.,'Id')]/following::input[1]"
-                );
-                idField.shouldBe(visible);
-                idField.clear();
-                idField.setValue(id);
-            }
-        }
         setupCreateButton.shouldBe(visible).click();
         setupPage.should(disappear);
         return this;
-    }
-
-    @Step("Read created build config id from page/url/source")
-    public String readCreatedBuildConfigId() {
-        String url = WebDriverRunner.url();
-        String decoded = url.replace("%3A", ":").replace("%3a", ":");
-        Matcher matcher = Pattern.compile("buildType:([A-Za-z0-9_]+)").matcher(decoded);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        matcher = Pattern.compile("/buildConfiguration/([A-Za-z0-9_]+)").matcher(decoded);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        return null;
     }
 
     @Step("Create build config via classic form expecting error")

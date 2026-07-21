@@ -16,6 +16,7 @@ public final class UiTestData {
     public static final String SMOKE_PROJECT_NAME_PREFIX = "ui_smoke_";
     public static final String SMOKE_PROJECT_ID_PREFIX = "UISmoke";
     public static final String BUILD_CONFIG_NAME_PREFIX = "ui_bc_";
+    public static final String BUILD_CONFIG_ID_PREFIX = "UIBuild";
     public static final String BUILD_STEP_NAME_PREFIX = "echo_step_";
     public static final String EMPTY_PROJECT_ID_PREFIX = "EmptyName";
     public static final String DUPLICATE_PROJECT_NAME_PREFIX = "Duplicate ";
@@ -60,6 +61,10 @@ public final class UiTestData {
 
     public static String buildConfigName() {
         return BUILD_CONFIG_NAME_PREFIX + RandomData.shortId();
+    }
+
+    public static String buildConfigId() {
+        return BUILD_CONFIG_ID_PREFIX + RandomData.shortId();
     }
 
     public static String buildStepName() {
