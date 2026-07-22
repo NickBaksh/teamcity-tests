@@ -5,10 +5,11 @@ import com.codeborne.selenide.WebDriverRunner;
 import com.teamcity.ui.pages.elements.ConfirmDialog;
 import io.qameta.allure.Step;
 
+import java.time.Duration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Condition.*;
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$$;
 import static com.codeborne.selenide.Selenide.executeJavaScript;
@@ -44,7 +45,18 @@ public class BuildConfigPage {
     private final SelenideElement scriptContent = $("#script\\.content, textarea[name='prop:script.content']");
     private final SelenideElement saveStepButton = $("input[name='save'], input[name='submitButton'].submitButton");
     private final SelenideElement title = $("h1, .buildTypeName, [data-test='build-config-title']");
+    private final SelenideElement overviewHeader = $("[data-test='overview-header']");
     private final ConfirmDialog confirmDialog = new ConfirmDialog();
+
+    private final SelenideElement runBuildButton = $("[data-test='run-build']");
+    private final SelenideElement buildStatus = $("[data-test='build-status']");
+    private final SelenideElement notificationPopup =
+            $("[data-test='ring-popup']");
+
+    private final SelenideElement buildActionsButton =
+            $("[data-test-title='Actions']")
+                    .parent()
+                    .$("button");
 
     @Step("Open create build config wizard for project: {projectId}")
     public BuildConfigPage openCreate(String projectId) {
@@ -280,7 +292,49 @@ public class BuildConfigPage {
 
     @Step("Check build config title contains: {name}")
     public BuildConfigPage shouldHaveName(String name) {
-        title.shouldBe(visible).shouldHave(com.codeborne.selenide.Condition.text(name));
+        title.shouldBe(visible).shouldHave(text(name));
+        return this;
+    }
+
+    @Step("Run build")
+    public BuildConfigPage runBuild() {
+        runBuildButton.click();
+        return this;
+    }
+
+    @Step("Check build configuration page is opened")
+    public BuildConfigPage shouldBeOpened() {
+        overviewHeader.shouldBe(visible);
+        return this;
+    }
+
+    @Step("Wait until build is finished")
+    public BuildConfigPage waitForBuildFinished() {
+        notificationPopup.shouldHave(
+                text("is finished"),
+                Duration.ofMinutes(2));
+        return this;
+    }
+
+    @Step("Open latest build details")
+    public BuildDetailsPage openLatestBuild() {
+        $$("[data-test-build-number-link]")
+                .first()
+                .click();
+        return new BuildDetailsPage();
+    }
+
+    @Step("Open build actions menu")
+    public BuildConfigPage openBuildActionsMenu() {
+        buildActionsButton.click();
+        return this;
+    }
+
+    @Step("Check 'Remove' action is not available")
+    public BuildConfigPage shouldNotHaveRemoveBuildAction() {
+        $$(".ring-list-label")
+                .findBy(text("Remove"))
+                .shouldNot(exist);
         return this;
     }
 }

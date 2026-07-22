@@ -168,7 +168,7 @@ public class UserBuildsTest extends BaseApiTest {
 
     @Test
     @Severity(SeverityLevel.CRITICAL)
-    void shouldNotDeleteOwnFinishedBuildWithoutDeletePermission() {
+    void shouldNotDeleteOwnFinishedBuild() {
 
         BuildConfig config = givenBuildConfig(testProjectId);
 
