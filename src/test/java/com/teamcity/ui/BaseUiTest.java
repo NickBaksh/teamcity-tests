@@ -3,11 +3,7 @@ package com.teamcity.ui;
 import com.codeborne.selenide.Selenide;
 import com.teamcity.api.BaseApiTest;
 import com.teamcity.ui.config.SelenideConfig;
-import com.teamcity.ui.pages.BuildConfigPage;
-import com.teamcity.ui.pages.CreateProjectPage;
-import com.teamcity.ui.pages.LoginPage;
-import com.teamcity.ui.pages.ProjectPage;
-import com.teamcity.ui.pages.ProjectsPage;
+import com.teamcity.ui.pages.*;
 import io.qameta.allure.Step;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +20,8 @@ public abstract class BaseUiTest extends BaseApiTest {
     protected final CreateProjectPage createProjectPage = new CreateProjectPage();
     protected final ProjectPage projectPage = new ProjectPage();
     protected final BuildConfigPage buildConfigPage = new BuildConfigPage();
+    protected final AgentsPage agentsPage = new AgentsPage();
+    protected final BuildDetailsPage buildDetailsPage = new BuildDetailsPage();
 
     @BeforeEach
     @Step("Initialize UI test environment")

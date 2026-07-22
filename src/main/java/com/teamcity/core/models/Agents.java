@@ -16,6 +16,5 @@ public class Agents {
     private String href;
     private String nextHref;
     private String prevHref;
-    @JsonProperty("agent")
     private List<Agent> agent;
 }

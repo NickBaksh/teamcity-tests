@@ -1,7 +1,5 @@
 package com.teamcity.ui.pages;
 
-
-import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.SelenideElement;
 import com.codeborne.selenide.WebDriverRunner;
 import com.teamcity.ui.pages.elements.ConfirmDialog;
@@ -298,17 +296,19 @@ public class BuildConfigPage {
         return this;
     }
 
-
+    @Step("Run build")
     public BuildConfigPage runBuild() {
         runBuildButton.click();
         return this;
     }
 
+    @Step("Check build configuration page is opened")
     public BuildConfigPage shouldBeOpened() {
         overviewHeader.shouldBe(visible);
         return this;
     }
 
+    @Step("Wait until build is finished")
     public BuildConfigPage waitForBuildFinished() {
         notificationPopup.shouldHave(
                 text("is finished"),
@@ -316,6 +316,7 @@ public class BuildConfigPage {
         return this;
     }
 
+    @Step("Open latest build details")
     public BuildDetailsPage openLatestBuild() {
         $$("[data-test-build-number-link]")
                 .first()
@@ -323,12 +324,13 @@ public class BuildConfigPage {
         return new BuildDetailsPage();
     }
 
+    @Step("Open build actions menu")
     public BuildConfigPage openBuildActionsMenu() {
-        System.out.println(WebDriverRunner.url());
         buildActionsButton.click();
         return this;
     }
 
+    @Step("Check 'Remove' action is not available")
     public BuildConfigPage shouldNotHaveRemoveBuildAction() {
         $$(".ring-list-label")
                 .findBy(text("Remove"))
