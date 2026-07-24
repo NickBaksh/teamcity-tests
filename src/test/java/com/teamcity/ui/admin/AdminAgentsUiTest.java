@@ -1,5 +1,6 @@
 package com.teamcity.ui.admin;
 
+import com.teamcity.core.annotations.RestoreAgent;
 import com.teamcity.core.models.Agent;
 import com.teamcity.core.models.Agents;
 import com.teamcity.ui.BaseUiTest;
@@ -33,10 +34,10 @@ public class AdminAgentsUiTest extends BaseUiTest {
     }
 
     @Test
+    @Severity(SeverityLevel.CRITICAL)
+    @RestoreAgent
     void adminCanDisableAgent() {
-        Agent agent = agentSteps.getAllAgents()
-                .getAgent()
-                .getFirst();
+        Agent agent = givenTrackedAgent();
 
         agentsPage
                 .openPage()
@@ -45,7 +46,5 @@ public class AdminAgentsUiTest extends BaseUiTest {
 
         assertThat(agentSteps.getAgent(String.valueOf(agent.getId())).getEnabled())
                 .isFalse();
-
-        agentSteps.enableAgent(String.valueOf(agent.getId()));
     }
 }

@@ -3,6 +3,7 @@ package com.teamcity.ui.auth;
 import com.teamcity.core.config.ConfigManager;
 import com.teamcity.core.models.User;
 import com.teamcity.ui.BaseUiTest;
+import com.teamcity.ui.testdata.UiTestData;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
@@ -29,11 +30,8 @@ public class LoginUiTest extends BaseUiTest {
     @Severity(SeverityLevel.CRITICAL)
     void shouldRejectInvalidCredentials() {
         loginPage.openPage()
-                .login(ConfigManager.getAdminLogin(), "invalid-password-" + System.currentTimeMillis());
-
-        assertThat(loginPage.isLoginFailed())
-                .as("Expected to stay on login page after invalid credentials")
-                .isTrue();
+                .login(ConfigManager.getAdminLogin(), UiTestData.invalidPassword())
+                .shouldStayOnLoginAfterFailure();
     }
 
     @Test

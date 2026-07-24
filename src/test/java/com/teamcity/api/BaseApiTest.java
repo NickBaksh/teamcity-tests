@@ -6,9 +6,11 @@ import com.teamcity.core.client.ClientFactory;
 import com.teamcity.core.generators.RandomData;
 import com.teamcity.core.models.*;
 import com.teamcity.core.steps.*;
+import com.teamcity.core.storage.AgentStorage;
 import com.teamcity.core.testdata.TestDataValues;
 import com.teamcity.core.utils.TestDataFactory;
 import io.qameta.allure.Step;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.teamcity.core.generators.RandomModelGenerator.generate;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
 @ExtendWith(TestListener.class)
@@ -36,6 +37,7 @@ public abstract class BaseApiTest {
     protected BuildRunSteps buildRunSteps;
     protected UserSteps userSteps;
     protected ArtifactSteps artifactSteps;
+    @Getter
     protected AgentSteps agentSteps;
 
     private final List<String> createdProjects = new ArrayList<>();
@@ -270,6 +272,13 @@ public abstract class BaseApiTest {
         return agentSteps.getAllAgents()
                 .getAgent()
                 .getFirst();
+    }
+
+    @Step("Get first available agent and register it for restore")
+    protected Agent givenTrackedAgent() {
+        Agent agent = givenAgent();
+        AgentStorage.set(agent);
+        return agent;
     }
 
     @Step("Create tracked build config in a new project")
