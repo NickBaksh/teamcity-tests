@@ -57,6 +57,9 @@ public class BuildConfigPage {
             $("[data-test-title='Actions']")
                     .parent()
                     .$("button");
+    private final SelenideElement buildQueueIndicator = $("[data-test='build-queue']");
+    private final SelenideElement buildStatusText = $("[data-test='build-status']");
+    private final SelenideElement notFoundText = $("//*[contains(text(), 'Not found')]");
 
     @Step("Open create build config wizard for project: {projectId}")
     public BuildConfigPage openCreate(String projectId) {
@@ -159,6 +162,21 @@ public class BuildConfigPage {
                 || source.contains("Error")
                 || source.contains("<error")
                 || $(".error, .errorMessage, error").exists();
+    }
+
+    @Step("Check error message appears: {expectedError}")
+    public BuildConfigPage shouldHaveError(String expectedError) {
+        $("[data-test='error-message'], .error")
+                .shouldBe(visible)
+                .shouldHave(text(expectedError));
+        return this;
+    }
+
+    @Step("Check error message appears")
+    public BuildConfigPage shouldHaveError() {
+        $("[data-test='error-message'], .error")
+                .shouldBe(visible);
+        return this;
     }
 
     @Step("Get error text / page source for assertions")
@@ -336,5 +354,36 @@ public class BuildConfigPage {
                 .findBy(text("Remove"))
                 .shouldNot(exist);
         return this;
+    }
+
+    @Step("Check page contains 'Not found' text")
+    public BuildConfigPage shouldContainNotFound() {
+        notFoundText.shouldBe(visible);
+        return this;
+    }
+
+    @Step("Check build is in queue")
+    public BuildConfigPage shouldHaveBuildInQueue() {
+        buildQueueIndicator.shouldBe(visible)
+                .shouldHave(text("queued"));
+        return this;
+    }
+
+    @Step("Check build is running")
+    public BuildConfigPage shouldHaveBuildRunning() {
+        buildQueueIndicator.shouldBe(visible)
+                .shouldHave(text("running"));
+        return this;
+    }
+
+    @Step("Wait for build to start")
+    public BuildConfigPage waitForBuildToStart() {
+        buildQueueIndicator.shouldHave(text("running"), Duration.ofSeconds(30));
+        return this;
+    }
+
+    @Step("Get current build status text")
+    public String getBuildStatusText() {
+        return buildStatusText.shouldBe(visible).getText();
     }
 }

@@ -92,4 +92,20 @@ public class ProjectPage {
         }
         WebDriverRunner.getWebDriver();
     }
+
+    @Step("Open build configuration by ID: {buildTypeId}")
+    public BuildConfigPage openBuildConfig(String buildTypeId) {
+        $x("//a[contains(@href, '/buildConfiguration/" + buildTypeId + "')]")
+                .shouldBe(visible)
+                .click();
+        return new BuildConfigPage();
+    }
+
+    @Step("Open build configuration by name: {name}")
+    public BuildConfigPage openBuildConfigByName(String name) {
+        $x("//a[contains(., '" + name + "') and contains(@href, '/buildConfiguration/')]")
+                .shouldBe(visible)
+                .click();
+        return new BuildConfigPage();
+    }
 }
