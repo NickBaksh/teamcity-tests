@@ -5,11 +5,11 @@ import com.codeborne.selenide.WebDriverRunner;
 import com.teamcity.ui.pages.elements.ConfirmDialog;
 import io.qameta.allure.Step;
 
+import static com.codeborne.selenide.Condition.exist;
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.executeJavaScript;
 import static com.codeborne.selenide.Selenide.open;
-import static com.codeborne.selenide.Selenide.sleep;
 import static com.codeborne.selenide.Selenide.$x;
 
 public class ProjectPage {
@@ -28,23 +28,42 @@ public class ProjectPage {
 
     @Step("Open project by id: {projectId}")
     public ProjectPage openById(String projectId) {
-        open("/project/" + projectId);
+        open(UiRoutes.project(projectId));
         return this;
     }
 
     @Step("Open project edit settings: {projectId}")
     public ProjectPage openEdit(String projectId) {
-        open("/admin/editProject.html?projectId=" + projectId);
+        open(UiRoutes.editProject(projectId));
         return this;
     }
 
     @Step("Delete project via UI Actions menu: {projectId}")
     public void deleteProject(String projectId) {
         openEdit(projectId);
-        openActionsMenu(projectId);
-        deleteProjectLink.shouldBe(visible).click();
-        sleep(500);
-        if (confirmDialog.isVisible()) {
+        executeJavaScript("window.confirm = function () { return true; };");
+        Boolean invoked = executeJavaScript(
+                "try {"
+                        + "  if (window.BS && BS.AdminActions && BS.AdminActions.deleteProject) {"
+                        + "    BS.AdminActions.deleteProject(arguments[0], arguments[0]);"
+                        + "    return true;"
+                        + "  }"
+                        + "  return false;"
+                        + "} catch (e) { return false; }",
+                projectId
+        );
+        if (!Boolean.TRUE.equals(invoked)) {
+            openActionsMenu(projectId);
+            deleteProjectLink.should(exist);
+            executeJavaScript("arguments[0].click();", deleteProjectLink);
+        }
+        SelenideElement deleteSubmit = $(
+                "#deleteProjectForm input.submitButton, #deleteProjectForm input[type='submit'], "
+                        + "input[value='Delete'], button[type='submit']"
+        );
+        if (deleteSubmit.exists()) {
+            deleteSubmit.shouldBe(visible).click();
+        } else if (confirmDialog.isVisible()) {
             confirmDialog.confirm();
         }
     }
@@ -54,11 +73,11 @@ public class ProjectPage {
         if (createBuildConfigButton.exists()) {
             createBuildConfigButton.shouldBe(visible).click();
         } else {
-            String url = com.codeborne.selenide.WebDriverRunner.url();
+            String url = WebDriverRunner.url();
             String projectId = url.contains("projectId=")
                     ? url.substring(url.indexOf("projectId=") + "projectId=".length()).split("&")[0]
                     : "";
-            open("/admin/createBuildType.html?projectId=" + projectId);
+            open(UiRoutes.classicCreateBuildType(projectId));
         }
         return new BuildConfigPage();
     }

@@ -19,23 +19,25 @@ public class LoginPage {
 
     @Step("Open login page")
     public LoginPage openPage() {
-        open("/login.html");
+        open(UiRoutes.LOGIN);
         usernameInput.shouldBe(visible);
         return this;
     }
 
     @Step("Login as {username}")
-    public void login(String username, String password) {
+    public LoginPage login(String username, String password) {
         usernameInput.shouldBe(visible).setValue(username);
         passwordInput.setValue(password);
         loginButton.click();
+        return this;
     }
 
     @Step("Login and expect success")
-    public void loginSuccessfully(String username, String password) {
+    public LoginPage loginSuccessfully(String username, String password) {
         login(username, password);
         com.codeborne.selenide.Selenide.Wait()
-                .until(driver -> !driver.getCurrentUrl().contains("/login.html"));
+                .until(driver -> !driver.getCurrentUrl().contains(UiRoutes.LOGIN));
+        return this;
     }
 
     @Step("Get login error text")
@@ -47,5 +49,13 @@ public class LoginPage {
     public boolean isLoginFailed() {
         return usernameInput.is(visible)
                 && (errorMessage.exists() && errorMessage.is(visible) || loginButton.is(visible));
+    }
+
+    @Step("Assert login failed")
+    public LoginPage shouldStayOnLoginAfterFailure() {
+        if (!isLoginFailed()) {
+            throw new AssertionError("Expected to stay on login page after invalid credentials");
+        }
+        return this;
     }
 }

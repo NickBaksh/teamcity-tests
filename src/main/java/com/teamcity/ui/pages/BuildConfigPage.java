@@ -1,21 +1,25 @@
 package com.teamcity.ui.pages;
 
 import com.codeborne.selenide.SelenideElement;
-import com.codeborne.selenide.WebDriverRunner;
 import com.teamcity.ui.pages.elements.ConfirmDialog;
+import com.teamcity.ui.testdata.UiTestData;
 import io.qameta.allure.Step;
 
 import java.time.Duration;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import static com.codeborne.selenide.Condition.*;
+import static com.codeborne.selenide.Condition.appear;
+import static com.codeborne.selenide.Condition.disappear;
+import static com.codeborne.selenide.Condition.exist;
+import static com.codeborne.selenide.Condition.partialText;
+import static com.codeborne.selenide.Condition.text;
+import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$$;
 import static com.codeborne.selenide.Selenide.executeJavaScript;
 import static com.codeborne.selenide.Selenide.open;
-import static com.codeborne.selenide.Selenide.sleep;
 import static com.codeborne.selenide.Selenide.$x;
+import static com.codeborne.selenide.Selenide.webdriver;
+import static com.codeborne.selenide.WebDriverConditions.urlContaining;
 
 public class BuildConfigPage {
 
@@ -39,12 +43,15 @@ public class BuildConfigPage {
     );
     private final SelenideElement commandLineRunner = $("[data-key='simpleRunner']");
     private final SelenideElement commandLineByText = $x(
-            "//*[contains(@class,'BuildStepSelectorItem') and .//span[contains(.,'Command Line')]]"
+            "//*[contains(@class,'BuildStepSelectorItem') and .//span[contains(.,'"
+                    + UiTestData.MARKER_COMMAND_LINE + "')]]"
     );
     private final SelenideElement stepNameInput = $("#buildStepName");
     private final SelenideElement scriptContent = $("#script\\.content, textarea[name='prop:script.content']");
     private final SelenideElement saveStepButton = $("input[name='save'], input[name='submitButton'].submitButton");
     private final SelenideElement title = $("h1, .buildTypeName, [data-test='build-config-title']");
+    private final SelenideElement body = $("body");
+    private final SelenideElement visibleError = $(".error, .errorMessage, [data-test='error'], error");
     private final SelenideElement overviewHeader = $("[data-test='overview-header']");
     private final ConfirmDialog confirmDialog = new ConfirmDialog();
 
@@ -60,85 +67,47 @@ public class BuildConfigPage {
 
     @Step("Open create build config wizard for project: {projectId}")
     public BuildConfigPage openCreate(String projectId) {
-        open("/projects/create?projectId=" + projectId + "&setup=build");
+        open(UiRoutes.createBuildConfig(projectId));
         setupPage.shouldBe(visible);
         return this;
     }
 
     @Step("Open classic create build config form for project: {projectId}")
     public BuildConfigPage openClassicCreate(String projectId) {
-        open("/admin/createBuildType.html?projectId=" + projectId);
+        open(UiRoutes.classicCreateBuildType(projectId));
         classicNameInput.shouldBe(visible);
         return this;
     }
 
     @Step("Open build config by id: {buildConfigId}")
     public BuildConfigPage openById(String buildConfigId) {
-        open("/buildConfiguration/" + buildConfigId);
+        open(UiRoutes.buildConfiguration(buildConfigId));
         return this;
     }
 
     @Step("Open edit build config general: {buildConfigId}")
     public BuildConfigPage openEdit(String buildConfigId) {
-        open("/admin/editBuild.html?id=buildType:" + buildConfigId);
+        open(UiRoutes.editBuild(buildConfigId));
         return this;
     }
 
     @Step("Open build steps page: {buildConfigId}")
     public BuildConfigPage openSteps(String buildConfigId) {
-        open("/admin/editBuildRunners.html?id=buildType:" + buildConfigId);
+        open(UiRoutes.editBuildRunners(buildConfigId));
         return this;
     }
 
     @Step("Create build config via Sakura setup wizard name={name}")
-    public BuildConfigPage create(String name, String id) {
+    public BuildConfigPage create(String name) {
         setupPage.shouldBe(visible);
         SelenideElement nameField = setupNameInput;
         if (!nameField.exists() || !nameField.is(visible)) {
             nameField = $$("[data-test='setup-project-page'] div[data-test='ring-input'] input").get(1);
         }
         nameField.shouldBe(visible).setValue(name == null ? "" : name);
-        if (id != null) {
-            SelenideElement showMore = $x(
-                    "//div[@data-test='setup-project-page']//button[contains(.,'Show more')]"
-            );
-            if (showMore.exists() && showMore.is(visible)) {
-                showMore.click();
-                sleep(500);
-            }
-            SelenideElement idField = $x(
-                    "//div[@data-test='setup-project-page']"
-                            + "//label[contains(.,'ID') or contains(.,'Id')]/following::input[1]"
-            );
-            if (idField.exists() && idField.is(visible)) {
-                idField.clear();
-                idField.setValue(id);
-            }
-        }
         setupCreateButton.shouldBe(visible).click();
-        sleep(3000);
+        setupPage.should(disappear);
         return this;
-    }
-
-    @Step("Read created build config id from page/url/source")
-    public String readCreatedBuildConfigId() {
-        String url = WebDriverRunner.url();
-        String decoded = url.replace("%3A", ":").replace("%3a", ":");
-        Matcher matcher = Pattern.compile("buildType:([A-Za-z0-9_]+)").matcher(decoded);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        matcher = Pattern.compile("/buildConfiguration/([A-Za-z0-9_]+)").matcher(decoded);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-
-        String source = WebDriverRunner.source();
-        matcher = Pattern.compile("buildType:([A-Za-z0-9_]+)").matcher(source);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        return null;
     }
 
     @Step("Create build config via classic form expecting error")
@@ -148,26 +117,17 @@ public class BuildConfigPage {
             classicIdInput.clear();
         }
         classicCreateButton.shouldBe(visible).click();
-        sleep(1000);
         return this;
     }
 
-    @Step("Check validation error is present")
-    public boolean hasValidationError() {
-        String source = WebDriverRunner.source();
-        return source.contains("empty")
-                || source.contains("Error")
-                || source.contains("<error")
-                || $(".error, .errorMessage, error").exists();
-    }
-
-    @Step("Get error text / page source for assertions")
-    public String errorText() {
-        SelenideElement error = $(".error, .errorMessage, [data-test='error'], error");
-        if (error.exists() && error.is(visible)) {
-            return error.getText();
+    @Step("Assert empty build config name validation error")
+    public BuildConfigPage shouldShowEmptyNameError() {
+        if (visibleError.exists()) {
+            visibleError.shouldBe(visible);
+        } else {
+            body.shouldHave(partialText(UiTestData.ERROR_EMPTY).or(partialText("<error")));
         }
-        return WebDriverRunner.source();
+        return this;
     }
 
     @Step("Add simple command-line build step")
@@ -178,28 +138,27 @@ public class BuildConfigPage {
         } else {
             addStepByText.shouldBe(visible).click();
         }
-        sleep(1500);
+        waitForRunnerSelector();
 
         if (commandLineRunner.exists()) {
             commandLineRunner.shouldBe(visible).click();
         } else if (commandLineByText.exists()) {
             commandLineByText.shouldBe(visible).click();
         } else {
-            open("/admin/editRunType.html?id=buildType:" + buildConfigId
-                    + "&runnerId=__NEW_RUNNER__&init=1");
-            sleep(1000);
+            open(UiRoutes.editRunTypeNew(buildConfigId));
+            waitForRunnerSelector();
             if (commandLineRunner.exists()) {
                 commandLineRunner.click();
             } else if (commandLineByText.exists()) {
                 commandLineByText.click();
             }
         }
-        sleep(1500);
+        stepNameInput.should(appear);
 
         SelenideElement useCustomScript = $("#use\\.custom\\.script, select[name='prop:use.custom.script']");
         if (useCustomScript.exists()) {
             try {
-                useCustomScript.selectOptionContainingText("Custom script");
+                useCustomScript.selectOptionContainingText(UiTestData.CUSTOM_SCRIPT_OPTION);
             } catch (Exception ignored) {
                 executeJavaScript(
                         "arguments[0].value='true';"
@@ -207,13 +166,13 @@ public class BuildConfigPage {
                         useCustomScript
                 );
             }
-            sleep(500);
         }
 
-        if (stepNameInput.exists() && stepNameInput.is(visible)) {
+        if (stepNameInput.is(visible)) {
             stepNameInput.setValue(stepName);
         }
 
+        String script = UiTestData.COMMAND_LINE_SCRIPT;
         if (scriptContent.exists()) {
             executeJavaScript(
                     "arguments[0].removeAttribute('readonly');"
@@ -222,15 +181,16 @@ public class BuildConfigPage {
                             + "arguments[0].dispatchEvent(new Event('input', {bubbles:true}));"
                             + "arguments[0].dispatchEvent(new Event('change', {bubbles:true}));",
                     scriptContent,
-                    "echo hello"
+                    script
             );
         }
         SelenideElement codeMirror = $(".CodeMirror");
         if (codeMirror.exists()) {
+            codeMirror.should(appear);
             executeJavaScript(
                     "if (arguments[0].CodeMirror) { arguments[0].CodeMirror.setValue(arguments[1]); }",
                     codeMirror,
-                    "echo hello"
+                    script
             );
         }
 
@@ -239,54 +199,26 @@ public class BuildConfigPage {
         } else {
             $x("//input[@value='Save'] | //button[contains(.,'Save')]").shouldBe(visible).click();
         }
-        sleep(2000);
+        webdriver().shouldHave(urlContaining("editBuildRunners"));
         return this;
     }
 
-    @Step("Pause build configuration via UI: {buildConfigId}")
-    public BuildConfigPage pause(String buildConfigId) {
-        openEdit(buildConfigId);
-        submitPauseBuildTypeForm(buildConfigId, true);
-        sleep(1500);
+    @Step("Assert build steps page reflects added step: {stepName}")
+    public BuildConfigPage shouldReflectAddedStep(String stepName) {
+        $x("//*[contains(.,'" + stepName + "') or contains(.,'" + UiTestData.MARKER_COMMAND_LINE + "')]")
+                .shouldBe(visible)
+                .shouldHave(text(stepName).or(partialText(UiTestData.MARKER_COMMAND_LINE)));
         return this;
     }
 
-    @Step("Resume/activate build configuration via UI: {buildConfigId}")
-    public BuildConfigPage resume(String buildConfigId) {
-        openEdit(buildConfigId);
-        submitPauseBuildTypeForm(buildConfigId, false);
-        sleep(1500);
-        return this;
-    }
-
-    private void submitPauseBuildTypeForm(String buildConfigId, boolean pause) {
-        Boolean submitted = executeJavaScript(
-                "try {"
-                        + "  var form = document.getElementById('pauseBuildTypeForm');"
-                        + "  if (!form) {"
-                        + "    if (window.BS && BS.PauseBuildTypeDialog && BS.PauseBuildTypeDialog.showPauseBuildTypeDialog) {"
-                        + "      BS.PauseBuildTypeDialog.showPauseBuildTypeDialog(arguments[0]);"
-                        + "      form = document.getElementById('pauseBuildTypeForm');"
-                        + "    }"
-                        + "  }"
-                        + "  if (!form) return false;"
-                        + "  var comment = form.querySelector('[name=pauseComment]');"
-                        + "  if (comment) comment.value = arguments[1] ? 'paused by ui test' : 'activated by ui test';"
-                        + "  if (window.BS && BS.PauseBuildTypeForm && BS.PauseBuildTypeForm.submit) {"
-                        + "    BS.PauseBuildTypeForm.submit(); return true;"
-                        + "  }"
-                        + "  form.submit(); return true;"
-                        + "} catch (e) { return false; }",
-                buildConfigId,
-                pause
-        );
-        if (!Boolean.TRUE.equals(submitted)) {
-            SelenideElement button = $x(pause
-                    ? "//input[@value='Pause'] | //button[contains(.,'Pause')]"
-                    : "//input[@value='Activate'] | //button[contains(.,'Activate')]");
-            if (button.exists()) {
-                executeJavaScript("arguments[0].click();", button);
-            }
+    private void waitForRunnerSelector() {
+        if (commandLineRunner.exists()) {
+            commandLineRunner.should(appear);
+        } else if (commandLineByText.exists()) {
+            commandLineByText.should(appear);
+        } else {
+            $("[data-test='build-step-selector-item'], .BuildStepSelectorItem-module__item--it, [data-key]")
+                    .should(appear);
         }
     }
 
