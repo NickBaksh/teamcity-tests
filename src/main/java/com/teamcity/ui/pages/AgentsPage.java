@@ -40,8 +40,7 @@ public class AgentsPage {
 
     @Step("Disable agent {agentName}")
     public AgentsPage disableAgent(String agentName) {
-        $$("[data-test='agent']")
-                .findBy(text(agentName))
+        agents.findBy(text(agentName))
                 .$("[data-test='ring-toggle']")
                 .click();
 
