@@ -1,6 +1,7 @@
 package com.teamcity.api.admin;
 
 import com.teamcity.api.BaseApiTest;
+import com.teamcity.core.annotations.RestoreAgent;
 import com.teamcity.core.assertions.ApiAssertions;
 import com.teamcity.core.models.Agent;
 import com.teamcity.core.models.Agents;
@@ -60,11 +61,11 @@ public class AdminAgentsTest extends BaseApiTest {
 
     @Test
     @Severity(SeverityLevel.CRITICAL)
+    @RestoreAgent
     void shouldDisableAgent() {
-        Agent agent = givenAgent();
+        Agent agent = givenTrackedAgent();
         EnabledInfo disabled = agentSteps.disableAgent(agent.getId().toString());
         ApiAssertions.assertAgentDisabled(disabled);
-        agentSteps.enableAgent(agent.getId().toString());
     }
 
     @Test
