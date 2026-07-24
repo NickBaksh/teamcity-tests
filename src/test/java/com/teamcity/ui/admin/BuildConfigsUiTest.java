@@ -30,7 +30,6 @@ public class BuildConfigsUiTest extends BaseUiTest {
         Project project = givenProject();
         String name = UiTestData.buildConfigName();
 
-        // Sakura setup wizard does not expose an ID field; TC auto-generates it from the name.
         buildConfigPage.openCreate(project.getId()).create(name);
 
         BuildConfig created = Awaitility.await()
