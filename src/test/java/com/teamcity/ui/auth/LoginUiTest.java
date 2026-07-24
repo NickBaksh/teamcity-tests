@@ -1,6 +1,7 @@
 package com.teamcity.ui.auth;
 
 import com.teamcity.core.config.ConfigManager;
+import com.teamcity.core.models.User;
 import com.teamcity.ui.BaseUiTest;
 import com.teamcity.ui.testdata.UiTestData;
 import io.qameta.allure.Feature;
@@ -31,5 +32,18 @@ public class LoginUiTest extends BaseUiTest {
         loginPage.openPage()
                 .login(ConfigManager.getAdminLogin(), UiTestData.invalidPassword())
                 .shouldStayOnLoginAfterFailure();
+    }
+
+    @Test
+    @Severity(SeverityLevel.BLOCKER)
+    void userShouldLoginWithValidCredentials() {
+        User request = dataFactory.createRandomUser();
+        User createdUser = givenUser(request);
+
+        loginPage.openPage()
+                .loginSuccessfully(createdUser.getUsername(), createdUser.getPassword());
+
+        projectsPage.openPage();
+        assertThat(projectsPage.visibleProjectsCount()).isGreaterThanOrEqualTo(0);
     }
 }

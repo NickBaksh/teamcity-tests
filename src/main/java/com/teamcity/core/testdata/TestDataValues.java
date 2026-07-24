@@ -28,6 +28,7 @@ public final class TestDataValues {
     public static final String MSG_PROJECT_NAME_EMPTY = "Project name cannot be empty";
     public static final String MSG_PROJECT_NOT_FOUND = "Cannot find project";
     public static final String MSG_ALREADY_EXISTS = "already exists";
+    public static final String ERROR_NO_BUILD_STEPS = "Build configuration has no build steps";
 
     public static final String AUTO_PROJECT_DESCRIPTION_PREFIX = "Auto-generated project: ";
     public static final String AUTO_BUILD_CONFIG_DESCRIPTION_PREFIX = "Auto-generated build config: ";

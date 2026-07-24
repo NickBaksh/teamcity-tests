@@ -6,6 +6,7 @@ import com.teamcity.core.client.ResponseValidator;
 import com.teamcity.core.endpoints.Endpoint;
 import com.teamcity.core.exceptions.ApiException;
 import com.teamcity.core.exceptions.ResourceNotFoundException;
+import com.teamcity.core.models.RoleAssignment;
 import com.teamcity.core.models.User;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
@@ -71,5 +72,19 @@ public class UserSteps extends BaseSteps {
             }
             throw e;
         }
+    }
+
+    @Step("Add role to user: {username} -> {role}:{scope}")
+    public void addRoleToUser(String username, String role) {
+        String endpoint = Endpoint.USER_ROLES.format(username);
+
+        RoleAssignment assignment = RoleAssignment.builder()
+                .roleId(role)
+                .scope("/*")
+                .build();
+
+        Response response = client.post(endpoint, assignment);
+        validator.validateStatus(response);
+        log.info("Role {} added to user {}", role, username);
     }
 }

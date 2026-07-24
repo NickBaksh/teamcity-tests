@@ -315,4 +315,11 @@ public abstract class BaseApiTest {
         ApiAssertions.assertArtifactsExist(artifacts);
         return artifacts;
     }
+
+    @Step("Create tracked user with role: {role} scope: {scope}")
+    protected User givenUserWithRole(String role) {
+        User created = givenUser();
+        userSteps.addRoleToUser(created.getUsername(), role);
+        return created;
+    }
 }
