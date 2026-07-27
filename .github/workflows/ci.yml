@@ -47,6 +47,9 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
 
+      - name: Make Maven wrapper executable
+        run: chmod +x mvnw
+
       - name: Compile
         run: ./mvnw -B -DskipTests compile test-compile
 
