@@ -1,13 +1,11 @@
 package com.teamcity.core.utils;
 
-import com.teamcity.core.config.ConfigManager;
 import com.teamcity.core.generators.RandomData;
 import com.teamcity.core.generators.RandomModelGenerator;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.Project;
 import com.teamcity.core.models.User;
 import com.teamcity.core.models.VcsRootConfig;
-import com.teamcity.core.steps.AdminSteps;
 import com.teamcity.core.testdata.TestDataValues;
 
 public class TestDataFactory {

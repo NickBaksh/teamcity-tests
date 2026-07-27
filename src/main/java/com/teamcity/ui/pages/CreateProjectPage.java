@@ -28,9 +28,13 @@ public class CreateProjectPage {
     private final SelenideElement errorMessage = $(
             ".error, .errorMessage, [data-test='error'], .ring-error-message"
     );
-    private final SelenideElement vcsRootNameInput = $("[data-test='vcs-root-name-input'], #vcsRootName, [name='vcsRootName']");
+    private final SelenideElement vcsRootNameInput = $(
+            "[data-test='vcs-root-name-input'], #vcsRootName, [name='vcsRootName']"
+    );
     private final SelenideElement vcsRootUrlInput = $("[data-test='vcs-root-url-input'], #url, [name='url']");
-    private final SelenideElement vcsRootBranchInput = $("[data-test='vcs-root-branch-input'], #branch, [name='branch']");
+    private final SelenideElement vcsRootBranchInput = $(
+            "[data-test='vcs-root-branch-input'], #branch, [name='branch']"
+    );
     private final SelenideElement vcsRootCreateButton = $("[data-test='create-vcs-root-button'], .saveButton");
     private final SelenideElement errorVcsMessage = $("[data-test='error-message'], .error, .field-error");
     private final SelenideElement body = $("body");

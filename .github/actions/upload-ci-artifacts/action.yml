@@ -1,0 +1,25 @@
+name: Upload CI artifacts
+description: Upload surefire/allure/docker logs with retention
+
+inputs:
+  name:
+    description: Artifact name
+    required: true
+  path:
+    description: Multiline paths
+    required: true
+  retention-days:
+    description: Retention days
+    required: false
+    default: "7"
+
+runs:
+  using: composite
+  steps:
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        retention-days: ${{ inputs.retention-days }}
+        if-no-files-found: warn

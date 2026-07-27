@@ -14,7 +14,8 @@ public class ConfirmDialog {
             "[data-test='ring-dialog'], .modalDialog, .ring-dialog, #deleteProjectForm, #pauseBuildTypeForm"
     );
     private final SelenideElement confirmButton = $x(
-            "//div[contains(@class,'modalDialog') or contains(@class,'ring-dialog') or @id='deleteProjectForm' or @id='pauseBuildTypeForm']"
+            "//div[contains(@class,'modalDialog') or contains(@class,'ring-dialog')"
+                    + " or @id='deleteProjectForm' or @id='pauseBuildTypeForm']"
                     + "//*[self::button or self::input or self::a]"
                     + "[contains(@value,'Delete') or contains(.,'Delete') or contains(@value,'Pause') "
                     + "or contains(.,'Pause') or contains(@value,'Remove') or contains(.,'Remove') "

@@ -62,11 +62,17 @@ public class AdminSteps {
         return authSteps;
     }
 
-    public ArtifactSteps artifacts() { return artifactSteps;}
+    public ArtifactSteps artifacts() {
+        return artifactSteps;
+    }
 
-    public AgentSteps agents() {return agentSteps;}
+    public AgentSteps agents() {
+        return agentSteps;
+    }
 
-    public VcsRootSteps vcs() {return vcsRootSteps;}
+    public VcsRootSteps vcs() {
+        return vcsRootSteps;
+    }
 
     @Step("Create project ready for build configs")
     public Project createProjectForBuilds(Project project) {

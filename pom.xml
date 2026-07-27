@@ -22,6 +22,8 @@
         <awaitility.version>4.2.0</awaitility.version>
         <selenide.version>7.7.3</selenide.version>
         <exclude.groups>ui</exclude.groups>
+        <checkstyle.skip>true</checkstyle.skip>
+        <checkstyle.failsOnError>true</checkstyle.failsOnError>
     </properties>
 
     <dependencies>
@@ -218,9 +220,9 @@
                 <configuration>
                     <configLocation>checkstyle.xml</configLocation>
                     <consoleOutput>true</consoleOutput>
-                    <failsOnError>false</failsOnError>
+                    <failsOnError>${checkstyle.failsOnError}</failsOnError>
                     <linkXRef>false</linkXRef>
-                    <skip>true</skip>
+                    <skip>${checkstyle.skip}</skip>
                 </configuration>
                 <executions>
                     <execution>
