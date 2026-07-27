@@ -19,7 +19,9 @@ public class ProjectsPage {
     private final SelenideElement createProjectButton = $x(
             "//a[contains(.,'Create project') or contains(.,'New project')] | //button[contains(.,'Create project')]"
     );
-    private final ElementsCollection projectLinks = $$("a[href*='/project/'], .projectName a, [data-test='project-link']");
+    private final ElementsCollection projectLinks = $$(
+            "a[href*='/project/'], .projectName a, [data-test='project-link']"
+    );
 
     @Step("Open projects overview")
     public ProjectsPage openPage() {

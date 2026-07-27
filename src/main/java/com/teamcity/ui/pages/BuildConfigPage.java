@@ -1,6 +1,7 @@
 package com.teamcity.ui.pages;
 
 import com.codeborne.selenide.SelenideElement;
+import com.codeborne.selenide.WebDriverRunner;
 import com.teamcity.ui.pages.elements.ConfirmDialog;
 import com.teamcity.ui.testdata.UiTestData;
 import io.qameta.allure.Step;
@@ -152,6 +153,10 @@ public class BuildConfigPage {
         SelenideElement error = $(".error, .errorMessage, [data-test='error'], error");
         if (error.exists() && error.is(visible)) {
             return error.getText();
+        }
+        return body.getText();
+    }
+
     @Step("Assert empty build config name validation error")
     public BuildConfigPage shouldShowEmptyNameError() {
         if (visibleError.exists()) {
@@ -171,7 +176,27 @@ public class BuildConfigPage {
             addStepByText.shouldBe(visible).click();
         }
         waitForRunnerSelector();
+        selectCommandLineRunner(buildConfigId);
+        stepNameInput.should(appear);
+        enableCustomScriptOption();
+        if (stepNameInput.is(visible)) {
+            stepNameInput.setValue(stepName);
+        }
+        fillCommandLineScript(UiTestData.COMMAND_LINE_SCRIPT);
+        saveBuildStep();
+        webdriver().shouldHave(urlContaining("editBuildRunners"));
+        return this;
+    }
 
+    @Step("Assert build steps page reflects added step: {stepName}")
+    public BuildConfigPage shouldReflectAddedStep(String stepName) {
+        $x("//*[contains(.,'" + stepName + "') or contains(.,'" + UiTestData.MARKER_COMMAND_LINE + "')]")
+                .shouldBe(visible)
+                .shouldHave(text(stepName).or(partialText(UiTestData.MARKER_COMMAND_LINE)));
+        return this;
+    }
+
+    private void selectCommandLineRunner(String buildConfigId) {
         if (commandLineRunner.exists()) {
             commandLineRunner.shouldBe(visible).click();
         } else if (commandLineByText.exists()) {
@@ -185,26 +210,25 @@ public class BuildConfigPage {
                 commandLineByText.click();
             }
         }
-        stepNameInput.should(appear);
+    }
 
+    private void enableCustomScriptOption() {
         SelenideElement useCustomScript = $("#use\\.custom\\.script, select[name='prop:use.custom.script']");
-        if (useCustomScript.exists()) {
-            try {
-                useCustomScript.selectOptionContainingText(UiTestData.CUSTOM_SCRIPT_OPTION);
-            } catch (Exception ignored) {
-                executeJavaScript(
-                        "arguments[0].value='true';"
-                                + "arguments[0].dispatchEvent(new Event('change', {bubbles:true}));",
-                        useCustomScript
-                );
-            }
+        if (!useCustomScript.exists()) {
+            return;
         }
-
-        if (stepNameInput.is(visible)) {
-            stepNameInput.setValue(stepName);
+        try {
+            useCustomScript.selectOptionContainingText(UiTestData.CUSTOM_SCRIPT_OPTION);
+        } catch (Exception ignored) {
+            executeJavaScript(
+                    "arguments[0].value='true';"
+                            + "arguments[0].dispatchEvent(new Event('change', {bubbles:true}));",
+                    useCustomScript
+            );
         }
+    }
 
-        String script = UiTestData.COMMAND_LINE_SCRIPT;
+    private void fillCommandLineScript(String script) {
         if (scriptContent.exists()) {
             executeJavaScript(
                     "arguments[0].removeAttribute('readonly');"
@@ -225,22 +249,14 @@ public class BuildConfigPage {
                     script
             );
         }
+    }
 
+    private void saveBuildStep() {
         if (saveStepButton.exists()) {
             saveStepButton.shouldBe(visible).click();
         } else {
             $x("//input[@value='Save'] | //button[contains(.,'Save')]").shouldBe(visible).click();
         }
-        webdriver().shouldHave(urlContaining("editBuildRunners"));
-        return this;
-    }
-
-    @Step("Assert build steps page reflects added step: {stepName}")
-    public BuildConfigPage shouldReflectAddedStep(String stepName) {
-        $x("//*[contains(.,'" + stepName + "') or contains(.,'" + UiTestData.MARKER_COMMAND_LINE + "')]")
-                .shouldBe(visible)
-                .shouldHave(text(stepName).or(partialText(UiTestData.MARKER_COMMAND_LINE)));
-        return this;
     }
 
     private void waitForRunnerSelector() {

@@ -4,8 +4,6 @@ import com.teamcity.core.models.Project;
 import com.teamcity.core.models.PropertiesContainer;
 import lombok.*;
 
-import java.util.Map;
-
 @Data
 @Builder
 @Getter

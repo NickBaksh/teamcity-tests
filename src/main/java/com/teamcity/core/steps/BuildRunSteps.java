@@ -129,7 +129,8 @@ public class BuildRunSteps extends BaseSteps {
                 .pollInterval(Duration.ofMillis(ConfigManager.getBuildPollInterval()))
                 .until(() -> getBuild(buildId), build -> {
                     String state = build.getState();
-                    return TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(state) || TestDataValues.BUILD_STATUS_FAILED.equalsIgnoreCase(state);
+                    return TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(state)
+                            || TestDataValues.BUILD_STATUS_FAILED.equalsIgnoreCase(state);
                 });
     }
 }

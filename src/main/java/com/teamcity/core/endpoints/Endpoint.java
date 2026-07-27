@@ -145,7 +145,9 @@ public enum Endpoint {
     DEPLOYMENT_DASHBOARDS("/app/rest/deploymentDashboards"),
     DEPLOYMENT_DASHBOARD("/app/rest/deploymentDashboards/{deploymentDashboardLocator}"),
     DEPLOYMENT_INSTANCES("/app/rest/deploymentDashboards/{deploymentDashboardLocator}/instances"),
-    DEPLOYMENT_INSTANCE("/app/rest/deploymentDashboards/{deploymentDashboardLocator}/instances/{deploymentInstanceLocator}"),
+    DEPLOYMENT_INSTANCE(
+            "/app/rest/deploymentDashboards/{deploymentDashboardLocator}/instances/{deploymentInstanceLocator}"
+    ),
 
     GROUPS("/app/rest/userGroups"),
     GROUP("/app/rest/userGroups/{groupLocator}"),
