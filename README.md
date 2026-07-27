@@ -229,6 +229,38 @@ ls target/allure-results
 Ctrl + Alt + L
 
 
+## CI (GitHub Actions)
+
+Workflow: `.github/workflows/ci.yml` (see also `.github/CI.md`).
+
+### Pipeline steps
+1. Build + Checkstyle gate
+2. Starts TeamCity via `infra/docker-compose.yml`
+3. Smoke API (`@Tag("smoke")`), then full API (without UI)
+4. Uploads Surefire/Allure/docker logs as artifacts (7 days)
+5. Sends Telegram notification when secrets are configured
+
+UI Chrome/Firefox via Selenoid are enabled with repository variable `ENABLE_UI_MATRIX=true`.
+
+### Secrets / Variables
+| Type | Name | Purpose |
+| :--- | :--- | :--- |
+| Secret | `TELEGRAM_BOT_TOKEN` | Telegram bot |
+| Secret | `TELEGRAM_CHAT_ID` | chat/channel |
+| Variable | `ENABLE_UI_MATRIX` | enable UI matrix |
+
+### Local run (CI-like)
+```bash
+docker compose -f infra/docker-compose.yml up -d teamcity-server
+./mvnw -B test -Denv=ci-host -Dgroups=smoke -Dexclude.groups=
+./mvnw -B test -Denv=ci-host -Dexclude.groups=ui,smoke
+```
+
+### Branch protection (GitHub UI)
+Protect `main` → required checks: `Build + Checkstyle`, `API tests`.
+
+---
+
 ## Контакты:
 
 | Роль                            | Ответственный      |
@@ -241,7 +273,7 @@ Ctrl + Alt + L
 
 ---
 
-## 📚 Полезные ссылки
+## Полезные ссылки
 
 | Ресурс | Ссылка |
 | :--- | :--- |

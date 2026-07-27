@@ -1,0 +1,337 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "tests/**"
+      - "ci/**"
+      - "feature/**"
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  JAVA_VERSION: "21"
+  COMPOSE_FILE: infra/docker-compose.yml
+  TC_URL: http://localhost:8111
+  TC_ADMIN_USER: admin
+  TC_ADMIN_PASS: admin
+  ARTIFACT_RETENTION_DAYS: "7"
+
+jobs:
+  build_and_lint:
+    name: Build + Checkstyle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java + Maven
+        uses: ./.github/actions/setup-java-maven
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Compile
+        run: ./mvnw -B -DskipTests compile test-compile
+
+      - name: Checkstyle gate
+        run: ./mvnw -B -Dcheckstyle.skip=false checkstyle:check
+
+  api_tests:
+    name: API tests
+    needs: build_and_lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    outputs:
+      surefire_summary: ${{ steps.summary.outputs.text }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java + Maven
+        uses: ./.github/actions/setup-java-maven
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Make scripts / wrapper executable
+        run: |
+          chmod +x .github/scripts/*.sh
+          chmod +x mvnw
+
+      - name: Pull TeamCity image
+        run: docker compose -f "${COMPOSE_FILE}" pull teamcity-server
+
+      - name: Start TeamCity
+        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server
+
+      - name: Wait for TeamCity HTTP
+        run: .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10
+
+      - name: Bootstrap TeamCity
+        run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
+
+      - name: Wait for TeamCity REST (authenticated)
+        run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
+
+      - name: Smoke API gate
+        run: >
+          ./mvnw -B test
+          -Denv=ci-host
+          -Dgroups=smoke
+          -Dexclude.groups=
+          -Dsurefire.parallel=none
+
+      - name: Full API tests (exclude UI + already-run smoke)
+        run: >
+          ./mvnw -B test
+          -Denv=ci-host
+          -Dexclude.groups=ui,smoke
+          -Dsurefire.parallel=none
+
+      - name: Surefire summary
+        id: summary
+        if: always()
+        run: |
+          TEXT="$(.github/scripts/surefire-summary.sh target/surefire-reports)"
+          echo "text<<EOF" >> "$GITHUB_OUTPUT"
+          echo "${TEXT}" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "${TEXT}"
+
+      - name: Generate Allure report
+        if: always()
+        continue-on-error: true
+        run: |
+          if [[ -d target/allure-results ]] && find target/allure-results -type f | grep -q .; then
+            ./mvnw -B allure:report
+          else
+            echo "No allure-results — skip report generation"
+          fi
+
+      - name: Collect docker logs
+        if: always()
+        run: |
+          mkdir -p artifacts
+          docker compose -f "${COMPOSE_FILE}" logs --no-color > artifacts/docker-compose.log || true
+
+      - name: Upload API artifacts
+        if: always()
+        uses: ./.github/actions/upload-ci-artifacts
+        with:
+          name: api-artifacts
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+          path: |
+            target/surefire-reports/**
+            target/allure-results/**
+            target/site/allure-maven-plugin/**
+            artifacts/docker-compose.log
+
+      - name: Stop stack
+        if: always()
+        run: docker compose -f "${COMPOSE_FILE}" down -v
+
+  ui_tests_chrome:
+    name: UI tests (Chrome / Selenoid)
+    needs: api_tests
+    if: ${{ needs.api_tests.result == 'success' && vars.ENABLE_UI_MATRIX == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java + Maven
+        uses: ./.github/actions/setup-java-maven
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Make scripts / wrapper executable
+        run: |
+          chmod +x .github/scripts/*.sh
+          chmod +x mvnw
+
+      - name: Pull images
+        run: docker compose -f "${COMPOSE_FILE}" pull teamcity-server selenoid selenoid-ui
+
+      - name: Start TeamCity + Selenoid
+        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server selenoid selenoid-ui
+
+      - name: Wait for TeamCity HTTP
+        run: .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10
+
+      - name: Bootstrap TeamCity
+        run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
+
+      - name: Wait for TeamCity REST
+        run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
+
+      - name: Wait for Selenoid
+        run: .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5
+
+      - name: Run UI tests (Chrome)
+        env:
+          SELENIDE_REMOTE_URL: http://localhost:4444/wd/hub
+        run: >
+          ./mvnw -B test
+          -Denv=ci-host
+          -Dexclude.groups=
+          -Dgroups=ui
+          -Dsurefire.parallel=none
+          -Dselenide.headless=true
+
+      - name: Collect docker logs
+        if: always()
+        run: |
+          mkdir -p artifacts
+          docker compose -f "${COMPOSE_FILE}" logs --no-color > artifacts/docker-compose-ui-chrome.log || true
+
+      - name: Upload UI Chrome artifacts
+        if: always()
+        uses: ./.github/actions/upload-ci-artifacts
+        with:
+          name: ui-chrome-artifacts
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+          path: |
+            target/surefire-reports/**
+            target/allure-results/**
+            artifacts/docker-compose-ui-chrome.log
+            build/reports/tests/**
+
+      - name: Stop stack
+        if: always()
+        run: docker compose -f "${COMPOSE_FILE}" down -v
+
+  ui_tests_firefox:
+    name: UI tests (Firefox / Selenoid)
+    needs: api_tests
+    if: ${{ needs.api_tests.result == 'success' && vars.ENABLE_UI_MATRIX == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java + Maven
+        uses: ./.github/actions/setup-java-maven
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Make scripts / wrapper executable
+        run: |
+          chmod +x .github/scripts/*.sh
+          chmod +x mvnw
+
+      - name: Pull images
+        run: docker compose -f "${COMPOSE_FILE}" pull teamcity-server selenoid selenoid-ui
+
+      - name: Start TeamCity + Selenoid
+        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server selenoid selenoid-ui
+
+      - name: Wait for TeamCity HTTP
+        run: .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10
+
+      - name: Bootstrap TeamCity
+        run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
+
+      - name: Wait for TeamCity REST
+        run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
+
+      - name: Wait for Selenoid
+        run: .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5
+
+      - name: Run UI tests (Firefox)
+        env:
+          SELENIDE_REMOTE_URL: http://localhost:4444/wd/hub
+        run: >
+          ./mvnw -B test
+          -Denv=ci-host-firefox
+          -Dexclude.groups=
+          -Dgroups=ui
+          -Dsurefire.parallel=none
+          -Dselenide.headless=true
+
+      - name: Collect docker logs
+        if: always()
+        run: |
+          mkdir -p artifacts
+          docker compose -f "${COMPOSE_FILE}" logs --no-color > artifacts/docker-compose-ui-firefox.log || true
+
+      - name: Upload UI Firefox artifacts
+        if: always()
+        uses: ./.github/actions/upload-ci-artifacts
+        with:
+          name: ui-firefox-artifacts
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+          path: |
+            target/surefire-reports/**
+            target/allure-results/**
+            artifacts/docker-compose-ui-firefox.log
+            build/reports/tests/**
+
+      - name: Stop stack
+        if: always()
+        run: docker compose -f "${COMPOSE_FILE}" down -v
+
+  report_notify:
+    name: Telegram notify
+    needs:
+      - build_and_lint
+      - api_tests
+      - ui_tests_chrome
+      - ui_tests_firefox
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make scripts / wrapper executable
+        run: |
+          chmod +x .github/scripts/*.sh
+          chmod +x mvnw
+
+      - name: Resolve overall status
+        id: status
+        run: |
+          results="${{ needs.build_and_lint.result }},${{ needs.api_tests.result }},${{ needs.ui_tests_chrome.result }},${{ needs.ui_tests_firefox.result }}"
+          echo "needs=${results}"
+          if echo "${results}" | grep -Eq '(failure|cancelled)'; then
+            if echo "${results}" | grep -q 'cancelled'; then
+              echo "value=cancelled" >> "$GITHUB_OUTPUT"
+            else
+              echo "value=failure" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "value=success" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Notify Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          EXTRA="build=${{ needs.build_and_lint.result }}; api=${{ needs.api_tests.result }}; ui-chrome=${{ needs.ui_tests_chrome.result }}; ui-firefox=${{ needs.ui_tests_firefox.result }}
+          ${{ needs.api_tests.outputs.surefire_summary }}"
+          .github/scripts/notify-telegram.sh "${{ steps.status.outputs.value }}" "${RUN_URL}" "${EXTRA}"
