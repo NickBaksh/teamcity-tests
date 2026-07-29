@@ -84,41 +84,35 @@ jobs:
       - name: Start TeamCity
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server
 
-      - name: Wait 60 seconds
-        run: sleep 60
+      - name: Wait for TeamCity to start
+        run: |
+          echo "⏳ Waiting for TeamCity to be ready..."
+          for i in {1..90}; do
+            if curl -fsS -o /dev/null http://localhost:8111/ 2>/dev/null; then
+              echo "TeamCity is up!"
+              break
+            fi
+            echo "Attempt $i/90: Waiting..."
+            sleep 10
+          done
+          sleep 10
 
       - name: Bootstrap TeamCity
         run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
 
-      - name: Wait for TeamCity HTTP
-        run: .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10
-
-      - name: TeamCity diagnostics
-        if: always()
+      - name: Wait for TeamCity REST (authenticated)
         run: |
-          echo "========== docker ps =========="
-          docker ps -a
-
-          echo
-          echo "========== TeamCity logs =========="
-          docker compose -f "${COMPOSE_FILE}" logs teamcity-server || true
-
-          echo
-          echo "========== curl / =========="
-          curl -i http://localhost:8111/ || true
-
-          echo
-          echo "========== curl /login.html =========="
-          curl -i http://localhost:8111/login.html || true
-
-          echo
-          echo "========== curl REST =========="
-          curl -i -u "${TC_ADMIN_USER}:${TC_ADMIN_PASS}" \
-            http://localhost:8111/app/rest/server || true
-
-      # Временно отключаем
-      # - name: Wait for TeamCity REST (authenticated)
-      #   run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
+          echo "⏳ Waiting for TeamCity REST API..."
+          for i in {1..60}; do
+            if curl -fsS -u "${TC_ADMIN_USER}:${TC_ADMIN_PASS}" \
+              -H 'Accept: application/json' \
+              "${TC_URL}/app/rest/server" >/dev/null 2>&1; then
+              echo "TeamCity REST API is ready!"
+              break
+            fi
+            echo "Attempt $i/60: Waiting for REST API..."
+            sleep 10
+          done
 
       - name: Smoke API gate
         run: >
@@ -127,6 +121,7 @@ jobs:
           -Dgroups=smoke
           -Dexclude.groups=
           -Dsurefire.parallel=none
+
       - name: Full API tests (exclude UI + already-run smoke)
         run: >
           ./mvnw -B test
@@ -202,14 +197,35 @@ jobs:
       - name: Start TeamCity + Selenoid
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server selenoid selenoid-ui
 
-      - name: Wait for TeamCity HTTP
-        run: .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10
+      - name: Wait for TeamCity to start
+        run: |
+          echo "⏳ Waiting for TeamCity to be ready..."
+          for i in {1..90}; do
+            if curl -fsS -o /dev/null http://localhost:8111/ 2>/dev/null; then
+              echo "TeamCity is up!"
+              break
+            fi
+            echo "Attempt $i/90: Waiting..."
+            sleep 10
+          done
+          sleep 10
 
       - name: Bootstrap TeamCity
         run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
 
       - name: Wait for TeamCity REST
-        run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
+        run: |
+          echo "⏳ Waiting for TeamCity REST API..."
+          for i in {1..60}; do
+            if curl -fsS -u "${TC_ADMIN_USER}:${TC_ADMIN_PASS}" \
+              -H 'Accept: application/json' \
+              "${TC_URL}/app/rest/server" >/dev/null 2>&1; then
+              echo "TeamCity REST API is ready!"
+              break
+            fi
+            echo "Attempt $i/60: Waiting for REST API..."
+            sleep 10
+          done
 
       - name: Wait for Selenoid
         run: .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5
@@ -273,14 +289,35 @@ jobs:
       - name: Start TeamCity + Selenoid
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server selenoid selenoid-ui
 
-      - name: Wait for TeamCity HTTP
-        run: .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10
+      - name: Wait for TeamCity to start
+        run: |
+          echo "⏳ Waiting for TeamCity to be ready..."
+          for i in {1..90}; do
+            if curl -fsS -o /dev/null http://localhost:8111/ 2>/dev/null; then
+              echo "✅ TeamCity is up!"
+              break
+            fi
+            echo "Attempt $i/90: Waiting..."
+            sleep 10
+          done
+          sleep 10
 
       - name: Bootstrap TeamCity
         run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
 
       - name: Wait for TeamCity REST
-        run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
+        run: |
+          echo "⏳ Waiting for TeamCity REST API..."
+          for i in {1..60}; do
+            if curl -fsS -u "${TC_ADMIN_USER}:${TC_ADMIN_PASS}" \
+              -H 'Accept: application/json' \
+              "${TC_URL}/app/rest/server" >/dev/null 2>&1; then
+              echo "✅ TeamCity REST API is ready!"
+              break
+            fi
+            echo "Attempt $i/60: Waiting for REST API..."
+            sleep 10
+          done
 
       - name: Wait for Selenoid
         run: .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5

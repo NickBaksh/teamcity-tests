@@ -107,6 +107,7 @@ services:
       - ./teamcity-server/logs:/opt/teamcity/logs
     environment:
       - TEAMCITY_SERVER_MEM_OPTS=-Xmx2g -XX:ReservedCodeCacheSize=512m
+      - TEAMCITY_SERVER_OPTS=-Dteamcity.startup.agreeToTerms=true
     networks:
       - nbank-network
     restart: unless-stopped
