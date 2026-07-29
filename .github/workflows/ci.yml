@@ -84,6 +84,11 @@ jobs:
       - name: Start TeamCity
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server
 
+      - name: Check TeamCity startup page
+        run: |
+          curl -v http://localhost:8111/login.html || true
+          curl -v http://localhost:8111/app/rest/server || true
+
       - name: Wait for TeamCity HTTP
         run: .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10
 
