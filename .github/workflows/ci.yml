@@ -83,27 +83,20 @@ jobs:
           docker compose -f "${COMPOSE_FILE}" pull teamcity-server
           docker compose -f "${COMPOSE_FILE}" up -d teamcity-server
           
-          echo "⏳ Waiting for TeamCity to start..."
-          for i in {1..60}; do
-            if curl -fsS -o /dev/null http://localhost:8111/ 2>/dev/null; then
-              echo "TeamCity is responding"
-              break
-            fi
-            echo "Attempt $i/60: Waiting..."
-            sleep 10
-          done
+          echo "⏳ Waiting 90 seconds for TeamCity to initialize..."
+          sleep 90
           
-          echo "Running bootstrap..."
+          echo "🚀 Running bootstrap..."
           .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
 
       - name: Wait for TeamCity REST (authenticated)
         run: |
           echo "⏳ Waiting for TeamCity REST API..."
           for i in {1..60}; do
-            if curl -fsS -u "${TC_ADMIN_USER}:${TC_ADMIN_PASS}" \
+            if curl -s -u "${TC_ADMIN_USER}:${TC_ADMIN_PASS}" \
               -H 'Accept: application/json' \
               "${TC_URL}/app/rest/server" >/dev/null 2>&1; then
-              echo "TeamCity REST API is ready!"
+              echo "✅ TeamCity REST API is ready!"
               break
             fi
             echo "Attempt $i/60: Waiting for REST API..."
@@ -192,27 +185,20 @@ jobs:
           docker compose -f "${COMPOSE_FILE}" pull teamcity-server selenoid selenoid-ui
           docker compose -f "${COMPOSE_FILE}" up -d teamcity-server selenoid selenoid-ui
           
-          echo "⏳ Waiting for TeamCity to start..."
-          for i in {1..60}; do
-            if curl -fsS -o /dev/null http://localhost:8111/ 2>/dev/null; then
-              echo "TeamCity is responding"
-              break
-            fi
-            echo "Attempt $i/60: Waiting..."
-            sleep 10
-          done
+          echo "⏳ Waiting 90 seconds for TeamCity to initialize..."
+          sleep 90
           
-          echo "Running bootstrap..."
+          echo "🚀 Running bootstrap..."
           .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
 
       - name: Wait for TeamCity REST
         run: |
           echo "⏳ Waiting for TeamCity REST API..."
           for i in {1..60}; do
-            if curl -fsS -u "${TC_ADMIN_USER}:${TC_ADMIN_PASS}" \
+            if curl -s -u "${TC_ADMIN_USER}:${TC_ADMIN_PASS}" \
               -H 'Accept: application/json' \
               "${TC_URL}/app/rest/server" >/dev/null 2>&1; then
-              echo "TeamCity REST API is ready!"
+              echo "✅ TeamCity REST API is ready!"
               break
             fi
             echo "Attempt $i/60: Waiting for REST API..."
@@ -220,7 +206,16 @@ jobs:
           done
 
       - name: Wait for Selenoid
-        run: .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5
+        run: |
+          echo "⏳ Waiting for Selenoid..."
+          for i in {1..60}; do
+            if curl -s -o /dev/null "http://localhost:4444/status" 2>/dev/null; then
+              echo "✅ Selenoid is ready!"
+              break
+            fi
+            echo "Attempt $i/60: Waiting for Selenoid..."
+            sleep 5
+          done
 
       - name: Run UI tests (Chrome)
         env:
@@ -280,27 +275,20 @@ jobs:
           docker compose -f "${COMPOSE_FILE}" pull teamcity-server selenoid selenoid-ui
           docker compose -f "${COMPOSE_FILE}" up -d teamcity-server selenoid selenoid-ui
           
-          echo "⏳ Waiting for TeamCity to start..."
-          for i in {1..60}; do
-            if curl -fsS -o /dev/null http://localhost:8111/ 2>/dev/null; then
-              echo "TeamCity is responding"
-              break
-            fi
-            echo "Attempt $i/60: Waiting..."
-            sleep 10
-          done
+          echo "⏳ Waiting 90 seconds for TeamCity to initialize..."
+          sleep 90
           
-          echo "Running bootstrap..."
+          echo "🚀 Running bootstrap..."
           .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
 
       - name: Wait for TeamCity REST
         run: |
           echo "⏳ Waiting for TeamCity REST API..."
           for i in {1..60}; do
-            if curl -fsS -u "${TC_ADMIN_USER}:${TC_ADMIN_PASS}" \
+            if curl -s -u "${TC_ADMIN_USER}:${TC_ADMIN_PASS}" \
               -H 'Accept: application/json' \
               "${TC_URL}/app/rest/server" >/dev/null 2>&1; then
-              echo "TeamCity REST API is ready!"
+              echo "✅ TeamCity REST API is ready!"
               break
             fi
             echo "Attempt $i/60: Waiting for REST API..."
@@ -308,7 +296,16 @@ jobs:
           done
 
       - name: Wait for Selenoid
-        run: .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5
+        run: |
+          echo "⏳ Waiting for Selenoid..."
+          for i in {1..60}; do
+            if curl -s -o /dev/null "http://localhost:4444/status" 2>/dev/null; then
+              echo "✅ Selenoid is ready!"
+              break
+            fi
+            echo "Attempt $i/60: Waiting for Selenoid..."
+            sleep 5
+          done
 
       - name: Run UI tests (Firefox)
         env:
