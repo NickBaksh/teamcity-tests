@@ -16,8 +16,19 @@ fi
 try_post() {
   local url="$1"
   shift || true
-  curl -sS -o /tmp/tc-bootstrap-post.txt -w '%{http_code}' \
-    -X POST "${url}" "$@" || true
+
+  echo
+  echo "POST $url"
+
+  code=$(
+    curl -sS \
+      -o /tmp/tc-bootstrap-post.txt \
+      -w '%{http_code}' \
+      -X POST "$url" "$@"
+  )
+
+  echo "HTTP $code"
+  cat /tmp/tc-bootstrap-post.txt
 }
 
 echo "Attempting first-start automation..."
