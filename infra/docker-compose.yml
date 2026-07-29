@@ -98,6 +98,7 @@ services:
   # ============================================
   teamcity-server:
     image: jetbrains/teamcity-server:2026.1.1
+    user: root
     container_name: teamcity-server
     ports:
       - "8111:8111"
