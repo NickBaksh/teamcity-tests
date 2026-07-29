@@ -9,7 +9,8 @@ import java.util.Properties;
 @Slf4j
 public class ConfigManager {
     private static final Properties properties = new Properties();
-    private static final String ENV = System.getProperty("env", "local");
+    private static final String ENV = System.getProperty("env",
+            System.getenv().getOrDefault("TEST_ENV", "local"));
 
     static {
         try {
@@ -21,100 +22,127 @@ public class ConfigManager {
                 properties.load(input);
                 log.info("Config loaded successfully");
             } else {
-                throw new RuntimeException("Config file not found: " + configFile);
+                log.warn("Config file not found: {}, using defaults", configFile);
             }
         } catch (IOException e) {
             log.error("Failed to load config", e);
-            throw new RuntimeException("Failed to load config", e);
         }
     }
 
+    private static String getParam(String key, String defaultValue) {
+        String value = System.getProperty(key);
+        if (value != null && !value.isEmpty()) {
+            return value;
+        }
+
+        String envKey = key.toUpperCase().replace(".", "_");
+        value = System.getenv(envKey);
+        if (value != null && !value.isEmpty()) {
+            return value;
+        }
+
+        value = properties.getProperty(key);
+        if (value != null && !value.isEmpty()) {
+            return value;
+        }
+
+        return defaultValue;
+    }
+
     public static String getApiBaseUrl() {
-        return properties.getProperty("api.base.url", "http://localhost:8111");
+        return getParam("api.base.url", "http://localhost:8111");
+    }
+
+    public static String getApiPath() {
+        return getParam("api.path", "/app/rest");
     }
 
     public static String getAdminLogin() {
-        return properties.getProperty("admin.login", "admin");
+        return getParam("admin.login", "admin");
     }
 
     public static String getAdminPassword() {
-        return properties.getProperty("admin.password", "admin");
+        return getParam("admin.password", "admin123");
     }
 
     public static String getUserLogin() {
-        return properties.getProperty("user.login", "user");
+        return getParam("user.login", "user");
     }
 
     public static String getUserPassword() {
-        return properties.getProperty("user.password", "user123");
+        return getParam("user.password", "user123");
     }
 
     public static int getApiTimeout() {
-        return Integer.parseInt(properties.getProperty("api.timeout", "30000"));
-    }
-
-    public static String getUiBaseUrl() {
-        return properties.getProperty("ui.base.url", getApiBaseUrl());
-    }
-
-    public static String getBrowser() {
-        return properties.getProperty("browser", "chrome");
-    }
-
-    public static boolean isHeadless() {
-        return Boolean.parseBoolean(properties.getProperty("browser.headless", "false"));
-    }
-
-    public static String getApiToken() {
-        return properties.getProperty("api.token", "");
+        return Integer.parseInt(getParam("api.timeout", "30000"));
     }
 
     public static int getRetryCount() {
-        return Integer.parseInt(properties.getProperty("api.retry.count", "3"));
+        return Integer.parseInt(getParam("api.retry.count", "3"));
     }
 
     public static long getRetryDelay() {
-        return Long.parseLong(properties.getProperty("api.retry.delay", "1000"));
+        return Long.parseLong(getParam("api.retry.delay", "1000"));
     }
 
     public static boolean isRetryExponential() {
-        return Boolean.parseBoolean(properties.getProperty("api.retry.exponential", "true"));
+        return Boolean.parseBoolean(getParam("api.retry.exponential", "true"));
     }
 
     public static int getBuildTimeout() {
-        return Integer.parseInt(properties.getProperty("build.timeout", "300"));
+        return Integer.parseInt(getParam("build.timeout", "300"));
     }
 
     public static long getBuildPollInterval() {
-        return Long.parseLong(properties.getProperty("build.poll.interval", "2000"));
+        return Long.parseLong(getParam("build.poll.interval", "2000"));
     }
 
     public static String getLogLevel() {
-        return properties.getProperty("log.level", "INFO");
+        return getParam("log.level", "INFO");
     }
 
     public static boolean isAllureEnabled() {
-        return Boolean.parseBoolean(properties.getProperty("allure.enabled", "true"));
+        return Boolean.parseBoolean(getParam("allure.enabled", "true"));
     }
 
     public static String getAllureReportPath() {
-        return properties.getProperty("allure.report.path", "target/allure-results");
+        return getParam("allure.report.path", "target/allure-results");
+    }
+
+    public static String getUiBaseUrl() {
+        return getParam("ui.base.url", getApiBaseUrl());
+    }
+
+    public static String getBrowser() {
+        return getParam("browser", "chrome");
+    }
+
+    public static boolean isHeadless() {
+        return Boolean.parseBoolean(getParam("browser.headless", "false"));
+    }
+
+    public static String getSelenoidUrl() {
+        return getParam("selenoid.url", null);
     }
 
     public static long getDefaultTimeout() {
-        return Long.parseLong(properties.getProperty("default.timeout", "30000"));
+        return Long.parseLong(getParam("default.timeout", "30000"));
     }
 
     public static long getDefaultPollInterval() {
-        return Long.parseLong(properties.getProperty("default.poll.interval", "1000"));
+        return Long.parseLong(getParam("default.poll.interval", "1000"));
     }
 
     public static boolean isCiMode() {
-        return Boolean.parseBoolean(properties.getProperty("ci.mode", "false"));
+        return Boolean.parseBoolean(getParam("ci.mode", "false"));
     }
 
     public static int getParallelThreads() {
-        return Integer.parseInt(properties.getProperty("parallel.threads", "4"));
+        return Integer.parseInt(getParam("parallel.threads", "4"));
+    }
+
+    public static String getApiToken() {
+        return getParam("api.token", "");
     }
 
     public static String getFullUrl(String endpoint) {
@@ -145,27 +173,19 @@ public class ConfigManager {
     }
 
     public static String getProperty(String key, String defaultValue) {
-        return properties.getProperty(key, defaultValue);
+        return getParam(key, defaultValue);
     }
 
     public static int getIntProperty(String key, int defaultValue) {
-        try {
-            return Integer.parseInt(properties.getProperty(key, String.valueOf(defaultValue)));
-        } catch (NumberFormatException e) {
-            return defaultValue;
-        }
+        return Integer.parseInt(getParam(key, String.valueOf(defaultValue)));
     }
 
     public static boolean getBooleanProperty(String key, boolean defaultValue) {
-        return Boolean.parseBoolean(properties.getProperty(key, String.valueOf(defaultValue)));
+        return Boolean.parseBoolean(getParam(key, String.valueOf(defaultValue)));
     }
 
     public static long getLongProperty(String key, long defaultValue) {
-        try {
-            return Long.parseLong(properties.getProperty(key, String.valueOf(defaultValue)));
-        } catch (NumberFormatException e) {
-            return defaultValue;
-        }
+        return Long.parseLong(getParam(key, String.valueOf(defaultValue)));
     }
 
     public static String getAdminUsername() {

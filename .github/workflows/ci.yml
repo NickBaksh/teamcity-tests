@@ -155,6 +155,7 @@ jobs:
     if: ${{ needs.api_tests.result == 'success' && vars.ENABLE_UI_MATRIX == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
+    environment: ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -193,10 +194,12 @@ jobs:
         run: >
           ./mvnw -B test
           -Denv=ci-host
+          -Dbrowser=chrome
           -Dexclude.groups=
           -Dgroups=ui
           -Dsurefire.parallel=none
           -Dselenide.headless=true
+          -Dallure.results.directory=target/allure-results-chrome
 
       - name: Collect docker logs
         if: always()
@@ -212,7 +215,7 @@ jobs:
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
           path: |
             target/surefire-reports/**
-            target/allure-results/**
+            target/allure-results-chrome/**
             artifacts/docker-compose-ui-chrome.log
             build/reports/tests/**
 
@@ -226,6 +229,7 @@ jobs:
     if: ${{ needs.api_tests.result == 'success' && vars.ENABLE_UI_MATRIX == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
+    environment: ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -263,11 +267,13 @@ jobs:
           SELENIDE_REMOTE_URL: http://localhost:4444/wd/hub
         run: >
           ./mvnw -B test
-          -Denv=ci-host-firefox
+          -Denv=ci-host
+          -Dbrowser=firefox
           -Dexclude.groups=
           -Dgroups=ui
           -Dsurefire.parallel=none
           -Dselenide.headless=true
+          -Dallure.results.directory=target/allure-results-firefox
 
       - name: Collect docker logs
         if: always()
@@ -283,7 +289,7 @@ jobs:
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
           path: |
             target/surefire-reports/**
-            target/allure-results/**
+            target/allure-results-firefox/**
             artifacts/docker-compose-ui-firefox.log
             build/reports/tests/**
 

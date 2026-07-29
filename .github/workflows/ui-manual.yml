@@ -1,0 +1,68 @@
+# .github/workflows/ui-manual.yml
+name: UI Tests (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      browser:
+        description: 'Browser'
+        required: true
+        default: 'chrome'
+        type: choice
+        options:
+          - chrome
+          - firefox
+          - both
+
+jobs:
+  ui-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+
+    strategy:
+      matrix:
+        browser: ${{ fromJSON(inputs.browser == 'both' && '["chrome", "firefox"]' || format('["{0}"]', inputs.browser)) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java + Maven
+        uses: ./.github/actions/setup-java-maven
+        with:
+          java-version: '21'
+
+      - name: Start TeamCity + Selenoid
+        run: docker compose -f infra/docker-compose.yml up -d teamcity-server selenoid selenoid-ui
+
+      - name: Wait for services
+        run: |
+          .github/scripts/wait-for-url.sh "http://localhost:8111/login.html" 300 10
+          .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5
+
+      - name: Bootstrap TeamCity
+        run: .github/scripts/bootstrap-teamcity.sh "http://localhost:8111" "admin" "admin"
+
+      - name: Run UI tests with ${{ matrix.browser }}
+        run: |
+          ./mvnw -B test \
+            -Dbrowser=${{ matrix.browser }} \
+            -Dselenoid.url=http://localhost:4444 \
+            -Dexclude.groups="" \
+            -Dgroups=ui \
+            -Dselenide.headless=true
+
+      - name: Upload artifacts
+        if: always()
+        uses: ./.github/actions/upload-ci-artifacts
+        with:
+          name: ui-tests-${{ matrix.browser }}
+          path: |
+            target/surefire-reports/**
+            target/allure-results/**
+            build/reports/tests/**
+          retention-days: 7
+
+      - name: Stop stack
+        if: always()
+        run: docker compose -f infra/docker-compose.yml down -v

@@ -41,7 +41,6 @@ public class AdminVcsRootUiTest extends BaseUiTest {
                 .clickCreate()
                 .shouldHaveError();
 
-        // Проверяем через API, что VCS Root НЕ создался
         assertThat(vcsRootSteps.getVcsRootsByProject(projectId))
                 .as("VCS Root should not be created with invalid URL")
                 .noneMatch(vcsRoot -> vcsRootName.equals(vcsRoot.getName()));
