@@ -322,8 +322,8 @@ jobs:
 
       - name: Seed TeamCity datadir from release backup
         env:
-        GH_TOKEN: ${{ github.token }}
-        GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: .github/scripts/seed-teamcity-datadir.sh "${TC_DATADIR}"
 
       - name: Prepare TeamCity agent directories
