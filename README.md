@@ -234,11 +234,21 @@ Ctrl + Alt + L
 Workflow: `.github/workflows/ci.yml` (see also `.github/CI.md`).
 
 ### Pipeline steps
+
 1. Build + Checkstyle gate
-2. Starts TeamCity via `infra/docker-compose.yml`
-3. Smoke API (`@Tag("smoke")`), then full API (without UI)
-4. Uploads Surefire/Allure/docker logs as artifacts (7 days)
-5. Sends Telegram notification when secrets are configured
+2. Starts TeamCity Server + TeamCity Agent
+3. Starts PostgreSQL + Backend
+4. Waits until TeamCity and Backend are ready
+5. Bootstraps TeamCity and authorizes TeamCity Agent
+6. Runs Smoke API tests, then full API tests
+7. Runs UI tests (Chrome/Firefox via Selenoid) when enabled
+8. Uploads Surefire/Allure/docker logs as artifacts (7 days)
+9. Sends Telegram notification when secrets are configured
+
+> **Note**
+>
+> Before running build-related tests, the TeamCity Agent is automatically authorized via the REST API.
+
 
 UI Chrome/Firefox via Selenoid are enabled with repository variable `ENABLE_UI_MATRIX=true`.
 
