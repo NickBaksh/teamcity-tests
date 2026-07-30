@@ -2,7 +2,7 @@
 
 ## Scope
 - GitHub Actions workflow with quality gates
-- TeamCity bootstrap and authenticated REST readiness
+- TeamCity seeded from release backup (skips first-start wizard)
 - Smoke API before full API
 - Artifacts (retention 7 days) and docker logs
 - Telegram notify with surefire summary
@@ -12,9 +12,36 @@
 
 ## Jobs
 1. `build_and_lint` — compile + checkstyle (`-Dcheckstyle.skip=false`)
-2. `api_tests` — TeamCity up, bootstrap, REST ready, smoke, full API, Allure, artifacts
+2. `api_tests` — seed datadir, TeamCity up, REST ready, smoke, full API, Allure, artifacts
 3. `ui_tests_chrome` / `ui_tests_firefox` — enabled via repo variable `ENABLE_UI_MATRIX=true`
 4. `report_notify` — Telegram always
+
+## TeamCity seed (option 1)
+CI downloads the official TeamCity backup from GitHub Release tag `teamcity-backup-v1` and restores it into `infra/teamcity-server/data` with `maintainDB.sh` **before** `docker compose up`.
+Volumes `data` + `logs` are chown'd to `1000:1000` (`tcuser`).
+
+If backup admin password is not `admin`/`admin`, bootstrap reads the Super user token from server logs and resets the password via REST.
+
+Script: `.github/scripts/seed-teamcity-datadir.sh`, `.github/scripts/bootstrap-teamcity.sh`
+
+```bash
+# Local (needs Docker + gh auth):
+.github/scripts/seed-teamcity-datadir.sh infra/teamcity-server/data
+
+# Or from a local zip:
+.github/scripts/seed-teamcity-datadir.sh infra/teamcity-server/data /path/to/TeamCity_Backup.zip
+```
+
+Env overrides:
+- `TEAMCITY_BACKUP_TAG` (default `teamcity-backup-v1`)
+- `TEAMCITY_IMAGE` (default `jetbrains/teamcity-server:2026.1.1`)
+
+### Refreshing the backup
+1. Start TeamCity locally (`infra/docker-compose.yml`), complete wizard once (`admin` / `admin`).
+2. Administration → Backup → create backup zip (same TeamCity version as compose image).
+3. Publish / replace asset on release `teamcity-backup-v1` (or bump tag and update `TEAMCITY_BACKUP_TAG` in `ci.yml`).
+
+Current release: https://github.com/NickBaksh/teamcity-tests/releases/tag/teamcity-backup-v1
 
 ## GitHub setup
 ### Secrets
@@ -30,13 +57,7 @@ Settings → Branches → Protect `main`:
 - Require branches to be up to date before merging
 
 ## Triggers
+- `workflow_dispatch`
 - push: `main`, `tests/**`, `ci/**`, `feature/**`
 - pull_request → `main`
 - ignores markdown/docs-only changes
-
-## Fresh TeamCity
-First-start wizard may block REST until admin exists.
-CI runs bootstrap, then waits for `/app/rest/server` with `admin:admin`.
-If this times out:
-1. Complete TeamCity setup once locally against the same image/version
-2. Seed a minimal datadir strategy or shared cache

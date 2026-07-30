@@ -32,6 +32,9 @@ env:
   TC_URL: http://localhost:8111
   TC_ADMIN_USER: admin
   TC_ADMIN_PASS: admin
+  TC_DATADIR: infra/teamcity-server/data
+  TEAMCITY_IMAGE: jetbrains/teamcity-server:2026.1.1
+  TEAMCITY_BACKUP_TAG: teamcity-backup-v1
   ARTIFACT_RETENTION_DAYS: "7"
 
 jobs:
@@ -81,11 +84,23 @@ jobs:
       - name: Pull TeamCity image
         run: docker compose -f "${COMPOSE_FILE}" pull teamcity-server
 
+      - name: Seed TeamCity datadir from release backup
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: .github/scripts/seed-teamcity-datadir.sh "${TC_DATADIR}"
+
       - name: Start TeamCity
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server
 
       - name: Wait for TeamCity HTTP
-        run: .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10
+        run: |
+          if ! .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10; then
+            echo "::error::TeamCity HTTP did not become ready"
+            docker compose -f "${COMPOSE_FILE}" ps -a || true
+            docker compose -f "${COMPOSE_FILE}" logs --no-color --tail=200 teamcity-server || true
+            exit 1
+          fi
 
       - name: Bootstrap TeamCity
         run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
@@ -174,11 +189,23 @@ jobs:
       - name: Pull images
         run: docker compose -f "${COMPOSE_FILE}" pull teamcity-server selenoid selenoid-ui
 
+      - name: Seed TeamCity datadir from release backup
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: .github/scripts/seed-teamcity-datadir.sh "${TC_DATADIR}"
+
       - name: Start TeamCity + Selenoid
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server selenoid selenoid-ui
 
       - name: Wait for TeamCity HTTP
-        run: .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10
+        run: |
+          if ! .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10; then
+            echo "::error::TeamCity HTTP did not become ready"
+            docker compose -f "${COMPOSE_FILE}" ps -a || true
+            docker compose -f "${COMPOSE_FILE}" logs --no-color --tail=200 teamcity-server || true
+            exit 1
+          fi
 
       - name: Bootstrap TeamCity
         run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
@@ -248,11 +275,23 @@ jobs:
       - name: Pull images
         run: docker compose -f "${COMPOSE_FILE}" pull teamcity-server selenoid selenoid-ui
 
+      - name: Seed TeamCity datadir from release backup
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: .github/scripts/seed-teamcity-datadir.sh "${TC_DATADIR}"
+
       - name: Start TeamCity + Selenoid
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server selenoid selenoid-ui
 
       - name: Wait for TeamCity HTTP
-        run: .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10
+        run: |
+          if ! .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10; then
+            echo "::error::TeamCity HTTP did not become ready"
+            docker compose -f "${COMPOSE_FILE}" ps -a || true
+            docker compose -f "${COMPOSE_FILE}" logs --no-color --tail=200 teamcity-server || true
+            exit 1
+          fi
 
       - name: Bootstrap TeamCity
         run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
