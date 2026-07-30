@@ -11,6 +11,10 @@ for i in $(seq 1 60); do
         -H "Accept: application/json" \
         "$REST/agents")
 
+    echo "REST response:"
+    echo "$RESPONSE"
+    echo "----------------"
+
     ID=$(echo "$RESPONSE" \
         | grep -oE '"id":[0-9]+' \
         | head -1 \
