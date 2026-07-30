@@ -2,31 +2,35 @@
 set -euo pipefail
 
 REST="http://localhost:8111/app/rest"
+AGENT_NAME="nbank-agent"
 
 echo "Waiting for TeamCity agent..."
 
 for i in $(seq 1 60); do
+URL="$REST/agents?locator=name:$AGENT_NAME&fields=agent(id,name,connected,authorized)"
+echo "GET $URL"
+
     RESPONSE=$(curl -s \
         -u admin:admin \
         -H "Accept: application/json" \
-        "$REST/agents")
+        "$URL")
 
-    echo "REST response:"
     echo "$RESPONSE"
-    echo "----------------"
 
-    ID=$(echo "$RESPONSE" \
-        | grep -oE '"id":[0-9]+' \
-        | head -1 \
-        | grep -oE '[0-9]+' || true)
+    ID=$(echo "$RESPONSE" | jq -r '.agent[0].id // empty')
+    CONNECTED=$(echo "$RESPONSE" | jq -r '.agent[0].connected // false')
+    AUTHORIZED=$(echo "$RESPONSE" | jq -r '.agent[0].authorized // false')
 
-    CONNECTED=$(echo "$RESPONSE" \
-        | grep -o '"connected":true' || true)
+    echo "id=$ID connected=$CONNECTED authorized=$AUTHORIZED"
 
-    if [[ -n "$ID" && -n "$CONNECTED" ]]; then
-        echo "Agent $ID connected."
+    if [[ "$AUTHORIZED" == "true" ]]; then
+        echo "Already authorized."
+        exit 0
+    fi
 
-        HTTP_CODE=$(curl -s \
+    if [[ "$CONNECTED" == "true" ]]; then
+
+        HTTP=$(curl -s \
             -o /dev/null \
             -w "%{http_code}" \
             -u admin:admin \
@@ -35,13 +39,12 @@ for i in $(seq 1 60); do
             -d '{"status":true}' \
             "$REST/agents/id:$ID/authorizedInfo")
 
-        if [[ "$HTTP_CODE" == "200" || "$HTTP_CODE" == "204" ]]; then
+        echo "HTTP=$HTTP"
+
+        if [[ "$HTTP" == "200" || "$HTTP" == "204" ]]; then
             echo "Agent authorized."
             exit 0
         fi
-
-        echo "Failed to authorize agent (HTTP $HTTP_CODE)"
-        exit 1
     fi
 
     sleep 5
