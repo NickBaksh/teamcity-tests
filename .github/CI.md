@@ -18,8 +18,11 @@
 
 ## TeamCity seed (option 1)
 CI downloads the official TeamCity backup from GitHub Release tag `teamcity-backup-v1` and restores it into `infra/teamcity-server/data` with `maintainDB.sh` **before** `docker compose up`.
+Volumes `data` + `logs` are chown'd to `1000:1000` (`tcuser`).
 
-Script: `.github/scripts/seed-teamcity-datadir.sh`
+If backup admin password is not `admin`/`admin`, bootstrap reads the Super user token from server logs and resets the password via REST.
+
+Script: `.github/scripts/seed-teamcity-datadir.sh`, `.github/scripts/bootstrap-teamcity.sh`
 
 ```bash
 # Local (needs Docker + gh auth):
