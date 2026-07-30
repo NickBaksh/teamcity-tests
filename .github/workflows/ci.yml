@@ -94,7 +94,13 @@ jobs:
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server
 
       - name: Wait for TeamCity HTTP
-        run: .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10
+        run: |
+          if ! .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10; then
+            echo "::error::TeamCity HTTP did not become ready"
+            docker compose -f "${COMPOSE_FILE}" ps -a || true
+            docker compose -f "${COMPOSE_FILE}" logs --no-color --tail=200 teamcity-server || true
+            exit 1
+          fi
 
       - name: Bootstrap TeamCity
         run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
@@ -192,7 +198,13 @@ jobs:
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server selenoid selenoid-ui
 
       - name: Wait for TeamCity HTTP
-        run: .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10
+        run: |
+          if ! .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10; then
+            echo "::error::TeamCity HTTP did not become ready"
+            docker compose -f "${COMPOSE_FILE}" ps -a || true
+            docker compose -f "${COMPOSE_FILE}" logs --no-color --tail=200 teamcity-server || true
+            exit 1
+          fi
 
       - name: Bootstrap TeamCity
         run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
@@ -269,7 +281,13 @@ jobs:
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server selenoid selenoid-ui
 
       - name: Wait for TeamCity HTTP
-        run: .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10
+        run: |
+          if ! .github/scripts/wait-for-url.sh "${TC_URL}/login.html" 420 10; then
+            echo "::error::TeamCity HTTP did not become ready"
+            docker compose -f "${COMPOSE_FILE}" ps -a || true
+            docker compose -f "${COMPOSE_FILE}" logs --no-color --tail=200 teamcity-server || true
+            exit 1
+          fi
 
       - name: Bootstrap TeamCity
         run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"

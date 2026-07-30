@@ -11,11 +11,14 @@ RELEASE_TAG="${TEAMCITY_BACKUP_TAG:-teamcity-backup-v1}"
 TC_UID="${TEAMCITY_UID:-1000}"
 TC_GID="${TEAMCITY_GID:-1000}"
 
+TC_HOME="$(dirname "${DATADIR}")"
+LOGDIR="${TEAMCITY_LOGDIR:-${TC_HOME}/logs}"
+
 echo "Seeding TeamCity datadir at ${DATADIR}"
 
-mkdir -p "$(dirname "${DATADIR}")"
+mkdir -p "${TC_HOME}"
 rm -rf "${DATADIR}"
-mkdir -p "${DATADIR}"
+mkdir -p "${DATADIR}" "${LOGDIR}"
 
 WORKDIR="$(mktemp -d)"
 cleanup() { rm -rf "${WORKDIR}"; }
@@ -47,13 +50,14 @@ else
 fi
 
 DATADIR_ABS="$(cd "${DATADIR}" && pwd)"
+LOGDIR_ABS="$(cd "${LOGDIR}" && pwd)"
 BACKUP_ABS="${WORKDIR}/backup.zip"
 
-# Host-created bind mount is owned by the runner user; maintainDB in the image
-# runs as a non-root uid and cannot write database.properties unless we restore as root.
+# Restore as root (bind mounts are owned by the runner), then chown data+logs for tcuser.
 echo "Restoring $(basename "${BACKUP_ZIP:-release-asset}") into ${DATADIR_ABS} via ${TC_IMAGE}..."
 docker run --rm --user root \
   -v "${DATADIR_ABS}:/data/teamcity_server/datadir" \
+  -v "${LOGDIR_ABS}:/opt/teamcity/logs" \
   -v "${BACKUP_ABS}:/backup/teamcity-backup.zip:ro" \
   --entrypoint /bin/bash \
   "${TC_IMAGE}" \
@@ -62,7 +66,7 @@ docker run --rm --user root \
   -A /data/teamcity_server/datadir \
   -I \
   -F /backup/teamcity-backup.zip
-chown -R ${TC_UID}:${TC_GID} /data/teamcity_server/datadir
+chown -R ${TC_UID}:${TC_GID} /data/teamcity_server/datadir /opt/teamcity/logs
 "
 
-echo "TeamCity datadir seeded successfully."
+echo "TeamCity datadir seeded successfully (data+logs owned by ${TC_UID}:${TC_GID})."
