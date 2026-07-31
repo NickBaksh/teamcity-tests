@@ -22,6 +22,8 @@
         <awaitility.version>4.2.0</awaitility.version>
         <selenide.version>7.7.3</selenide.version>
         <exclude.groups>ui</exclude.groups>
+        <surefire.parallel>methods</surefire.parallel>
+        <junit.parallel.enabled>true</junit.parallel.enabled>
         <checkstyle.skip>true</checkstyle.skip>
         <checkstyle.failsOnError>true</checkstyle.failsOnError>
     </properties>
@@ -169,7 +171,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.2</version>
                 <configuration>
-                    <parallel>methods</parallel>
+                    <parallel>${surefire.parallel}</parallel>
                     <threadCount>4</threadCount>
                     <includes>
                         <include>**/*Test.java</include>
@@ -177,6 +179,7 @@
                     <excludedGroups>${exclude.groups}</excludedGroups>
                     <systemPropertyVariables>
                         <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
+                        <junit.jupiter.execution.parallel.enabled>${junit.parallel.enabled}</junit.jupiter.execution.parallel.enabled>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

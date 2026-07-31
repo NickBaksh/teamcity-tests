@@ -64,7 +64,7 @@ jobs:
     name: API tests
     needs: build_and_lint
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 90
     outputs:
       surefire_summary: ${{ steps.summary.outputs.text }}
     steps:
@@ -134,16 +134,16 @@ jobs:
           -Denv=ci-host
           -Dgroups=smoke
           -Dexclude.groups=
-          -Dparallel=none
-          -Djunit.jupiter.execution.parallel.enabled=false
+          -Dsurefire.parallel=none
+          -Djunit.parallel.enabled=false
 
       - name: Full API tests (exclude UI + already-run smoke)
         run: >
           ./mvnw -B test
           -Denv=ci-host
           -Dexclude.groups=ui,smoke
-          -Dparallel=none
-          -Djunit.jupiter.execution.parallel.enabled=false
+          -Dsurefire.parallel=none
+          -Djunit.parallel.enabled=false
 
       - name: Surefire summary
         id: summary
@@ -272,8 +272,8 @@ jobs:
           -Denv=ci-host
           -Dexclude.groups=
           -Dgroups=ui
-          -Dparallel=none
-          -Djunit.jupiter.execution.parallel.enabled=false
+          -Dsurefire.parallel=none
+          -Djunit.parallel.enabled=false
           -Dselenide.headless=true
 
       - name: Collect docker logs
@@ -383,8 +383,8 @@ jobs:
           -Denv=ci-host-firefox
           -Dexclude.groups=
           -Dgroups=ui
-          -Dparallel=none
-          -Djunit.jupiter.execution.parallel.enabled=false
+          -Dsurefire.parallel=none
+          -Djunit.parallel.enabled=false
           -Dselenide.headless=true
 
       - name: Collect docker logs

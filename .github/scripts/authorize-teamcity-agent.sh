@@ -5,14 +5,14 @@ MODE="${1:-authorize}"
 BASE_URL="${2:-http://localhost:8111}"
 ADMIN_USER="${3:-admin}"
 ADMIN_PASS="${4:-admin}"
-TIMEOUT_SECONDS="${5:-300}"
+TIMEOUT_SECONDS="${5:-420}"
 SLEEP_SECONDS="${6:-5}"
 
 if [[ "${MODE}" != "purge" && "${MODE}" != "authorize" ]]; then
   BASE_URL="${1:-http://localhost:8111}"
   ADMIN_USER="${2:-admin}"
   ADMIN_PASS="${3:-admin}"
-  TIMEOUT_SECONDS="${4:-300}"
+  TIMEOUT_SECONDS="${4:-420}"
   SLEEP_SECONDS="${5:-5}"
   MODE="authorize"
 fi
@@ -21,7 +21,7 @@ REST="${BASE_URL%/}/app/rest"
 AUTH=(-u "${ADMIN_USER}:${ADMIN_PASS}")
 FIELDS='agent(id,name,connected,authorized,enabled,uptodate,upgrading)'
 AGENT_CONF="${TEAMCITY_AGENT_CONF:-infra/teamcity-agent/conf/buildAgent.properties}"
-CONTAINER="${TEAMCITY_CONTAINER:-teamcity-agent}"
+CONTAINER="${TEAMCITY_AGENT_CONTAINER:-teamcity-agent}"
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "jq is required" >&2
@@ -65,13 +65,19 @@ put_status() {
     "${REST}${path}"
 }
 
-disable_agent_upgrade() {
-  if [[ -f "${AGENT_CONF}" ]] && ! grep -q 'teamcity.agent.upgrade.disabled=true' "${AGENT_CONF}"; then
-    echo "Disabling agent auto-upgrade in ${AGENT_CONF}"
-    echo 'teamcity.agent.upgrade.disabled=true' >> "${AGENT_CONF}"
-    docker restart "${CONTAINER}" >/dev/null || true
-    sleep 15
+disable_upgrade_and_restart() {
+  if [[ ! -f "${AGENT_CONF}" ]]; then
+    echo "Agent conf not ready yet: ${AGENT_CONF}"
+    return 1
   fi
+  if grep -q 'teamcity.agent.upgrade.disabled=true' "${AGENT_CONF}"; then
+    echo "Auto-upgrade already disabled in agent conf."
+    return 0
+  fi
+  echo "Disabling agent auto-upgrade and restarting ${CONTAINER}..."
+  echo 'teamcity.agent.upgrade.disabled=true' >> "${AGENT_CONF}"
+  docker restart "${CONTAINER}" >/dev/null
+  sleep 20
 }
 
 if [[ "${MODE}" == "purge" ]]; then
@@ -82,7 +88,7 @@ fi
 
 echo "Authorizing connected TeamCity agent at ${BASE_URL}..."
 
-UPGRADE_WAIT_DEADLINE=$((SECONDS + 90))
+UPGRADE_FIX_ATTEMPTED=0
 end=$((SECONDS + TIMEOUT_SECONDS))
 while (( SECONDS < end )); do
   payload="$(list_agents || echo '{"agent":[]}')"
@@ -97,7 +103,7 @@ while (( SECONDS < end )); do
 
   if [[ -z "${id}" ]]; then
     echo "No connected agent yet; waiting..."
-    docker ps -a --filter "name=${CONTAINER}" --format 'table {{.Names}}\t{{.Status}}' || true
+    docker ps -a --filter "name=^/${CONTAINER}$" --format '{{.Names}} {{.Status}}' || true
     sleep "${SLEEP_SECONDS}"
     continue
   fi
@@ -133,11 +139,10 @@ while (( SECONDS < end )); do
   fi
 
   if [[ "${upgrading}" == "true" ]]; then
-    if (( SECONDS >= UPGRADE_WAIT_DEADLINE )); then
-      disable_agent_upgrade
-      UPGRADE_WAIT_DEADLINE=$((SECONDS + 90))
-    else
-      echo "Agent is still upgrading; waiting..."
+    if [[ "${UPGRADE_FIX_ATTEMPTED}" -eq 0 ]]; then
+      sleep 30
+      UPGRADE_FIX_ATTEMPTED=1
+      disable_upgrade_and_restart || true
     fi
     sleep "${SLEEP_SECONDS}"
     continue
@@ -155,7 +160,7 @@ while (( SECONDS < end )); do
   ')"
 
   if [[ -n "${ready}" ]]; then
-    echo "Agent id=${ready} is connected, authorized, enabled, and not upgrading."
+    echo "Agent id=${ready} is ready for builds."
     echo "${payload}" | jq -r '
       (.agent // [])[]
       | "\(.id) \(.name) connected=\(.connected) authorized=\(.authorized) enabled=\(.enabled) upgrading=\(.upgrading)"
@@ -168,5 +173,5 @@ done
 
 echo "Timed out waiting for a ready TeamCity agent." >&2
 list_agents >&2 || true
-docker logs "${CONTAINER}" --tail 80 >&2 || true
+docker logs "${CONTAINER}" --tail 100 >&2 || true
 exit 1
