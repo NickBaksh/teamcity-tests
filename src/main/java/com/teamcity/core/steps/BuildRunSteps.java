@@ -128,9 +128,14 @@ public class BuildRunSteps extends BaseSteps {
                 .atMost(Duration.ofSeconds(timeout))
                 .pollInterval(Duration.ofMillis(ConfigManager.getBuildPollInterval()))
                 .until(() -> getBuild(buildId), build -> {
-                    String state = build.getState();
-                    return TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(state)
-                            || TestDataValues.BUILD_STATUS_FAILED.equalsIgnoreCase(state);
+                    if (!TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(build.getState())) {
+                        return false;
+                    }
+                    String status = build.getStatus();
+                    // TeamCity may briefly report finished+UNKNOWN before the final status settles.
+                    return status != null
+                            && !status.isBlank()
+                            && !TestDataValues.BUILD_STATUS_UNKNOWN.equalsIgnoreCase(status);
                 });
     }
 }

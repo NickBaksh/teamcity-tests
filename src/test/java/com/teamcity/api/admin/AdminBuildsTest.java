@@ -56,15 +56,20 @@ public class AdminBuildsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void shouldGetQueuedBuildStatus() {
         BuildConfig config = givenBuildConfig(testProjectId);
+        var agent = givenAgent();
+        agentSteps.disableAgent(agent.getId().toString());
 
-        Build build = givenAdminBuildRunSteps().runBuild(config.getId());
+        try {
+            Build build = givenAdminBuildRunSteps().runBuild(config.getId());
+            Build queuedBuild = givenAdminBuildRunSteps().getBuild(build.getId());
 
-        Build queuedBuild = givenAdminBuildRunSteps().getBuild(build.getId());
-
-        assertThat(queuedBuild.getState())
-                .isEqualTo(TestDataValues.BUILD_STATE_QUEUED);
-        assertThat(queuedBuild.getBuildTypeId())
-                .isEqualTo(config.getId());
+            assertThat(queuedBuild.getState())
+                    .isEqualTo(TestDataValues.BUILD_STATE_QUEUED);
+            assertThat(queuedBuild.getBuildTypeId())
+                    .isEqualTo(config.getId());
+        } finally {
+            agentSteps.enableAgent(agent.getId().toString());
+        }
     }
 
     @Test
