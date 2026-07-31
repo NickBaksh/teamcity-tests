@@ -92,15 +92,15 @@ public class BuildRunSteps extends BaseSteps {
     }
 
     @Step("Set build queue paused: {paused}")
-    public BuildQueuePausedState setBuildQueuePaused(boolean paused, String reason) {
+    public void setBuildQueuePaused(boolean paused, String reason) {
         BuildQueuePausedState request = BuildQueuePausedState.builder()
                 .paused(paused)
                 .reason(reason)
                 .build();
+        // TeamCity often returns an empty body / no content-type here — do not deserialize.
         Response response = client.put(Endpoint.BUILD_QUEUE_PAUSED_STATE.getPath(), request);
-        BuildQueuePausedState state = validator.validate(response, BuildQueuePausedState.class);
-        log.info("Build queue paused={}", state.getPaused());
-        return state;
+        validator.validateStatus(response);
+        log.info("Build queue paused={}", paused);
     }
 
     @Step("Cancel build: {buildId}")

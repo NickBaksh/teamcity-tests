@@ -64,10 +64,12 @@ public class AdminBuildsTest extends BaseApiTest {
         BuildRunSteps steps = givenAdminBuildRunSteps();
         // Pause the queue — do NOT disable agents: that leaves the agent with a stranded
         // local build and later finishes as UNKNOWN ("Agent runs unknown build...").
-        steps.setBuildQueuePaused(true, "API test: assert queued state");
-
         Build build = null;
+        boolean queuePaused = false;
         try {
+            steps.setBuildQueuePaused(true, "API test: assert queued state");
+            queuePaused = true;
+
             build = steps.runBuild(config.getId());
             Build queuedBuild = steps.getBuild(build.getId());
 
@@ -79,16 +81,13 @@ public class AdminBuildsTest extends BaseApiTest {
             if (build != null) {
                 try {
                     steps.cancelBuild(build.getId());
-                    steps.waitForBuildState(
-                            build.getId(),
-                            TestDataValues.BUILD_STATE_FINISHED,
-                            30
-                    );
                 } catch (Exception ex) {
                     // Best-effort; always resume the queue below.
                 }
             }
-            steps.setBuildQueuePaused(false, "API test: resume queue");
+            if (queuePaused) {
+                steps.setBuildQueuePaused(false, "API test: resume queue");
+            }
         }
     }
 
