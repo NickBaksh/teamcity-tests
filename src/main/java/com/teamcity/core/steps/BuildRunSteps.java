@@ -12,6 +12,7 @@ import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -94,6 +95,15 @@ public class BuildRunSteps extends BaseSteps {
         BuildCancelRequest request = new BuildCancelRequest();
         request.setComment(comment);
         Response response = client.post(Endpoint.BUILD.format(buildId), request);
+        // Queued builds may reject cancel-on-build; drop them from the queue instead.
+        if (response.getStatusCode() >= 400) {
+            Response queueDelete = client.delete(Endpoint.BUILD_QUEUE_ITEM.format("id:" + buildId));
+            if (queueDelete.getStatusCode() < 400) {
+                log.info("Build {} removed from queue after cancel failed with {}",
+                        buildId, response.getStatusCode());
+                return;
+            }
+        }
         validator.validateStatus(response);
     }
 
@@ -124,13 +134,31 @@ public class BuildRunSteps extends BaseSteps {
     @Step("Wait for build finish: {buildId}")
     public Build waitForBuildFinish(String buildId) {
         int timeout = ConfigManager.getBuildTimeout();
-        return Awaitility.await()
+        Awaitility.await()
                 .atMost(Duration.ofSeconds(timeout))
                 .pollInterval(Duration.ofMillis(ConfigManager.getBuildPollInterval()))
-                .until(() -> getBuild(buildId), build -> {
-                    String state = build.getState();
-                    return TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(state)
-                            || TestDataValues.BUILD_STATUS_FAILED.equalsIgnoreCase(state);
-                });
+                .until(() -> isBuildFinished(buildId));
+
+        // Brief settle only — do not use build.timeout (UNKNOWN can stay permanent on empty configs).
+        try {
+            return Awaitility.await()
+                    .atMost(Duration.ofSeconds(5))
+                    .pollInterval(Duration.ofMillis(500))
+                    .until(() -> getBuild(buildId), this::hasResolvedBuildStatus);
+        } catch (ConditionTimeoutException ex) {
+            log.warn("Build {} finished but status stayed UNKNOWN after settle wait", buildId);
+            return getBuild(buildId);
+        }
+    }
+
+    private boolean isBuildFinished(String buildId) {
+        return TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(getBuild(buildId).getState());
+    }
+
+    private boolean hasResolvedBuildStatus(Build build) {
+        String status = build.getStatus();
+        return status != null
+                && !status.isBlank()
+                && !TestDataValues.BUILD_STATUS_UNKNOWN.equalsIgnoreCase(status);
     }
 }

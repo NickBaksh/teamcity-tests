@@ -11,6 +11,8 @@ import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+
 @Slf4j
 public class AgentSteps extends BaseSteps {
 
@@ -22,12 +24,31 @@ public class AgentSteps extends BaseSteps {
         super(client, validator);
     }
 
+    private static final String AGENT_FIELDS =
+            "agent(id,name,typeId,connected,authorized,enabled,href,webUrl)";
+
     @Step("Get all agents")
     public Agents getAllAgents() {
-        Response response = client.get(
-                Endpoint.AGENTS.getPath());
+        return getAllAgents("authorized:any");
+    }
 
+    @Step("Get agents by locator: {locator}")
+    public Agents getAllAgents(String locator) {
+        String path = Endpoint.AGENTS.getPath()
+                + "?locator=" + locator
+                + "&fields=" + AGENT_FIELDS;
+        Response response = client.get(path);
         return validator.validate(response, Agents.class);
+    }
+
+    @Step("Get connected agents")
+    public List<Agent> getConnectedAgents() {
+        Agents agents = getAllAgents("connected:true,authorized:any");
+        // Locator already restricts to connected; do not re-filter on null fields.
+        if (agents.getAgent() == null) {
+            return List.of();
+        }
+        return List.copyOf(agents.getAgent());
     }
 
     @Step("Get agent: {agentId}")

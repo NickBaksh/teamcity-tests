@@ -64,7 +64,7 @@ jobs:
     name: API tests
     needs: build_and_lint
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 90
     outputs:
       surefire_summary: ${{ steps.summary.outputs.text }}
     steps:
@@ -81,8 +81,8 @@ jobs:
           chmod +x .github/scripts/*.sh
           chmod +x mvnw
 
-      - name: Pull TeamCity image
-        run: docker compose -f "${COMPOSE_FILE}" pull teamcity-server
+      - name: Pull TeamCity images
+        run: docker compose -f "${COMPOSE_FILE}" pull teamcity-server teamcity-agent
 
       - name: Seed TeamCity datadir from release backup
         env:
@@ -90,8 +90,16 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: .github/scripts/seed-teamcity-datadir.sh "${TC_DATADIR}"
 
-      - name: Start TeamCity
+      - name: Prepare TeamCity agent directories
+        run: |
+          mkdir -p infra/teamcity-agent/conf infra/teamcity-agent/work
+          chmod -R a+rwx infra/teamcity-agent
+
+      - name: Start TeamCity server
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server
+
+      - name: Start backend stack
+        run: docker compose -f "${COMPOSE_FILE}" up -d postgres backend
 
       - name: Wait for TeamCity HTTP
         run: |
@@ -102,11 +110,44 @@ jobs:
             exit 1
           fi
 
+      - name: Wait for backend
+        run: .github/scripts/wait-for-url.sh "http://localhost:4111/actuator/health" 180 5
+
       - name: Bootstrap TeamCity
         run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
 
       - name: Wait for TeamCity REST (authenticated)
         run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
+
+      - name: Purge TeamCity agents from backup
+        run: .github/scripts/authorize-teamcity-agent.sh purge "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
+
+      - name: Start TeamCity agent
+        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-agent
+
+      - name: Disable agent auto-upgrade
+        run: |
+          CONF=infra/teamcity-agent/conf/buildAgent.properties
+          for i in $(seq 1 60); do
+            [[ -f "${CONF}" ]] && break
+            sleep 2
+          done
+          if [[ ! -f "${CONF}" ]]; then
+            echo "::warning::Agent conf not found, skip upgrade disable"
+            exit 0
+          fi
+          if grep -q 'teamcity.agent.upgrade.disabled=true' "${CONF}"; then
+            echo "Auto-upgrade already disabled"
+            exit 0
+          fi
+          # File is created by the agent container (often root:600) — fix perms before append.
+          sudo chmod a+rw "${CONF}" || chmod a+rw "${CONF}" || true
+          echo 'teamcity.agent.upgrade.disabled=true' | sudo tee -a "${CONF}" >/dev/null
+          docker restart teamcity-agent
+          sleep 20
+
+      - name: Authorize connected TeamCity agent
+        run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
 
       - name: Smoke API gate
         run: >
@@ -115,6 +156,7 @@ jobs:
           -Dgroups=smoke
           -Dexclude.groups=
           -Dsurefire.parallel=none
+          -Djunit.parallel.enabled=false
 
       - name: Full API tests (exclude UI + already-run smoke)
         run: >
@@ -122,6 +164,7 @@ jobs:
           -Denv=ci-host
           -Dexclude.groups=ui,smoke
           -Dsurefire.parallel=none
+          -Djunit.parallel.enabled=false
 
       - name: Surefire summary
         id: summary
@@ -186,7 +229,11 @@ jobs:
           chmod +x mvnw
 
       - name: Pull images
-        run: docker compose -f "${COMPOSE_FILE}" pull teamcity-server selenoid selenoid-ui
+        run: docker compose -f "${COMPOSE_FILE}" pull \
+          teamcity-server \
+          teamcity-agent \
+          selenoid \
+          selenoid-ui
 
       - name: Seed TeamCity datadir from release backup
         env:
@@ -194,8 +241,19 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: .github/scripts/seed-teamcity-datadir.sh "${TC_DATADIR}"
 
-      - name: Start TeamCity + Selenoid
-        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server selenoid selenoid-ui
+      - name: Prepare TeamCity agent directories
+        run: |
+          mkdir -p infra/teamcity-agent/conf infra/teamcity-agent/work
+          chmod -R a+rwx infra/teamcity-agent
+
+      - name: Start TeamCity server + Selenoid
+        run: docker compose -f "${COMPOSE_FILE}" up -d \
+          teamcity-server \
+          selenoid \
+          selenoid-ui
+
+      - name: Start backend stack
+        run: docker compose -f "${COMPOSE_FILE}" up -d postgres backend
 
       - name: Wait for TeamCity HTTP
         run: |
@@ -206,11 +264,44 @@ jobs:
             exit 1
           fi
 
+      - name: Wait for backend
+        run: .github/scripts/wait-for-url.sh "http://localhost:4111/actuator/health" 180 5
+
       - name: Bootstrap TeamCity
         run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
 
       - name: Wait for TeamCity REST
         run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
+
+      - name: Purge TeamCity agents from backup
+        run: .github/scripts/authorize-teamcity-agent.sh purge "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
+
+      - name: Start TeamCity agent
+        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-agent
+
+      - name: Disable agent auto-upgrade
+        run: |
+          CONF=infra/teamcity-agent/conf/buildAgent.properties
+          for i in $(seq 1 60); do
+            [[ -f "${CONF}" ]] && break
+            sleep 2
+          done
+          if [[ ! -f "${CONF}" ]]; then
+            echo "::warning::Agent conf not found, skip upgrade disable"
+            exit 0
+          fi
+          if grep -q 'teamcity.agent.upgrade.disabled=true' "${CONF}"; then
+            echo "Auto-upgrade already disabled"
+            exit 0
+          fi
+          # File is created by the agent container (often root:600) — fix perms before append.
+          sudo chmod a+rw "${CONF}" || chmod a+rw "${CONF}" || true
+          echo 'teamcity.agent.upgrade.disabled=true' | sudo tee -a "${CONF}" >/dev/null
+          docker restart teamcity-agent
+          sleep 20
+
+      - name: Authorize connected TeamCity agent
+        run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
 
       - name: Wait for Selenoid
         run: .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5
@@ -224,6 +315,7 @@ jobs:
           -Dexclude.groups=
           -Dgroups=ui
           -Dsurefire.parallel=none
+          -Djunit.parallel.enabled=false
           -Dselenide.headless=true
 
       - name: Collect docker logs
@@ -269,7 +361,11 @@ jobs:
           chmod +x mvnw
 
       - name: Pull images
-        run: docker compose -f "${COMPOSE_FILE}" pull teamcity-server selenoid selenoid-ui
+        run: docker compose -f "${COMPOSE_FILE}" pull \
+          teamcity-server \
+          teamcity-agent \
+          selenoid \
+          selenoid-ui
 
       - name: Seed TeamCity datadir from release backup
         env:
@@ -277,8 +373,19 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: .github/scripts/seed-teamcity-datadir.sh "${TC_DATADIR}"
 
-      - name: Start TeamCity + Selenoid
-        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server selenoid selenoid-ui
+      - name: Prepare TeamCity agent directories
+        run: |
+          mkdir -p infra/teamcity-agent/conf infra/teamcity-agent/work
+          chmod -R a+rwx infra/teamcity-agent
+
+      - name: Start TeamCity server + Selenoid
+        run: docker compose -f "${COMPOSE_FILE}" up -d \
+          teamcity-server \
+          selenoid \
+          selenoid-ui
+
+      - name: Start backend stack
+        run: docker compose -f "${COMPOSE_FILE}" up -d postgres backend
 
       - name: Wait for TeamCity HTTP
         run: |
@@ -289,11 +396,44 @@ jobs:
             exit 1
           fi
 
+      - name: Wait for backend
+        run: .github/scripts/wait-for-url.sh "http://localhost:4111/actuator/health" 180 5
+
       - name: Bootstrap TeamCity
         run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
 
-      - name: Wait for TeamCity REST
+      - name: Wait for TeamCity REST (authenticated)
         run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
+
+      - name: Purge TeamCity agents from backup
+        run: .github/scripts/authorize-teamcity-agent.sh purge "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
+
+      - name: Start TeamCity agent
+        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-agent
+
+      - name: Disable agent auto-upgrade
+        run: |
+          CONF=infra/teamcity-agent/conf/buildAgent.properties
+          for i in $(seq 1 60); do
+            [[ -f "${CONF}" ]] && break
+            sleep 2
+          done
+          if [[ ! -f "${CONF}" ]]; then
+            echo "::warning::Agent conf not found, skip upgrade disable"
+            exit 0
+          fi
+          if grep -q 'teamcity.agent.upgrade.disabled=true' "${CONF}"; then
+            echo "Auto-upgrade already disabled"
+            exit 0
+          fi
+          # File is created by the agent container (often root:600) — fix perms before append.
+          sudo chmod a+rw "${CONF}" || chmod a+rw "${CONF}" || true
+          echo 'teamcity.agent.upgrade.disabled=true' | sudo tee -a "${CONF}" >/dev/null
+          docker restart teamcity-agent
+          sleep 20
+
+      - name: Authorize connected TeamCity agent
+        run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
 
       - name: Wait for Selenoid
         run: .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5
@@ -307,6 +447,7 @@ jobs:
           -Dexclude.groups=
           -Dgroups=ui
           -Dsurefire.parallel=none
+          -Djunit.parallel.enabled=false
           -Dselenide.headless=true
 
       - name: Collect docker logs

@@ -269,9 +269,14 @@ public abstract class BaseApiTest {
 
     @Step("Get first available agent")
     protected Agent givenAgent() {
-        return agentSteps.getAllAgents()
-                .getAgent()
-                .getFirst();
+        // Prefer the newest connected agent — backup ghosts (low ids) often stay authorized
+        // and confuse disable/enable while the live docker agent has a higher id.
+        return agentSteps.getConnectedAgents().stream()
+                .filter(agent -> Boolean.TRUE.equals(agent.getAuthorized()))
+                .max(java.util.Comparator.comparing(Agent::getId))
+                .or(() -> agentSteps.getConnectedAgents().stream()
+                        .max(java.util.Comparator.comparing(Agent::getId)))
+                .orElseGet(() -> agentSteps.getAllAgents().getAgent().getFirst());
     }
 
     @Step("Get first available agent and register it for restore")
@@ -279,6 +284,20 @@ public abstract class BaseApiTest {
         Agent agent = givenAgent();
         AgentStorage.set(agent);
         return agent;
+    }
+
+    @Step("Create tracked runnable build config in project: {projectId}")
+    protected BuildConfig givenRunnableBuildConfig(String projectId) {
+        BuildConfig created = givenBuildConfig(projectId);
+        ensureRunnableBuildStep(created.getId());
+        return created;
+    }
+
+    @Step("Ensure build config has at least one command-line step: {buildConfigId}")
+    protected void ensureRunnableBuildStep(String buildConfigId) {
+        if (buildConfigSteps.getBuildStepsCount(buildConfigId) == 0) {
+            buildConfigSteps.addCommandLineStep(buildConfigId, "echo ok");
+        }
     }
 
     @Step("Create tracked build config in a new project")
@@ -289,8 +308,19 @@ public abstract class BaseApiTest {
 
     @Step("Run build and wait for finish")
     protected Build givenFinishedBuild(String buildConfigId) {
+        ensureRunnableBuildStep(buildConfigId);
+        ensureConnectedAgentsEnabled();
         Build build = buildRunSteps.runBuild(buildConfigId);
         return buildRunSteps.waitForBuildFinish(build.getId());
+    }
+
+    @Step("Ensure connected agents are enabled")
+    protected void ensureConnectedAgentsEnabled() {
+        agentSteps.getConnectedAgents().forEach(agent -> {
+            if (!Boolean.TRUE.equals(agent.getEnabled())) {
+                agentSteps.enableAgent(String.valueOf(agent.getId()));
+            }
+        });
     }
 
     @Step("Get NBank build configuration")
