@@ -24,6 +24,9 @@ public class AgentSteps extends BaseSteps {
         super(client, validator);
     }
 
+    private static final String AGENT_FIELDS =
+            "agent(id,name,typeId,connected,authorized,enabled,href,webUrl)";
+
     @Step("Get all agents")
     public Agents getAllAgents() {
         return getAllAgents("authorized:any");
@@ -31,7 +34,9 @@ public class AgentSteps extends BaseSteps {
 
     @Step("Get agents by locator: {locator}")
     public Agents getAllAgents(String locator) {
-        String path = Endpoint.AGENTS.getPath() + "?locator=" + locator;
+        String path = Endpoint.AGENTS.getPath()
+                + "?locator=" + locator
+                + "&fields=" + AGENT_FIELDS;
         Response response = client.get(path);
         return validator.validate(response, Agents.class);
     }
@@ -39,12 +44,11 @@ public class AgentSteps extends BaseSteps {
     @Step("Get connected agents")
     public List<Agent> getConnectedAgents() {
         Agents agents = getAllAgents("connected:true,authorized:any");
+        // Locator already restricts to connected; do not re-filter on null fields.
         if (agents.getAgent() == null) {
             return List.of();
         }
-        return agents.getAgent().stream()
-                .filter(agent -> Boolean.TRUE.equals(agent.getConnected()))
-                .toList();
+        return List.copyOf(agents.getAgent());
     }
 
     @Step("Get agent: {agentId}")

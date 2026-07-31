@@ -106,6 +106,8 @@ public class UserBuildsTest extends BaseApiTest {
     void shouldCancelRunningBuild() {
 
         BuildConfig config = givenRunnableBuildConfig(testProjectId);
+        // echo finishes too fast to observe/cancel running state reliably.
+        buildConfigSteps.addCommandLineStep(config.getId(), "sleep 20");
 
         BuildRunSteps userSteps = givenUserBuildRunSteps();
 
@@ -138,6 +140,7 @@ public class UserBuildsTest extends BaseApiTest {
     void shouldCancelAnotherUserBuild() {
 
         BuildConfig config = givenRunnableBuildConfig(testProjectId);
+        buildConfigSteps.addCommandLineStep(config.getId(), "sleep 20");
 
         User firstUser = givenUser();
         User secondUser = givenUser();

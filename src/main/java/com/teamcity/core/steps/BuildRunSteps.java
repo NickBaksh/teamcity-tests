@@ -95,6 +95,15 @@ public class BuildRunSteps extends BaseSteps {
         BuildCancelRequest request = new BuildCancelRequest();
         request.setComment(comment);
         Response response = client.post(Endpoint.BUILD.format(buildId), request);
+        // Queued builds may reject cancel-on-build; drop them from the queue instead.
+        if (response.getStatusCode() >= 400) {
+            Response queueDelete = client.delete(Endpoint.BUILD_QUEUE_ITEM.format("id:" + buildId));
+            if (queueDelete.getStatusCode() < 400) {
+                log.info("Build {} removed from queue after cancel failed with {}",
+                        buildId, response.getStatusCode());
+                return;
+            }
+        }
         validator.validateStatus(response);
     }
 

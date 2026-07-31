@@ -309,8 +309,18 @@ public abstract class BaseApiTest {
     @Step("Run build and wait for finish")
     protected Build givenFinishedBuild(String buildConfigId) {
         ensureRunnableBuildStep(buildConfigId);
+        ensureConnectedAgentsEnabled();
         Build build = buildRunSteps.runBuild(buildConfigId);
         return buildRunSteps.waitForBuildFinish(build.getId());
+    }
+
+    @Step("Ensure connected agents are enabled")
+    protected void ensureConnectedAgentsEnabled() {
+        agentSteps.getConnectedAgents().forEach(agent -> {
+            if (!Boolean.TRUE.equals(agent.getEnabled())) {
+                agentSteps.enableAgent(String.valueOf(agent.getId()));
+            }
+        });
     }
 
     @Step("Get NBank build configuration")

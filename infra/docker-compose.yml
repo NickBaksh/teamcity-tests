@@ -125,7 +125,8 @@ services:
       - ./allure-results:/opt/allure-results
     environment:
       - SERVER_URL=http://teamcity-server:8111
-      - AGENT_NAME=nbank-agent
+      # Unique from backup ghosts (nbank-agent / nbank-agent-2) to avoid agent rename/desync.
+      - AGENT_NAME=ci-agent
       - DOCKER_IN_DOCKER=start
     networks:
       - nbank-network

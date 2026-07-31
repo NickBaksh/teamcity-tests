@@ -66,16 +66,24 @@ public class AdminBuildsTest extends BaseApiTest {
     void shouldGetQueuedBuildStatus() {
         BuildConfig config = givenBuildConfig(testProjectId);
         List<Agent> connected = agentSteps.getConnectedAgents();
-        connected.forEach(agent -> agentSteps.disableAgent(agent.getId().toString()));
+        assertThat(connected)
+                .as("Need at least one connected agent to disable for queue assertion")
+                .isNotEmpty();
 
+        connected.forEach(agent -> agentSteps.disableAgent(String.valueOf(agent.getId())));
+
+        Build build = null;
         try {
             Awaitility.await()
                     .atMost(Duration.ofSeconds(10))
                     .pollInterval(Duration.ofMillis(200))
-                    .until(() -> agentSteps.getConnectedAgents().stream()
-                            .noneMatch(agent -> Boolean.TRUE.equals(agent.getEnabled())));
+                    .until(() -> connected.stream().allMatch(agent ->
+                            Boolean.FALSE.equals(
+                                    agentSteps.getAgent(String.valueOf(agent.getId())).getEnabled()
+                            )
+                    ));
 
-            Build build = givenAdminBuildRunSteps().runBuild(config.getId());
+            build = givenAdminBuildRunSteps().runBuild(config.getId());
             Build queuedBuild = givenAdminBuildRunSteps().getBuild(build.getId());
 
             assertThat(queuedBuild.getState())
@@ -83,7 +91,21 @@ public class AdminBuildsTest extends BaseApiTest {
             assertThat(queuedBuild.getBuildTypeId())
                     .isEqualTo(config.getId());
         } finally {
-            connected.forEach(agent -> agentSteps.enableAgent(agent.getId().toString()));
+            // Always drop the build before re-enable — otherwise the agent keeps a
+            // stranded run and later builds finish as UNKNOWN ("unknown build").
+            if (build != null) {
+                try {
+                    givenAdminBuildRunSteps().cancelBuild(build.getId());
+                    givenAdminBuildRunSteps().waitForBuildState(
+                            build.getId(),
+                            TestDataValues.BUILD_STATE_FINISHED,
+                            30
+                    );
+                } catch (Exception ex) {
+                    // Best-effort cleanup; re-enable agents below either way.
+                }
+            }
+            connected.forEach(agent -> agentSteps.enableAgent(String.valueOf(agent.getId())));
         }
     }
 
@@ -195,10 +217,6 @@ public class AdminBuildsTest extends BaseApiTest {
     }
 
     private void ensureAgentEnabled() {
-        agentSteps.getConnectedAgents().forEach(agent -> {
-            if (!Boolean.TRUE.equals(agent.getEnabled())) {
-                agentSteps.enableAgent(agent.getId().toString());
-            }
-        });
+        ensureConnectedAgentsEnabled();
     }
 }
