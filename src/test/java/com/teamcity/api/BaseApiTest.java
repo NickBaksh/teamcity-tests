@@ -271,7 +271,16 @@ public abstract class BaseApiTest {
     protected Agent givenAgent() {
         return agentSteps.getAllAgents()
                 .getAgent()
-                .getFirst();
+                .stream()
+                .filter(agent -> Boolean.TRUE.equals(agent.getConnected()))
+                .filter(agent -> Boolean.TRUE.equals(agent.getAuthorized()))
+                .findFirst()
+                .or(() -> agentSteps.getAllAgents()
+                        .getAgent()
+                        .stream()
+                        .filter(agent -> Boolean.TRUE.equals(agent.getConnected()))
+                        .findFirst())
+                .orElseGet(() -> agentSteps.getAllAgents().getAgent().getFirst());
     }
 
     @Step("Get first available agent and register it for restore")

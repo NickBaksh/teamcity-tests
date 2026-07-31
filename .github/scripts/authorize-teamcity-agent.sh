@@ -1,54 +1,118 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REST="http://localhost:8111/app/rest"
-AGENT_NAME="nbank-agent"
+BASE_URL="${1:-http://localhost:8111}"
+ADMIN_USER="${2:-admin}"
+ADMIN_PASS="${3:-admin}"
+TIMEOUT_SECONDS="${4:-300}"
+SLEEP_SECONDS="${5:-5}"
 
-echo "Waiting for TeamCity agent..."
+REST="${BASE_URL%/}/app/rest"
+AUTH=(-u "${ADMIN_USER}:${ADMIN_PASS}")
+FIELDS='agent(id,name,connected,authorized,enabled)'
 
-for i in $(seq 1 60); do
-URL="$REST/agents?locator=name:$AGENT_NAME&fields=agent(id,name,connected,authorized)"
-echo "GET $URL"
+if ! command -v jq >/dev/null 2>&1; then
+  echo "jq is required" >&2
+  exit 1
+fi
 
-    RESPONSE=$(curl -s \
-        -u admin:admin \
-        -H "Accept: application/json" \
-        "$URL")
+echo "Preparing connected TeamCity agent at ${BASE_URL}..."
 
-    echo "$RESPONSE"
+list_agents() {
+  curl -fsS "${AUTH[@]}" -H 'Accept: application/json' \
+    "${REST}/agents?fields=${FIELDS}"
+}
 
-    ID=$(echo "$RESPONSE" | jq -r '.agent[0].id // empty')
-    CONNECTED=$(echo "$RESPONSE" | jq -r '.agent[0].connected // false')
-    AUTHORIZED=$(echo "$RESPONSE" | jq -r '.agent[0].authorized // false')
+purge_disconnected() {
+  local payload ids
+  payload="$(list_agents || echo '{"agent":[]}')"
+  ids="$(echo "${payload}" | jq -r '.agent // [] | .[] | select((.connected // false) != true) | .id')"
+  [[ -z "${ids}" ]] && return 0
+  while IFS= read -r id; do
+    [[ -n "${id}" ]] || continue
+    echo "Deleting disconnected/stale agent id=${id}"
+    curl -sS -o /tmp/tc-agent-del.txt -w "HTTP %{http_code}\n" "${AUTH[@]}" \
+      -X DELETE "${REST}/agents/id:${id}" || true
+  done <<< "${ids}"
+}
 
-    echo "id=$ID connected=$CONNECTED authorized=$AUTHORIZED"
+put_status() {
+  local path="$1"
+  curl -sS -o /tmp/tc-agent-put.txt -w '%{http_code}' "${AUTH[@]}" \
+    -X PUT \
+    -H 'Content-Type: application/json' \
+    -H 'Accept: application/json' \
+    -d '{"status":true}' \
+    "${REST}${path}"
+}
 
-    if [[ "$AUTHORIZED" == "true" ]]; then
-        echo "Already authorized."
-        exit 0
+end=$((SECONDS + TIMEOUT_SECONDS))
+while (( SECONDS < end )); do
+  purge_disconnected || true
+
+  payload="$(list_agents || echo '{"agent":[]}')"
+  echo "${payload}"
+
+  id="$(echo "${payload}" | jq -r '
+    (.agent // [])
+    | map(select((.connected // false) == true))
+    | (map(select((.authorized // false) != true)) + map(select((.authorized // false) == true)))
+    | .[0].id // empty
+  ')"
+
+  if [[ -z "${id}" ]]; then
+    echo "No connected agent yet; waiting..."
+    sleep "${SLEEP_SECONDS}"
+    continue
+  fi
+
+  name="$(echo "${payload}" | jq -r --arg id "${id}" '
+    (.agent // [])[] | select((.id|tostring) == $id) | .name
+  ')"
+  authorized="$(echo "${payload}" | jq -r --arg id "${id}" '
+    (.agent // [])[] | select((.id|tostring) == $id) | .authorized // false
+  ')"
+  enabled="$(echo "${payload}" | jq -r --arg id "${id}" '
+    (.agent // [])[] | select((.id|tostring) == $id) | .enabled // false
+  ')"
+
+  echo "Using connected agent id=${id} name=${name} authorized=${authorized} enabled=${enabled}"
+
+  if [[ "${authorized}" != "true" ]]; then
+    code="$(put_status "/agents/id:${id}/authorizedInfo")"
+    echo "authorize HTTP=${code}"
+    if [[ "${code}" != "200" && "${code}" != "204" ]]; then
+      cat /tmp/tc-agent-put.txt || true
+      sleep "${SLEEP_SECONDS}"
+      continue
     fi
+  fi
 
-    if [[ "$CONNECTED" == "true" ]]; then
+  if [[ "${enabled}" != "true" ]]; then
+    code="$(put_status "/agents/id:${id}/enabledInfo")"
+    echo "enable HTTP=${code}"
+  fi
 
-        HTTP=$(curl -s \
-            -o /dev/null \
-            -w "%{http_code}" \
-            -u admin:admin \
-            -X PUT \
-            -H "Content-Type: application/json" \
-            -d '{"status":true}' \
-            "$REST/agents/id:$ID/authorizedInfo")
+  payload="$(list_agents)"
+  ready="$(echo "${payload}" | jq -r --arg id "${id}" '
+    (.agent // [])[]
+    | select((.id|tostring) == $id)
+    | select((.connected // false) == true and (.authorized // false) == true)
+    | .id
+  ')"
 
-        echo "HTTP=$HTTP"
+  if [[ -n "${ready}" ]]; then
+    echo "Connected agent id=${ready} is authorized and ready for builds."
+    echo "${payload}" | jq -r '
+      (.agent // [])[]
+      | "\(.id) \(.name) connected=\(.connected) authorized=\(.authorized) enabled=\(.enabled)"
+    '
+    exit 0
+  fi
 
-        if [[ "$HTTP" == "200" || "$HTTP" == "204" ]]; then
-            echo "Agent authorized."
-            exit 0
-        fi
-    fi
-
-    sleep 5
+  sleep "${SLEEP_SECONDS}"
 done
 
-echo "Timed out waiting for TeamCity agent."
+echo "Timed out waiting for a connected authorized TeamCity agent." >&2
+list_agents >&2 || true
 exit 1

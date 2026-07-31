@@ -24,6 +24,13 @@ If backup admin password is not `admin`/`admin`, bootstrap reads the Super user 
 
 Script: `.github/scripts/seed-teamcity-datadir.sh`, `.github/scripts/bootstrap-teamcity.sh`
 
+## TeamCity agent
+Backup restore keeps stale agent records. CI starts the server first, then the agent container, then `.github/scripts/authorize-teamcity-agent.sh`:
+1. Deletes disconnected ghost agents
+2. Authorizes + enables a **connected** agent
+
+Without this, builds stay queued with `There are no idle compatible agents which can run this build`.
+
 ```bash
 # Local (needs Docker + gh auth):
 .github/scripts/seed-teamcity-datadir.sh infra/teamcity-server/data

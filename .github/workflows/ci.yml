@@ -95,8 +95,8 @@ jobs:
           mkdir -p infra/teamcity-agent/conf
           mkdir -p infra/teamcity-agent/work
 
-      - name: Start TeamCity + Agent
-        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server teamcity-agent
+      - name: Start TeamCity server
+        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server
 
       - name: Start backend stack
         run: docker compose -f "${COMPOSE_FILE}" up -d postgres backend
@@ -113,18 +113,17 @@ jobs:
       - name: Wait for backend
         run: .github/scripts/wait-for-url.sh "http://localhost:4111/actuator/health" 180 5
 
-
       - name: Bootstrap TeamCity
         run: .github/scripts/bootstrap-teamcity.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
 
       - name: Wait for TeamCity REST (authenticated)
         run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
 
-      - name: Make authorize script executable
-        run: chmod +x .github/scripts/authorize-teamcity-agent.sh
+      - name: Start TeamCity agent
+        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-agent
 
-      - name: Authorize TeamCity agent
-        run: .github/scripts/authorize-teamcity-agent.sh
+      - name: Authorize connected TeamCity agent
+        run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
 
       - name: Smoke API gate
         run: >
@@ -220,18 +219,15 @@ jobs:
         run: |
           mkdir -p infra/teamcity-agent/conf
           mkdir -p infra/teamcity-agent/work
-              
 
-      - name: Start TeamCity + Agent + Selenoid
+      - name: Start TeamCity server + Selenoid
         run: docker compose -f "${COMPOSE_FILE}" up -d \
           teamcity-server \
-          teamcity-agent \
           selenoid \
           selenoid-ui
 
       - name: Start backend stack
         run: docker compose -f "${COMPOSE_FILE}" up -d postgres backend
-
 
       - name: Wait for TeamCity HTTP
         run: |
@@ -251,11 +247,11 @@ jobs:
       - name: Wait for TeamCity REST
         run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
 
-      - name: Make authorize script executable
-        run: chmod +x .github/scripts/authorize-teamcity-agent.sh
+      - name: Start TeamCity agent
+        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-agent
 
-      - name: Authorize TeamCity agent
-        run: .github/scripts/authorize-teamcity-agent.sh
+      - name: Authorize connected TeamCity agent
+        run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
 
       - name: Wait for Selenoid
         run: .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5
@@ -331,10 +327,9 @@ jobs:
           mkdir -p infra/teamcity-agent/conf
           mkdir -p infra/teamcity-agent/work
 
-      - name: Start TeamCity + Agent + Selenoid
+      - name: Start TeamCity server + Selenoid
         run: docker compose -f "${COMPOSE_FILE}" up -d \
           teamcity-server \
-          teamcity-agent \
           selenoid \
           selenoid-ui
 
@@ -359,11 +354,11 @@ jobs:
       - name: Wait for TeamCity REST (authenticated)
         run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
 
-      - name: Make authorize script executable
-        run: chmod +x .github/scripts/authorize-teamcity-agent.sh
+      - name: Start TeamCity agent
+        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-agent
 
-      - name: Authorize TeamCity agent
-        run: .github/scripts/authorize-teamcity-agent.sh
+      - name: Authorize connected TeamCity agent
+        run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
 
       - name: Wait for Selenoid
         run: .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5
