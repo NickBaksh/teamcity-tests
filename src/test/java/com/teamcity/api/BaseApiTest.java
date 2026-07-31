@@ -269,17 +269,13 @@ public abstract class BaseApiTest {
 
     @Step("Get first available agent")
     protected Agent givenAgent() {
-        return agentSteps.getAllAgents()
-                .getAgent()
-                .stream()
-                .filter(agent -> Boolean.TRUE.equals(agent.getConnected()))
+        // Prefer the newest connected agent — backup ghosts (low ids) often stay authorized
+        // and confuse disable/enable while the live docker agent has a higher id.
+        return agentSteps.getConnectedAgents().stream()
                 .filter(agent -> Boolean.TRUE.equals(agent.getAuthorized()))
-                .findFirst()
-                .or(() -> agentSteps.getAllAgents()
-                        .getAgent()
-                        .stream()
-                        .filter(agent -> Boolean.TRUE.equals(agent.getConnected()))
-                        .findFirst())
+                .max(java.util.Comparator.comparing(Agent::getId))
+                .or(() -> agentSteps.getConnectedAgents().stream()
+                        .max(java.util.Comparator.comparing(Agent::getId)))
                 .orElseGet(() -> agentSteps.getAllAgents().getAgent().getFirst());
     }
 

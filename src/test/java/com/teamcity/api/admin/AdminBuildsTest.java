@@ -18,6 +18,7 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -64,16 +65,15 @@ public class AdminBuildsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void shouldGetQueuedBuildStatus() {
         BuildConfig config = givenBuildConfig(testProjectId);
-        Agent agent = givenAgent();
-        agentSteps.disableAgent(agent.getId().toString());
+        List<Agent> connected = agentSteps.getConnectedAgents();
+        connected.forEach(agent -> agentSteps.disableAgent(agent.getId().toString()));
 
         try {
             Awaitility.await()
                     .atMost(Duration.ofSeconds(10))
                     .pollInterval(Duration.ofMillis(200))
-                    .until(() -> Boolean.FALSE.equals(
-                            agentSteps.getAgent(agent.getId().toString()).getEnabled()
-                    ));
+                    .until(() -> agentSteps.getConnectedAgents().stream()
+                            .noneMatch(agent -> Boolean.TRUE.equals(agent.getEnabled())));
 
             Build build = givenAdminBuildRunSteps().runBuild(config.getId());
             Build queuedBuild = givenAdminBuildRunSteps().getBuild(build.getId());
@@ -83,7 +83,7 @@ public class AdminBuildsTest extends BaseApiTest {
             assertThat(queuedBuild.getBuildTypeId())
                     .isEqualTo(config.getId());
         } finally {
-            agentSteps.enableAgent(agent.getId().toString());
+            connected.forEach(agent -> agentSteps.enableAgent(agent.getId().toString()));
         }
     }
 
@@ -195,9 +195,10 @@ public class AdminBuildsTest extends BaseApiTest {
     }
 
     private void ensureAgentEnabled() {
-        Agent agent = givenAgent();
-        if (!Boolean.TRUE.equals(agent.getEnabled())) {
-            agentSteps.enableAgent(agent.getId().toString());
-        }
+        agentSteps.getConnectedAgents().forEach(agent -> {
+            if (!Boolean.TRUE.equals(agent.getEnabled())) {
+                agentSteps.enableAgent(agent.getId().toString());
+            }
+        });
     }
 }

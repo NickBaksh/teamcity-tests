@@ -11,6 +11,8 @@ import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+
 @Slf4j
 public class AgentSteps extends BaseSteps {
 
@@ -24,10 +26,25 @@ public class AgentSteps extends BaseSteps {
 
     @Step("Get all agents")
     public Agents getAllAgents() {
-        Response response = client.get(
-                Endpoint.AGENTS.getPath());
+        return getAllAgents("authorized:any");
+    }
 
+    @Step("Get agents by locator: {locator}")
+    public Agents getAllAgents(String locator) {
+        String path = Endpoint.AGENTS.getPath() + "?locator=" + locator;
+        Response response = client.get(path);
         return validator.validate(response, Agents.class);
+    }
+
+    @Step("Get connected agents")
+    public List<Agent> getConnectedAgents() {
+        Agents agents = getAllAgents("connected:true,authorized:any");
+        if (agents.getAgent() == null) {
+            return List.of();
+        }
+        return agents.getAgent().stream()
+                .filter(agent -> Boolean.TRUE.equals(agent.getConnected()))
+                .toList();
     }
 
     @Step("Get agent: {agentId}")
