@@ -2,23 +2,19 @@ package com.teamcity.api.admin;
 
 import com.teamcity.api.BaseApiTest;
 import com.teamcity.core.assertions.ApiAssertions;
-import com.teamcity.core.models.Agent;
 import com.teamcity.core.models.Build;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.dto.RunBuildRequest;
+import com.teamcity.core.steps.BuildRunSteps;
 import com.teamcity.core.testdata.TestDataValues;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
-
-import java.time.Duration;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -65,47 +61,34 @@ public class AdminBuildsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void shouldGetQueuedBuildStatus() {
         BuildConfig config = givenBuildConfig(testProjectId);
-        List<Agent> connected = agentSteps.getConnectedAgents();
-        assertThat(connected)
-                .as("Need at least one connected agent to disable for queue assertion")
-                .isNotEmpty();
-
-        connected.forEach(agent -> agentSteps.disableAgent(String.valueOf(agent.getId())));
+        BuildRunSteps steps = givenAdminBuildRunSteps();
+        // Pause the queue — do NOT disable agents: that leaves the agent with a stranded
+        // local build and later finishes as UNKNOWN ("Agent runs unknown build...").
+        steps.setBuildQueuePaused(true, "API test: assert queued state");
 
         Build build = null;
         try {
-            Awaitility.await()
-                    .atMost(Duration.ofSeconds(10))
-                    .pollInterval(Duration.ofMillis(200))
-                    .until(() -> connected.stream().allMatch(agent ->
-                            Boolean.FALSE.equals(
-                                    agentSteps.getAgent(String.valueOf(agent.getId())).getEnabled()
-                            )
-                    ));
-
-            build = givenAdminBuildRunSteps().runBuild(config.getId());
-            Build queuedBuild = givenAdminBuildRunSteps().getBuild(build.getId());
+            build = steps.runBuild(config.getId());
+            Build queuedBuild = steps.getBuild(build.getId());
 
             assertThat(queuedBuild.getState())
                     .isEqualTo(TestDataValues.BUILD_STATE_QUEUED);
             assertThat(queuedBuild.getBuildTypeId())
                     .isEqualTo(config.getId());
         } finally {
-            // Always drop the build before re-enable — otherwise the agent keeps a
-            // stranded run and later builds finish as UNKNOWN ("unknown build").
             if (build != null) {
                 try {
-                    givenAdminBuildRunSteps().cancelBuild(build.getId());
-                    givenAdminBuildRunSteps().waitForBuildState(
+                    steps.cancelBuild(build.getId());
+                    steps.waitForBuildState(
                             build.getId(),
                             TestDataValues.BUILD_STATE_FINISHED,
                             30
                     );
                 } catch (Exception ex) {
-                    // Best-effort cleanup; re-enable agents below either way.
+                    // Best-effort; always resume the queue below.
                 }
             }
-            connected.forEach(agent -> agentSteps.enableAgent(String.valueOf(agent.getId())));
+            steps.setBuildQueuePaused(false, "API test: resume queue");
         }
     }
 
@@ -116,18 +99,29 @@ public class AdminBuildsTest extends BaseApiTest {
         // Keep the build running long enough to observe state=running (echo finishes too fast).
         buildConfigSteps.addCommandLineStep(config.getId(), "sleep 20");
 
-        Build build = givenAdminBuildRunSteps().runBuild(config.getId());
+        BuildRunSteps steps = givenAdminBuildRunSteps();
+        Build build = steps.runBuild(config.getId());
 
-        Build runningBuild = givenAdminBuildRunSteps().waitForBuildState(
-                build.getId(),
-                TestDataValues.BUILD_STATE_RUNNING,
-                TestDataValues.BUILD_WAIT_TIMEOUT_SECONDS
-        );
+        try {
+            Build runningBuild = steps.waitForBuildState(
+                    build.getId(),
+                    TestDataValues.BUILD_STATE_RUNNING,
+                    TestDataValues.BUILD_WAIT_TIMEOUT_SECONDS
+            );
 
-        assertThat(runningBuild.getState())
-                .isEqualTo(TestDataValues.BUILD_STATE_RUNNING);
-        assertThat(runningBuild.getBuildTypeId())
-                .isEqualTo(config.getId());
+            assertThat(runningBuild.getState())
+                    .isEqualTo(TestDataValues.BUILD_STATE_RUNNING);
+            assertThat(runningBuild.getBuildTypeId())
+                    .isEqualTo(config.getId());
+        } finally {
+            // Do not leave sleep running into cleanup — that desyncs the single CI agent.
+            try {
+                steps.cancelBuild(build.getId());
+                steps.waitForBuildFinish(build.getId());
+            } catch (Exception ex) {
+                // Best-effort cleanup.
+            }
+        }
     }
 
     @Test

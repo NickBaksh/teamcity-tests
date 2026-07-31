@@ -120,10 +120,7 @@ public class UserBuildsTest extends BaseApiTest {
 
         userSteps.cancelBuild(build.getId());
 
-        Build cancelled = userSteps.waitForBuildState(
-                build.getId(),
-                TestDataValues.BUILD_STATE_FINISHED,
-                TestDataValues.BUILD_WAIT_TIMEOUT_SECONDS);
+        Build cancelled = userSteps.waitForBuildFinish(build.getId());
 
         ApiAssertions.assertBuildFinished(
                 cancelled,
@@ -157,10 +154,7 @@ public class UserBuildsTest extends BaseApiTest {
 
         secondUserSteps.cancelBuild(build.getId());
 
-        Build cancelled = firstUserSteps.waitForBuildState(
-                build.getId(),
-                TestDataValues.BUILD_STATE_FINISHED,
-                TestDataValues.BUILD_WAIT_TIMEOUT_SECONDS);
+        Build cancelled = firstUserSteps.waitForBuildFinish(build.getId());
 
         ApiAssertions.assertBuildFinished(
                 cancelled,
