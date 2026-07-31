@@ -92,8 +92,13 @@ jobs:
 
       - name: Prepare TeamCity agent directories
         run: |
-          mkdir -p infra/teamcity-agent/conf
-          mkdir -p infra/teamcity-agent/work
+          mkdir -p infra/teamcity-agent/conf infra/teamcity-agent/work
+          printf '%s\n' \
+            'serverUrl=http://teamcity-server:8111' \
+            'name=nbank-agent' \
+            'ownPort=9090' \
+            'teamcity.agent.upgrade.disabled=true' \
+            > infra/teamcity-agent/conf/buildAgent.properties
 
       - name: Start TeamCity server
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server
@@ -119,11 +124,14 @@ jobs:
       - name: Wait for TeamCity REST (authenticated)
         run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
 
+      - name: Purge TeamCity agents from backup
+        run: .github/scripts/authorize-teamcity-agent.sh purge "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
+
       - name: Start TeamCity agent
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-agent
 
       - name: Authorize connected TeamCity agent
-        run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
+        run: .github/scripts/authorize-teamcity-agent.sh authorize "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
 
       - name: Smoke API gate
         run: >
@@ -131,14 +139,16 @@ jobs:
           -Denv=ci-host
           -Dgroups=smoke
           -Dexclude.groups=
-          -Dsurefire.parallel=none
+          -Dparallel=none
+          -Djunit.jupiter.execution.parallel.enabled=false
 
       - name: Full API tests (exclude UI + already-run smoke)
         run: >
           ./mvnw -B test
           -Denv=ci-host
           -Dexclude.groups=ui,smoke
-          -Dsurefire.parallel=none
+          -Dparallel=none
+          -Djunit.jupiter.execution.parallel.enabled=false
 
       - name: Surefire summary
         id: summary
@@ -217,8 +227,13 @@ jobs:
 
       - name: Prepare TeamCity agent directories
         run: |
-          mkdir -p infra/teamcity-agent/conf
-          mkdir -p infra/teamcity-agent/work
+          mkdir -p infra/teamcity-agent/conf infra/teamcity-agent/work
+          printf '%s\n' \
+            'serverUrl=http://teamcity-server:8111' \
+            'name=nbank-agent' \
+            'ownPort=9090' \
+            'teamcity.agent.upgrade.disabled=true' \
+            > infra/teamcity-agent/conf/buildAgent.properties
 
       - name: Start TeamCity server + Selenoid
         run: docker compose -f "${COMPOSE_FILE}" up -d \
@@ -247,11 +262,14 @@ jobs:
       - name: Wait for TeamCity REST
         run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
 
+      - name: Purge TeamCity agents from backup
+        run: .github/scripts/authorize-teamcity-agent.sh purge "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
+
       - name: Start TeamCity agent
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-agent
 
       - name: Authorize connected TeamCity agent
-        run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
+        run: .github/scripts/authorize-teamcity-agent.sh authorize "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
 
       - name: Wait for Selenoid
         run: .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5
@@ -264,7 +282,8 @@ jobs:
           -Denv=ci-host
           -Dexclude.groups=
           -Dgroups=ui
-          -Dsurefire.parallel=none
+          -Dparallel=none
+          -Djunit.jupiter.execution.parallel.enabled=false
           -Dselenide.headless=true
 
       - name: Collect docker logs
@@ -324,8 +343,13 @@ jobs:
 
       - name: Prepare TeamCity agent directories
         run: |
-          mkdir -p infra/teamcity-agent/conf
-          mkdir -p infra/teamcity-agent/work
+          mkdir -p infra/teamcity-agent/conf infra/teamcity-agent/work
+          printf '%s\n' \
+            'serverUrl=http://teamcity-server:8111' \
+            'name=nbank-agent' \
+            'ownPort=9090' \
+            'teamcity.agent.upgrade.disabled=true' \
+            > infra/teamcity-agent/conf/buildAgent.properties
 
       - name: Start TeamCity server + Selenoid
         run: docker compose -f "${COMPOSE_FILE}" up -d \
@@ -354,11 +378,14 @@ jobs:
       - name: Wait for TeamCity REST (authenticated)
         run: .github/scripts/wait-for-teamcity-ready.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 600 10
 
+      - name: Purge TeamCity agents from backup
+        run: .github/scripts/authorize-teamcity-agent.sh purge "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
+
       - name: Start TeamCity agent
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-agent
 
       - name: Authorize connected TeamCity agent
-        run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}"
+        run: .github/scripts/authorize-teamcity-agent.sh authorize "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
 
       - name: Wait for Selenoid
         run: .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5
@@ -371,7 +398,8 @@ jobs:
           -Denv=ci-host-firefox
           -Dexclude.groups=
           -Dgroups=ui
-          -Dsurefire.parallel=none
+          -Dparallel=none
+          -Djunit.jupiter.execution.parallel.enabled=false
           -Dselenide.headless=true
 
       - name: Collect docker logs
