@@ -214,6 +214,7 @@ jobs:
     if: ${{ needs.api_tests.result == 'success' && vars.ENABLE_UI_MATRIX == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
+    environment: ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -312,11 +313,45 @@ jobs:
         run: >
           ./mvnw -B test
           -Denv=ci-host
+          -Dbrowser=chrome
           -Dexclude.groups=
           -Dgroups=ui
           -Dsurefire.parallel=none
           -Djunit.parallel.enabled=false
           -Dselenide.headless=true
+          -Dallure.results.directory=target/allure-results-chrome
+
+      - name: Collect Selenoid logs
+        if: always()
+        run: |
+          mkdir -p artifacts/selenoid
+
+          echo "=== Selenoid container logs ==="
+          docker logs selenoid-teamcity --tail 500 > artifacts/selenoid/selenoid-container.log 2>&1 || true
+
+          echo "=== Selenoid status ==="
+          curl -s http://localhost:4444/status | python3 -m json.tool > artifacts/selenoid/status.json 2>/dev/null || true
+
+          echo "=== Selenoid sessions ==="
+          curl -s http://localhost:4444/sessions | python3 -m json.tool > artifacts/selenoid/sessions.json 2>/dev/null || true
+
+          docker exec selenoid-teamcity find /opt/selenoid/logs -name "*.log" -exec cat {} \; > artifacts/selenoid/container-logs.txt 2>/dev/null || true
+
+          docker exec selenoid-teamcity ls -la /opt/selenoid/logs/ > artifacts/selenoid/logs-list.txt 2>/dev/null || true
+
+          if [ -d "./selenoid/video" ] && [ "$(ls -A ./selenoid/video)" ]; then
+            mkdir -p artifacts/selenoid/videos
+            cp -r ./selenoid/video/* artifacts/selenoid/videos/ 2>/dev/null || true
+            echo "✅ Videos collected: $(ls -la ./selenoid/video | wc -l) files"
+          else
+            echo "ℹ️ No videos found"
+          fi
+
+          echo "=== Selenoid artifacts size ==="
+          du -sh ./selenoid/video 2>/dev/null || echo "No video folder"
+          du -sh ./selenoid/logs 2>/dev/null || echo "No logs folder"
+
+          echo "✅ Selenoid logs collected"
 
       - name: Collect docker logs
         if: always()
@@ -332,8 +367,9 @@ jobs:
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
           path: |
             target/surefire-reports/**
-            target/allure-results/**
+            target/allure-results-chrome/**
             artifacts/docker-compose-ui-chrome.log
+            artifacts/selenoid/**
             build/reports/tests/**
 
       - name: Stop stack
@@ -346,6 +382,7 @@ jobs:
     if: ${{ needs.api_tests.result == 'success' && vars.ENABLE_UI_MATRIX == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
+    environment: ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -443,12 +480,42 @@ jobs:
           SELENIDE_REMOTE_URL: http://localhost:4444/wd/hub
         run: >
           ./mvnw -B test
-          -Denv=ci-host-firefox
+          -Denv=ci-host
+          -Dbrowser=firefox
           -Dexclude.groups=
           -Dgroups=ui
           -Dsurefire.parallel=none
           -Djunit.parallel.enabled=false
           -Dselenide.headless=true
+          -Dallure.results.directory=target/allure-results-firefox
+
+      - name: Collect Selenoid logs
+        if: always()
+        run: |
+          mkdir -p artifacts/selenoid
+
+          echo "=== Selenoid container logs ==="
+          docker logs selenoid-teamcity --tail 500 > artifacts/selenoid/selenoid-container.log 2>&1 || true
+
+          echo "=== Selenoid status ==="
+          curl -s http://localhost:4444/status | python3 -m json.tool > artifacts/selenoid/status.json 2>/dev/null || true
+
+          echo "=== Selenoid sessions ==="
+          curl -s http://localhost:4444/sessions | python3 -m json.tool > artifacts/selenoid/sessions.json 2>/dev/null || true
+
+          docker exec selenoid-teamcity find /opt/selenoid/logs -name "*.log" -exec cat {} \; > artifacts/selenoid/container-logs.txt 2>/dev/null || true
+
+          docker exec selenoid-teamcity ls -la /opt/selenoid/logs/ > artifacts/selenoid/logs-list.txt 2>/dev/null || true
+
+          if [ -d "./selenoid/video" ] && [ "$(ls -A ./selenoid/video)" ]; then
+            mkdir -p artifacts/selenoid/videos
+            cp -r ./selenoid/video/* artifacts/selenoid/videos/ 2>/dev/null || true
+            echo "✅ Videos collected: $(ls -la ./selenoid/video | wc -l) files"
+          else
+            echo "ℹ️ No videos found"
+          fi
+
+          echo "✅ Selenoid logs collected"
 
       - name: Collect docker logs
         if: always()
@@ -464,8 +531,9 @@ jobs:
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
           path: |
             target/surefire-reports/**
-            target/allure-results/**
+            target/allure-results-firefox/**
             artifacts/docker-compose-ui-firefox.log
+            artifacts/selenoid/**
             build/reports/tests/**
 
       - name: Stop stack

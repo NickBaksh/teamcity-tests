@@ -2,6 +2,7 @@ package com.teamcity.ui.config;
 
 import com.codeborne.selenide.Configuration;
 import com.teamcity.core.config.ConfigManager;
+import org.openqa.selenium.remote.DesiredCapabilities;
 
 public final class SelenideConfig {
 
@@ -18,5 +19,50 @@ public final class SelenideConfig {
         Configuration.savePageSource = false;
         Configuration.browserSize = "1920x1080";
         Configuration.pageLoadStrategy = "eager";
+
+        String selenoidUrl = System.getProperty("selenoid.url");
+
+        if (selenoidUrl == null || selenoidUrl.isEmpty()) {
+            selenoidUrl = System.getenv("SELENOID_URL");
+        }
+
+        if (selenoidUrl == null || selenoidUrl.isEmpty()) {
+            selenoidUrl = System.getProperty("selenide.remote");
+        }
+
+        if (selenoidUrl == null || selenoidUrl.isEmpty()) {
+            selenoidUrl = System.getenv("SELENIDE_REMOTE_URL");
+        }
+
+        if (selenoidUrl != null && !selenoidUrl.isEmpty() && !"null".equalsIgnoreCase(selenoidUrl)) {
+            if (selenoidUrl.endsWith("/wd/hub")) {
+                Configuration.remote = selenoidUrl;
+            } else {
+                Configuration.remote = selenoidUrl + "/wd/hub";
+            }
+
+            DesiredCapabilities capabilities = getDesiredCapabilities();
+            Configuration.browserCapabilities = capabilities;
+
+            System.out.println("Using Selenoid at: " + selenoidUrl);
+            System.out.println("Browser: " + ConfigManager.getBrowser());
+            System.out.println("Headless: " + ConfigManager.isHeadless());
+        } else {
+            System.out.println("Using local browser: " + ConfigManager.getBrowser());
+        }
+    }
+
+    private static DesiredCapabilities getDesiredCapabilities() {
+        DesiredCapabilities capabilities = new DesiredCapabilities();
+        capabilities.setCapability("browserName", ConfigManager.getBrowser());
+
+        java.util.Map<String, Object> selenoidOptions = new java.util.HashMap<>();
+        selenoidOptions.put("enableVNC", true);
+        selenoidOptions.put("enableVideo", false);
+        selenoidOptions.put("enableLog", true);
+        selenoidOptions.put("sessionTimeout", "5m");
+
+        capabilities.setCapability("selenoid:options", selenoidOptions);
+        return capabilities;
     }
 }
