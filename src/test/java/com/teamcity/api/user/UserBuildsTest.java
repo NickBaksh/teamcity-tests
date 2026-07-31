@@ -59,7 +59,7 @@ public class UserBuildsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void shouldGetBuildStatus() {
 
-        BuildConfig config = givenBuildConfig(testProjectId);
+        BuildConfig config = givenRunnableBuildConfig(testProjectId);
 
         BuildRunSteps userSteps = givenUserBuildRunSteps();
 
@@ -78,7 +78,7 @@ public class UserBuildsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void shouldGetBuildDetails() {
 
-        BuildConfig config = givenBuildConfig(testProjectId);
+        BuildConfig config = givenRunnableBuildConfig(testProjectId);
 
         BuildRunSteps userSteps = givenUserBuildRunSteps();
 
@@ -102,7 +102,7 @@ public class UserBuildsTest extends BaseApiTest {
     @Severity(SeverityLevel.CRITICAL)
     void shouldCancelRunningBuild() {
 
-        BuildConfig config = givenBuildConfig(testProjectId);
+        BuildConfig config = givenRunnableBuildConfig(testProjectId);
 
         BuildRunSteps userSteps = givenUserBuildRunSteps();
 
@@ -134,7 +134,7 @@ public class UserBuildsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void shouldCancelAnotherUserBuild() {
 
-        BuildConfig config = givenBuildConfig(testProjectId);
+        BuildConfig config = givenRunnableBuildConfig(testProjectId);
 
         User firstUser = givenUser();
         User secondUser = givenUser();
@@ -170,7 +170,7 @@ public class UserBuildsTest extends BaseApiTest {
     @Severity(SeverityLevel.CRITICAL)
     void shouldNotDeleteOwnFinishedBuild() {
 
-        BuildConfig config = givenBuildConfig(testProjectId);
+        BuildConfig config = givenRunnableBuildConfig(testProjectId);
 
         User user = givenUser();
 

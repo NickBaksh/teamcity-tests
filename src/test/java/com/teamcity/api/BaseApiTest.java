@@ -290,6 +290,20 @@ public abstract class BaseApiTest {
         return agent;
     }
 
+    @Step("Create tracked runnable build config in project: {projectId}")
+    protected BuildConfig givenRunnableBuildConfig(String projectId) {
+        BuildConfig created = givenBuildConfig(projectId);
+        ensureRunnableBuildStep(created.getId());
+        return created;
+    }
+
+    @Step("Ensure build config has at least one command-line step: {buildConfigId}")
+    protected void ensureRunnableBuildStep(String buildConfigId) {
+        if (buildConfigSteps.getBuildStepsCount(buildConfigId) == 0) {
+            buildConfigSteps.addCommandLineStep(buildConfigId, "echo ok");
+        }
+    }
+
     @Step("Create tracked build config in a new project")
     protected BuildConfig givenBuildConfig() {
         Project project = givenProject();
@@ -298,6 +312,7 @@ public abstract class BaseApiTest {
 
     @Step("Run build and wait for finish")
     protected Build givenFinishedBuild(String buildConfigId) {
+        ensureRunnableBuildStep(buildConfigId);
         Build build = buildRunSteps.runBuild(buildConfigId);
         return buildRunSteps.waitForBuildFinish(build.getId());
     }

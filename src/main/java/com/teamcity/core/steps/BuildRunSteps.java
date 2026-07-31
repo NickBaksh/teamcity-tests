@@ -12,6 +12,7 @@ import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -124,18 +125,27 @@ public class BuildRunSteps extends BaseSteps {
     @Step("Wait for build finish: {buildId}")
     public Build waitForBuildFinish(String buildId) {
         int timeout = ConfigManager.getBuildTimeout();
-        return Awaitility.await()
+        Awaitility.await()
                 .atMost(Duration.ofSeconds(timeout))
                 .pollInterval(Duration.ofMillis(ConfigManager.getBuildPollInterval()))
-                .until(() -> getBuild(buildId), build -> {
-                    if (!TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(build.getState())) {
-                        return false;
-                    }
-                    String status = build.getStatus();
-                    // TeamCity may briefly report finished+UNKNOWN before the final status settles.
-                    return status != null
-                            && !status.isBlank()
-                            && !TestDataValues.BUILD_STATUS_UNKNOWN.equalsIgnoreCase(status);
-                });
+                .until(() -> getBuild(buildId), build ->
+                        TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(build.getState())
+                );
+
+        // Brief settle only — do not use build.timeout here (UNKNOWN can be permanent on empty configs).
+        try {
+            return Awaitility.await()
+                    .atMost(Duration.ofSeconds(5))
+                    .pollInterval(Duration.ofMillis(500))
+                    .until(() -> getBuild(buildId), build -> {
+                        String status = build.getStatus();
+                        return status != null
+                                && !status.isBlank()
+                                && !TestDataValues.BUILD_STATUS_UNKNOWN.equalsIgnoreCase(status);
+                    });
+        } catch (ConditionTimeoutException ex) {
+            log.warn("Build {} finished but status stayed UNKNOWN after settle wait", buildId);
+            return getBuild(buildId);
+        }
     }
 }

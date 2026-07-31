@@ -14,6 +14,7 @@ import org.awaitility.Awaitility;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 public class BuildConfigSteps extends BaseSteps {
@@ -64,6 +65,24 @@ public class BuildConfigSteps extends BaseSteps {
         }
         List<?> steps = response.jsonPath().getList("step");
         return steps == null ? 0 : steps.size();
+    }
+
+    @Step("Add command-line build step to: {configId}")
+    public void addCommandLineStep(String configId, String script) {
+        Map<String, Object> step = Map.of(
+                "name", "echo",
+                "type", "simpleRunner",
+                "properties", Map.of(
+                        "property", List.of(
+                                Map.of("name", "script.content", "value", script),
+                                Map.of("name", "use.custom.script", "value", "true"),
+                                Map.of("name", "teamcity.step.mode", "value", "default")
+                        )
+                )
+        );
+        Response response = client.post(Endpoint.BUILD_TYPE_STEPS.format(configId), step);
+        validator.validateStatus(response);
+        log.info("Command-line step added to build config {}", configId);
     }
 
     @Step("Get all build configs")

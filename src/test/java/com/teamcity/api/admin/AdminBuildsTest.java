@@ -75,7 +75,7 @@ public class AdminBuildsTest extends BaseApiTest {
     @Test
     @Severity(SeverityLevel.NORMAL)
     void shouldGetRunningBuildStatus() {
-        BuildConfig config = givenBuildConfig(testProjectId);
+        BuildConfig config = givenRunnableBuildConfig(testProjectId);
 
         Build build = givenAdminBuildRunSteps().runBuild(config.getId());
 
@@ -95,7 +95,7 @@ public class AdminBuildsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void shouldGetFinishedBuildStatus() {
 
-        BuildConfig config = givenBuildConfig(testProjectId);
+        BuildConfig config = givenRunnableBuildConfig(testProjectId);
 
         Build finishedBuild = givenFinishedBuild(config.getId());
 
@@ -121,7 +121,7 @@ public class AdminBuildsTest extends BaseApiTest {
     @Test
     @Severity(SeverityLevel.NORMAL)
     void shouldGetBuildDetails() {
-        BuildConfig config = givenBuildConfig(testProjectId);
+        BuildConfig config = givenRunnableBuildConfig(testProjectId);
 
         Build finishedBuild = givenFinishedBuild(config.getId());
 
@@ -159,7 +159,7 @@ public class AdminBuildsTest extends BaseApiTest {
     @Test
     @Severity(SeverityLevel.NORMAL)
     void shouldDeleteFinishedBuild() {
-        BuildConfig config = givenBuildConfig(testProjectId);
+        BuildConfig config = givenRunnableBuildConfig(testProjectId);
 
         Build finishedBuild = givenFinishedBuild(config.getId());
 
