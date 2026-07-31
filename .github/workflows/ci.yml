@@ -132,11 +132,19 @@ jobs:
             [[ -f "${CONF}" ]] && break
             sleep 2
           done
-          if [[ -f "${CONF}" ]] && ! grep -q 'teamcity.agent.upgrade.disabled=true' "${CONF}"; then
-            echo 'teamcity.agent.upgrade.disabled=true' >> "${CONF}"
-            docker restart teamcity-agent
-            sleep 20
+          if [[ ! -f "${CONF}" ]]; then
+            echo "::warning::Agent conf not found, skip upgrade disable"
+            exit 0
           fi
+          if grep -q 'teamcity.agent.upgrade.disabled=true' "${CONF}"; then
+            echo "Auto-upgrade already disabled"
+            exit 0
+          fi
+          # File is created by the agent container (often root:600) — fix perms before append.
+          sudo chmod a+rw "${CONF}" || chmod a+rw "${CONF}" || true
+          echo 'teamcity.agent.upgrade.disabled=true' | sudo tee -a "${CONF}" >/dev/null
+          docker restart teamcity-agent
+          sleep 20
 
       - name: Authorize connected TeamCity agent
         run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
@@ -278,11 +286,19 @@ jobs:
             [[ -f "${CONF}" ]] && break
             sleep 2
           done
-          if [[ -f "${CONF}" ]] && ! grep -q 'teamcity.agent.upgrade.disabled=true' "${CONF}"; then
-            echo 'teamcity.agent.upgrade.disabled=true' >> "${CONF}"
-            docker restart teamcity-agent
-            sleep 20
+          if [[ ! -f "${CONF}" ]]; then
+            echo "::warning::Agent conf not found, skip upgrade disable"
+            exit 0
           fi
+          if grep -q 'teamcity.agent.upgrade.disabled=true' "${CONF}"; then
+            echo "Auto-upgrade already disabled"
+            exit 0
+          fi
+          # File is created by the agent container (often root:600) — fix perms before append.
+          sudo chmod a+rw "${CONF}" || chmod a+rw "${CONF}" || true
+          echo 'teamcity.agent.upgrade.disabled=true' | sudo tee -a "${CONF}" >/dev/null
+          docker restart teamcity-agent
+          sleep 20
 
       - name: Authorize connected TeamCity agent
         run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
@@ -402,11 +418,19 @@ jobs:
             [[ -f "${CONF}" ]] && break
             sleep 2
           done
-          if [[ -f "${CONF}" ]] && ! grep -q 'teamcity.agent.upgrade.disabled=true' "${CONF}"; then
-            echo 'teamcity.agent.upgrade.disabled=true' >> "${CONF}"
-            docker restart teamcity-agent
-            sleep 20
+          if [[ ! -f "${CONF}" ]]; then
+            echo "::warning::Agent conf not found, skip upgrade disable"
+            exit 0
           fi
+          if grep -q 'teamcity.agent.upgrade.disabled=true' "${CONF}"; then
+            echo "Auto-upgrade already disabled"
+            exit 0
+          fi
+          # File is created by the agent container (often root:600) — fix perms before append.
+          sudo chmod a+rw "${CONF}" || chmod a+rw "${CONF}" || true
+          echo 'teamcity.agent.upgrade.disabled=true' | sudo tee -a "${CONF}" >/dev/null
+          docker restart teamcity-agent
+          sleep 20
 
       - name: Authorize connected TeamCity agent
         run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
