@@ -22,8 +22,8 @@
         <awaitility.version>4.2.0</awaitility.version>
         <selenide.version>7.7.3</selenide.version>
         <exclude.groups>ui</exclude.groups>
-        <surefire.parallel>methods</surefire.parallel>
-        <junit.parallel.enabled>true</junit.parallel.enabled>
+        <surefire.parallel>none</surefire.parallel>
+        <junit.parallel.enabled>false</junit.parallel.enabled>
         <checkstyle.skip>true</checkstyle.skip>
         <checkstyle.failsOnError>true</checkstyle.failsOnError>
     </properties>

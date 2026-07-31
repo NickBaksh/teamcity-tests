@@ -2,6 +2,7 @@ package com.teamcity.api.admin;
 
 import com.teamcity.api.BaseApiTest;
 import com.teamcity.core.assertions.ApiAssertions;
+import com.teamcity.core.models.Agent;
 import com.teamcity.core.models.Build;
 import com.teamcity.core.models.BuildConfig;
 import com.teamcity.core.models.dto.RunBuildRequest;
@@ -9,14 +10,20 @@ import com.teamcity.core.testdata.TestDataValues;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+
+import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Feature("Build Management")
 @Tag("admin")
+@Execution(ExecutionMode.SAME_THREAD)
 public class AdminBuildsTest extends BaseApiTest {
     private String testProjectId;
 
@@ -25,6 +32,7 @@ public class AdminBuildsTest extends BaseApiTest {
     public void setUp() {
         super.setUp();
         testProjectId = givenProject().getId();
+        ensureAgentEnabled();
     }
 
     @Test
@@ -56,10 +64,17 @@ public class AdminBuildsTest extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void shouldGetQueuedBuildStatus() {
         BuildConfig config = givenBuildConfig(testProjectId);
-        var agent = givenAgent();
+        Agent agent = givenAgent();
         agentSteps.disableAgent(agent.getId().toString());
 
         try {
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(10))
+                    .pollInterval(Duration.ofMillis(200))
+                    .until(() -> Boolean.FALSE.equals(
+                            agentSteps.getAgent(agent.getId().toString()).getEnabled()
+                    ));
+
             Build build = givenAdminBuildRunSteps().runBuild(config.getId());
             Build queuedBuild = givenAdminBuildRunSteps().getBuild(build.getId());
 
@@ -75,7 +90,9 @@ public class AdminBuildsTest extends BaseApiTest {
     @Test
     @Severity(SeverityLevel.NORMAL)
     void shouldGetRunningBuildStatus() {
-        BuildConfig config = givenRunnableBuildConfig(testProjectId);
+        BuildConfig config = givenBuildConfig(testProjectId);
+        // Keep the build running long enough to observe state=running (echo finishes too fast).
+        buildConfigSteps.addCommandLineStep(config.getId(), "sleep 20");
 
         Build build = givenAdminBuildRunSteps().runBuild(config.getId());
 
@@ -94,7 +111,6 @@ public class AdminBuildsTest extends BaseApiTest {
     @Test
     @Severity(SeverityLevel.NORMAL)
     void shouldGetFinishedBuildStatus() {
-
         BuildConfig config = givenRunnableBuildConfig(testProjectId);
 
         Build finishedBuild = givenFinishedBuild(config.getId());
@@ -176,5 +192,12 @@ public class AdminBuildsTest extends BaseApiTest {
         ApiAssertions.assertNotFound(
                 () -> givenAdminBuildRunSteps().deleteBuild(TestDataValues.NON_EXISTENT_ID_RANDOM)
         );
+    }
+
+    private void ensureAgentEnabled() {
+        Agent agent = givenAgent();
+        if (!Boolean.TRUE.equals(agent.getEnabled())) {
+            agentSteps.enableAgent(agent.getId().toString());
+        }
     }
 }

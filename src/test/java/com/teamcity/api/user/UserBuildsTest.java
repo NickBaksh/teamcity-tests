@@ -14,11 +14,14 @@ import io.qameta.allure.SeverityLevel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Feature("Build Management")
 @Tag("user")
+@Execution(ExecutionMode.SAME_THREAD)
 public class UserBuildsTest extends BaseApiTest {
     private String testProjectId;
 
