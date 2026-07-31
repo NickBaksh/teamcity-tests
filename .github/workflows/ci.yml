@@ -93,12 +93,7 @@ jobs:
       - name: Prepare TeamCity agent directories
         run: |
           mkdir -p infra/teamcity-agent/conf infra/teamcity-agent/work
-          printf '%s\n' \
-            'serverUrl=http://teamcity-server:8111' \
-            'name=nbank-agent' \
-            'ownPort=9090' \
-            'teamcity.agent.upgrade.disabled=true' \
-            > infra/teamcity-agent/conf/buildAgent.properties
+          chmod -R a+rwx infra/teamcity-agent
 
       - name: Start TeamCity server
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server
@@ -228,12 +223,7 @@ jobs:
       - name: Prepare TeamCity agent directories
         run: |
           mkdir -p infra/teamcity-agent/conf infra/teamcity-agent/work
-          printf '%s\n' \
-            'serverUrl=http://teamcity-server:8111' \
-            'name=nbank-agent' \
-            'ownPort=9090' \
-            'teamcity.agent.upgrade.disabled=true' \
-            > infra/teamcity-agent/conf/buildAgent.properties
+          chmod -R a+rwx infra/teamcity-agent
 
       - name: Start TeamCity server + Selenoid
         run: docker compose -f "${COMPOSE_FILE}" up -d \
@@ -344,12 +334,7 @@ jobs:
       - name: Prepare TeamCity agent directories
         run: |
           mkdir -p infra/teamcity-agent/conf infra/teamcity-agent/work
-          printf '%s\n' \
-            'serverUrl=http://teamcity-server:8111' \
-            'name=nbank-agent' \
-            'ownPort=9090' \
-            'teamcity.agent.upgrade.disabled=true' \
-            > infra/teamcity-agent/conf/buildAgent.properties
+          chmod -R a+rwx infra/teamcity-agent
 
       - name: Start TeamCity server + Selenoid
         run: docker compose -f "${COMPOSE_FILE}" up -d \

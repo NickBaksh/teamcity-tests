@@ -27,10 +27,10 @@ Script: `.github/scripts/seed-teamcity-datadir.sh`, `.github/scripts/bootstrap-t
 ## TeamCity agent
 Backup restore keeps stale agent records. CI:
 1. Purges all agents from the backup (`authorize-teamcity-agent.sh purge`)
-2. Starts a fresh agent with `teamcity.agent.upgrade.disabled=true`
-3. Authorizes a connected agent that is not stuck upgrading
+2. Starts a fresh agent (conf created by the container, not a hand-written properties file)
+3. Authorizes a connected agent; if it sticks in upgrade, disables auto-upgrade and restarts
 
-Without this, builds stay queued (`no idle compatible agents`) while the agent loops on upgrade.
+Without this, builds stay queued (`no idle compatible agents`).
 
 ```bash
 # Local (needs Docker + gh auth):
