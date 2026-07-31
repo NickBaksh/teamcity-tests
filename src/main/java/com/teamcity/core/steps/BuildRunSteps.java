@@ -128,24 +128,28 @@ public class BuildRunSteps extends BaseSteps {
         Awaitility.await()
                 .atMost(Duration.ofSeconds(timeout))
                 .pollInterval(Duration.ofMillis(ConfigManager.getBuildPollInterval()))
-                .until(() -> getBuild(buildId), build ->
-                        TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(build.getState())
-                );
+                .until(() -> isBuildFinished(buildId));
 
-        // Brief settle only — do not use build.timeout here (UNKNOWN can be permanent on empty configs).
+        // Brief settle only — do not use build.timeout (UNKNOWN can stay permanent on empty configs).
         try {
             return Awaitility.await()
                     .atMost(Duration.ofSeconds(5))
                     .pollInterval(Duration.ofMillis(500))
-                    .until(() -> getBuild(buildId), build -> {
-                        String status = build.getStatus();
-                        return status != null
-                                && !status.isBlank()
-                                && !TestDataValues.BUILD_STATUS_UNKNOWN.equalsIgnoreCase(status);
-                    });
+                    .until(() -> getBuild(buildId), this::hasResolvedBuildStatus);
         } catch (ConditionTimeoutException ex) {
             log.warn("Build {} finished but status stayed UNKNOWN after settle wait", buildId);
             return getBuild(buildId);
         }
+    }
+
+    private boolean isBuildFinished(String buildId) {
+        return TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(getBuild(buildId).getState());
+    }
+
+    private boolean hasResolvedBuildStatus(Build build) {
+        String status = build.getStatus();
+        return status != null
+                && !status.isBlank()
+                && !TestDataValues.BUILD_STATUS_UNKNOWN.equalsIgnoreCase(status);
     }
 }
