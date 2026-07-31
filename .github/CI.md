@@ -28,8 +28,9 @@ Script: `.github/scripts/seed-teamcity-datadir.sh`, `.github/scripts/bootstrap-t
 Backup restore keeps stale agent records. CI:
 1. Purges all agents from the backup (`authorize-teamcity-agent.sh purge`) before starting a fresh agent
 2. Starts the agent container (it creates `buildAgent.properties` itself — do not pre-seed)
-3. Authorizes + enables the connected agent, then appends `teamcity.agent.upgrade.disabled=true` and restarts once (avoids plugins upgrade loop)
-4. Runs Maven with `-Dsurefire.parallel=none -Djunit.parallel.enabled=false` so one agent is not overloaded
+3. Appends `teamcity.agent.upgrade.disabled=true` and restarts once (avoids plugins upgrade loop)
+4. Authorizes + enables the connected agent (`authorized:any` locator; no unsupported `includeDisconnected`)
+5. Runs Maven with `-Dsurefire.parallel=none -Djunit.parallel.enabled=false` so one agent is not overloaded
 
 Without this, builds stay queued with `There are no idle compatible agents which can run this build`.
 

@@ -1,33 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage:
-#   authorize-teamcity-agent.sh purge [baseUrl] [user] [pass]
-#   authorize-teamcity-agent.sh authorize [baseUrl] [user] [pass] [timeoutSec] [sleepSec]
-#   authorize-teamcity-agent.sh [baseUrl] [user] [pass] [timeoutSec] [sleepSec]   # legacy → authorize
+# Known-good authorize flow (based on 9506f58), fixed for TeamCity 2026.1:
+# - locator authorized:any (default hides unauthorized agents)
+# - do NOT use includeDisconnected (unsupported → HTTP 400)
 
-MODE="${1:-authorize}"
-BASE_URL="${2:-http://localhost:8111}"
-ADMIN_USER="${3:-admin}"
-ADMIN_PASS="${4:-admin}"
-TIMEOUT_SECONDS="${5:-420}"
-SLEEP_SECONDS="${6:-5}"
+BASE_URL="${1:-http://localhost:8111}"
+ADMIN_USER="${2:-admin}"
+ADMIN_PASS="${3:-admin}"
+TIMEOUT_SECONDS="${4:-300}"
+SLEEP_SECONDS="${5:-5}"
 
-if [[ "${MODE}" != "purge" && "${MODE}" != "authorize" ]]; then
-  BASE_URL="${1:-http://localhost:8111}"
-  ADMIN_USER="${2:-admin}"
-  ADMIN_PASS="${3:-admin}"
-  TIMEOUT_SECONDS="${4:-420}"
-  SLEEP_SECONDS="${5:-5}"
+if [[ "${1:-}" == "purge" || "${1:-}" == "authorize" ]]; then
+  MODE="$1"
+  BASE_URL="${2:-http://localhost:8111}"
+  ADMIN_USER="${3:-admin}"
+  ADMIN_PASS="${4:-admin}"
+  TIMEOUT_SECONDS="${5:-300}"
+  SLEEP_SECONDS="${6:-5}"
+else
   MODE="authorize"
 fi
 
 REST="${BASE_URL%/}/app/rest"
 AUTH=(-u "${ADMIN_USER}:${ADMIN_PASS}")
-# Do not request unknown fields (e.g. "upgrading") — TeamCity returns HTTP 400 and lists nothing.
-FIELDS='agent(id,name,connected,authorized,enabled,uptodate)'
-AGENT_CONF="${TEAMCITY_AGENT_CONF:-infra/teamcity-agent/conf/buildAgent.properties}"
-CONTAINER="${TEAMCITY_AGENT_CONTAINER:-teamcity-agent}"
+FIELDS='agent(id,name,connected,authorized,enabled)'
+LOCATOR='authorized:any'
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "jq is required" >&2
@@ -35,20 +33,8 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 list_agents() {
-  local code body
-  body="$(mktemp)"
-  code="$(curl -sS -o "${body}" -w '%{http_code}' "${AUTH[@]}" -H 'Accept: application/json' \
-    "${REST}/agents?locator=includeDisconnected:true&fields=${FIELDS}" || echo "000")"
-  if [[ "${code}" != "200" ]]; then
-    echo "WARN: list agents HTTP ${code}" >&2
-    cat "${body}" >&2 || true
-    echo >&2
-    rm -f "${body}"
-    echo '{"agent":[]}'
-    return 0
-  fi
-  cat "${body}"
-  rm -f "${body}"
+  curl -fsS "${AUTH[@]}" -H 'Accept: application/json' \
+    "${REST}/agents?locator=${LOCATOR}&fields=${FIELDS}"
 }
 
 delete_agent() {
@@ -58,9 +44,21 @@ delete_agent() {
     -X DELETE "${REST}/agents/id:${id}" || true
 }
 
+purge_disconnected() {
+  local payload ids
+  payload="$(list_agents || echo '{"agent":[]}')"
+  ids="$(echo "${payload}" | jq -r '.agent // [] | .[] | select((.connected // false) != true) | .id')"
+  [[ -z "${ids}" ]] && return 0
+  while IFS= read -r id; do
+    [[ -n "${id}" ]] || continue
+    echo "Deleting disconnected/stale agent id=${id}"
+    delete_agent "${id}"
+  done <<< "${ids}"
+}
+
 purge_all_agents() {
   local payload ids
-  payload="$(list_agents)"
+  payload="$(list_agents || echo '{"agent":[]}')"
   echo "${payload}"
   ids="$(echo "${payload}" | jq -r '.agent // [] | .[] | .id')"
   [[ -z "${ids}" ]] && {
@@ -83,51 +81,30 @@ put_status() {
     "${REST}${path}"
 }
 
-disable_upgrade_and_restart() {
-  local waited=0
-  while [[ ! -f "${AGENT_CONF}" && "${waited}" -lt 90 ]]; do
-    echo "Waiting for agent conf: ${AGENT_CONF}"
-    sleep 2
-    waited=$((waited + 2))
-  done
-  if [[ ! -f "${AGENT_CONF}" ]]; then
-    echo "Agent conf not ready: ${AGENT_CONF}" >&2
-    return 1
-  fi
-  if grep -q 'teamcity.agent.upgrade.disabled=true' "${AGENT_CONF}"; then
-    echo "Auto-upgrade already disabled in agent conf."
-    return 0
-  fi
-  echo "Disabling agent auto-upgrade and restarting ${CONTAINER}..."
-  echo 'teamcity.agent.upgrade.disabled=true' >> "${AGENT_CONF}"
-  docker restart "${CONTAINER}" >/dev/null
-  sleep 25
-}
-
 if [[ "${MODE}" == "purge" ]]; then
   echo "Purging all TeamCity agents at ${BASE_URL}..."
   purge_all_agents
   exit 0
 fi
 
-echo "Authorizing connected TeamCity agent at ${BASE_URL}..."
+echo "Preparing connected TeamCity agent at ${BASE_URL}..."
 
-UPGRADE_FIX_ATTEMPTED=0
 end=$((SECONDS + TIMEOUT_SECONDS))
 while (( SECONDS < end )); do
-  payload="$(list_agents)"
+  purge_disconnected || true
+
+  payload="$(list_agents || echo '{"agent":[]}')"
   echo "${payload}"
 
   id="$(echo "${payload}" | jq -r '
     (.agent // [])
     | map(select((.connected // false) == true))
-    | (map(select((.authorized // false) != true)) + .)
+    | (map(select((.authorized // false) != true)) + map(select((.authorized // false) == true)))
     | .[0].id // empty
   ')"
 
   if [[ -z "${id}" ]]; then
     echo "No connected agent yet; waiting..."
-    docker ps -a --filter "name=^/${CONTAINER}$" --format '{{.Names}} {{.Status}}' || true
     sleep "${SLEEP_SECONDS}"
     continue
   fi
@@ -141,11 +118,8 @@ while (( SECONDS < end )); do
   enabled="$(echo "${payload}" | jq -r --arg id "${id}" '
     (.agent // [])[] | select((.id|tostring) == $id) | .enabled // false
   ')"
-  uptodate="$(echo "${payload}" | jq -r --arg id "${id}" '
-    (.agent // [])[] | select((.id|tostring) == $id) | .uptodate // true
-  ')"
 
-  echo "Using agent id=${id} name=${name} authorized=${authorized} enabled=${enabled} uptodate=${uptodate}"
+  echo "Using connected agent id=${id} name=${name} authorized=${authorized} enabled=${enabled}"
 
   if [[ "${authorized}" != "true" ]]; then
     code="$(put_status "/agents/id:${id}/authorizedInfo")"
@@ -162,28 +136,19 @@ while (( SECONDS < end )); do
     echo "enable HTTP=${code}"
   fi
 
-  # Stop plugins upgrade loop that leaves the agent unable to take builds.
-  if [[ "${UPGRADE_FIX_ATTEMPTED}" -eq 0 ]]; then
-    UPGRADE_FIX_ATTEMPTED=1
-    disable_upgrade_and_restart || true
-    sleep "${SLEEP_SECONDS}"
-    continue
-  fi
-
   payload="$(list_agents)"
-  ready="$(echo "${payload}" | jq -r '
+  ready="$(echo "${payload}" | jq -r --arg id "${id}" '
     (.agent // [])[]
-    | select((.connected // false) == true
-        and (.authorized // false) == true
-        and (.enabled // false) == true)
+    | select((.id|tostring) == $id)
+    | select((.connected // false) == true and (.authorized // false) == true)
     | .id
-  ' | head -n1)"
+  ')"
 
   if [[ -n "${ready}" ]]; then
-    echo "Agent id=${ready} is ready for builds."
+    echo "Connected agent id=${ready} is authorized and ready for builds."
     echo "${payload}" | jq -r '
       (.agent // [])[]
-      | "\(.id) \(.name) connected=\(.connected) authorized=\(.authorized) enabled=\(.enabled) uptodate=\(.uptodate)"
+      | "\(.id) \(.name) connected=\(.connected) authorized=\(.authorized) enabled=\(.enabled)"
     '
     exit 0
   fi
@@ -191,7 +156,6 @@ while (( SECONDS < end )); do
   sleep "${SLEEP_SECONDS}"
 done
 
-echo "Timed out waiting for a ready TeamCity agent." >&2
+echo "Timed out waiting for a connected authorized TeamCity agent." >&2
 list_agents >&2 || true
-docker logs "${CONTAINER}" --tail 120 >&2 || true
 exit 1

@@ -125,8 +125,21 @@ jobs:
       - name: Start TeamCity agent
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-agent
 
+      - name: Disable agent auto-upgrade
+        run: |
+          CONF=infra/teamcity-agent/conf/buildAgent.properties
+          for i in $(seq 1 60); do
+            [[ -f "${CONF}" ]] && break
+            sleep 2
+          done
+          if [[ -f "${CONF}" ]] && ! grep -q 'teamcity.agent.upgrade.disabled=true' "${CONF}"; then
+            echo 'teamcity.agent.upgrade.disabled=true' >> "${CONF}"
+            docker restart teamcity-agent
+            sleep 20
+          fi
+
       - name: Authorize connected TeamCity agent
-        run: .github/scripts/authorize-teamcity-agent.sh authorize "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
+        run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
 
       - name: Smoke API gate
         run: >
@@ -258,8 +271,21 @@ jobs:
       - name: Start TeamCity agent
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-agent
 
+      - name: Disable agent auto-upgrade
+        run: |
+          CONF=infra/teamcity-agent/conf/buildAgent.properties
+          for i in $(seq 1 60); do
+            [[ -f "${CONF}" ]] && break
+            sleep 2
+          done
+          if [[ -f "${CONF}" ]] && ! grep -q 'teamcity.agent.upgrade.disabled=true' "${CONF}"; then
+            echo 'teamcity.agent.upgrade.disabled=true' >> "${CONF}"
+            docker restart teamcity-agent
+            sleep 20
+          fi
+
       - name: Authorize connected TeamCity agent
-        run: .github/scripts/authorize-teamcity-agent.sh authorize "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
+        run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
 
       - name: Wait for Selenoid
         run: .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5
@@ -369,8 +395,21 @@ jobs:
       - name: Start TeamCity agent
         run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-agent
 
+      - name: Disable agent auto-upgrade
+        run: |
+          CONF=infra/teamcity-agent/conf/buildAgent.properties
+          for i in $(seq 1 60); do
+            [[ -f "${CONF}" ]] && break
+            sleep 2
+          done
+          if [[ -f "${CONF}" ]] && ! grep -q 'teamcity.agent.upgrade.disabled=true' "${CONF}"; then
+            echo 'teamcity.agent.upgrade.disabled=true' >> "${CONF}"
+            docker restart teamcity-agent
+            sleep 20
+          fi
+
       - name: Authorize connected TeamCity agent
-        run: .github/scripts/authorize-teamcity-agent.sh authorize "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
+        run: .github/scripts/authorize-teamcity-agent.sh "${TC_URL}" "${TC_ADMIN_USER}" "${TC_ADMIN_PASS}" 420 5
 
       - name: Wait for Selenoid
         run: .github/scripts/wait-for-url.sh "http://localhost:4444/status" 180 5
