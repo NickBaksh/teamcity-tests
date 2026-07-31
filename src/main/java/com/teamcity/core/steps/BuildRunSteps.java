@@ -6,7 +6,6 @@ import com.teamcity.core.config.ConfigManager;
 import com.teamcity.core.endpoints.Endpoint;
 import com.teamcity.core.models.Build;
 import com.teamcity.core.models.dto.BuildCancelRequest;
-import com.teamcity.core.models.dto.BuildQueuePausedState;
 import com.teamcity.core.models.dto.RunBuildRequest;
 import com.teamcity.core.testdata.TestDataValues;
 import io.qameta.allure.Step;
@@ -91,23 +90,10 @@ public class BuildRunSteps extends BaseSteps {
                                 "No builds found for config: " + buildTypeId));
     }
 
-    @Step("Set build queue paused: {paused}")
-    public void setBuildQueuePaused(boolean paused, String reason) {
-        BuildQueuePausedState request = BuildQueuePausedState.builder()
-                .paused(paused)
-                .reason(reason)
-                .build();
-        // TeamCity often returns an empty body / no content-type here — do not deserialize.
-        Response response = client.put(Endpoint.BUILD_QUEUE_PAUSED_STATE.getPath(), request);
-        validator.validateStatus(response);
-        log.info("Build queue paused={}", paused);
-    }
-
     @Step("Cancel build: {buildId}")
     public void cancelBuild(String buildId, String comment) {
         BuildCancelRequest request = new BuildCancelRequest();
         request.setComment(comment);
-        request.setReaddIntoQueue(false);
         Response response = client.post(Endpoint.BUILD.format(buildId), request);
         // Queued builds may reject cancel-on-build; drop them from the queue instead.
         if (response.getStatusCode() >= 400) {
