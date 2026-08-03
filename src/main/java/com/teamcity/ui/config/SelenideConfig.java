@@ -35,16 +35,21 @@ public final class SelenideConfig {
         }
 
         if (selenoidUrl != null && !selenoidUrl.isEmpty() && !"null".equalsIgnoreCase(selenoidUrl)) {
-            if (selenoidUrl.endsWith("/wd/hub")) {
-                Configuration.remote = selenoidUrl;
-            } else {
-                Configuration.remote = selenoidUrl + "/wd/hub";
+            // Selenide 7 / Selenium 4 talk to Selenoid at the hub root (/session),
+            // not at the legacy Selenium 3 path (/wd/hub/session).
+            String remote = selenoidUrl.trim();
+            while (remote.endsWith("/")) {
+                remote = remote.substring(0, remote.length() - 1);
             }
+            if (remote.endsWith("/wd/hub")) {
+                remote = remote.substring(0, remote.length() - "/wd/hub".length());
+            }
+            Configuration.remote = remote;
 
             DesiredCapabilities capabilities = getDesiredCapabilities();
             Configuration.browserCapabilities = capabilities;
 
-            System.out.println("Using Selenoid at: " + selenoidUrl);
+            System.out.println("Using Selenoid at: " + remote);
             System.out.println("Browser: " + ConfigManager.getBrowser());
             System.out.println("Headless: " + ConfigManager.isHeadless());
         } else {
