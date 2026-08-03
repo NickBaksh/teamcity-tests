@@ -182,6 +182,8 @@ public abstract class BaseApiTest {
     @Step("Create tracked user from request")
     protected User givenUser(User request) {
         User created = userSteps.createUser(request);
+        // API response never returns the password — keep the one we sent.
+        created.setPassword(request.getPassword());
         trackUser(created.getUsername());
         return created;
     }

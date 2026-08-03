@@ -1,5 +1,6 @@
 package com.teamcity.ui.pages;
 
+import com.codeborne.selenide.ClickOptions;
 import com.codeborne.selenide.CollectionCondition;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
@@ -13,6 +14,9 @@ public class AgentsPage {
     private final ElementsCollection agents = $$("[data-test='agent']");
     private final SelenideElement allAgentsTab =
             $("[data-test='ring-link'][data-test-selected='true']");
+    private final SelenideElement disableDialog = $(
+            "[data-test='ring-dialog'], .ring-dialog, .modalDialog"
+    );
     private final SelenideElement disableButton = $$("button").findBy(text("Disable"));
 
     @Step("Open agents page")
@@ -49,9 +53,13 @@ public class AgentsPage {
 
     @Step("Confirm disabling agent")
     public AgentsPage confirmDisableAgent() {
-        disableButton.shouldBe(enabled)
-                .click();
-        disableButton.should(disappear);
+        SelenideElement confirm = disableDialog.exists()
+                ? disableDialog.$$("button").findBy(text("Disable"))
+                : disableButton;
+        confirm.scrollIntoView("{block: 'center'}")
+                .shouldBe(visible, enabled)
+                .click(ClickOptions.usingJavaScript());
+        confirm.should(disappear);
 
         return this;
     }

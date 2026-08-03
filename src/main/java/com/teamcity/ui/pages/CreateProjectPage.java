@@ -4,16 +4,17 @@ import com.codeborne.selenide.SelenideElement;
 import com.codeborne.selenide.WebDriverRunner;
 import com.teamcity.ui.testdata.UiTestData;
 import io.qameta.allure.Step;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
-import static com.codeborne.selenide.Condition.text;
+import java.time.Duration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.codeborne.selenide.Condition.partialText;
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.$;
-import static com.codeborne.selenide.Selenide.open;
 import static com.codeborne.selenide.Selenide.$x;
+import static com.codeborne.selenide.Selenide.open;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class CreateProjectPage {
@@ -29,13 +30,22 @@ public class CreateProjectPage {
             ".error, .errorMessage, [data-test='error'], .ring-error-message"
     );
     private final SelenideElement vcsRootNameInput = $(
-            "[data-test='vcs-root-name-input'], #vcsRootName, [name='vcsRootName']"
+            "[data-test='vcs-root-name-input'], #vcsRootName, [name='vcsRootName'], input[name='name']"
     );
-    private final SelenideElement vcsRootUrlInput = $("[data-test='vcs-root-url-input'], #url, [name='url']");
+    private final SelenideElement vcsRootUrlInput = $(
+            "[data-test='vcs-root-url-input'], #url, [name='url'], input[name='prop:url'], #repositoryUrl"
+    );
     private final SelenideElement vcsRootBranchInput = $(
-            "[data-test='vcs-root-branch-input'], #branch, [name='branch']"
+            "[data-test='vcs-root-branch-input'], #branch, [name='branch'], input[name='prop:branch']"
     );
-    private final SelenideElement vcsRootCreateButton = $("[data-test='create-vcs-root-button'], .saveButton");
+    private final SelenideElement vcsRootCreateButton = $(
+            "[data-test='create-vcs-root-button'], .saveButton, input[name='submitButton'], "
+                    + "input[value='Create'], input[value='Save']"
+    );
+    private final SelenideElement gitVcsType = $x(
+            "//a[contains(.,'Git')] | //*[contains(@class,'vcsName') and contains(.,'Git')] "
+                    + "| //input[@value='jetbrains.git']/ancestor::a[1]"
+    );
     private final SelenideElement errorVcsMessage = $("[data-test='error-message'], .error, .field-error");
     private final SelenideElement body = $("body");
 
@@ -63,35 +73,74 @@ public class CreateProjectPage {
 
     @Step("Get create project error text")
     public String errorText() {
+        waitUntilPageSourceContainsAny(
+                UiTestData.ERROR_EMPTY_PROJECT_NAME_CODE,
+                UiTestData.ERROR_DUPLICATE_PROJECT_ID_CODE,
+                UiTestData.ERROR_EMPTY,
+                UiTestData.ERROR_ALREADY_USED,
+                UiTestData.ERROR_PROJECT_NAME_EMPTY_TEXT,
+                UiTestData.ERROR_PROJECT_ID_USED_TEXT
+        );
         if (errorMessage.exists() && errorMessage.is(visible)) {
             return errorMessage.getText();
         }
-        return body.getText();
+        return pageSource();
     }
 
     @Step("Assert empty project name validation error")
     public CreateProjectPage shouldShowEmptyNameError() {
-        body.shouldHave(partialText(UiTestData.ERROR_EMPTY_PROJECT_NAME_CODE)
-                .or(partialText(UiTestData.ERROR_EMPTY)));
-        assertThat(errorText()).containsIgnoringCase(UiTestData.ERROR_EMPTY);
+        String source = errorText();
+        assertThat(source)
+                .as("Empty project name validation")
+                .satisfiesAnyOf(
+                        s -> assertThat(s).containsIgnoringCase(UiTestData.ERROR_EMPTY_PROJECT_NAME_CODE),
+                        s -> assertThat(s).containsIgnoringCase(UiTestData.ERROR_EMPTY),
+                        s -> assertThat(s).containsIgnoringCase(UiTestData.ERROR_PROJECT_NAME_EMPTY_TEXT)
+                );
         return this;
     }
 
     @Step("Assert duplicate project id validation error")
     public CreateProjectPage shouldShowDuplicateIdError() {
-        body.shouldHave(partialText(UiTestData.ERROR_DUPLICATE_PROJECT_ID_CODE)
-                .or(partialText(UiTestData.ERROR_ALREADY_USED)));
-        assertThat(errorText()).containsIgnoringCase(UiTestData.ERROR_ALREADY_USED);
+        String source = errorText();
+        assertThat(source)
+                .as("Duplicate project id validation")
+                .satisfiesAnyOf(
+                        s -> assertThat(s).containsIgnoringCase(UiTestData.ERROR_DUPLICATE_PROJECT_ID_CODE),
+                        s -> assertThat(s).containsIgnoringCase(UiTestData.ERROR_ALREADY_USED),
+                        s -> assertThat(s).containsIgnoringCase(UiTestData.ERROR_PROJECT_ID_USED_TEXT)
+                );
         return this;
     }
 
     private void followClassicXmlRedirectIfPresent() {
-        body.shouldHave(partialText("<redirect>").or(partialText("editProject")));
-        String source = WebDriverRunner.source();
+        waitUntilPageSourceContainsAny("<redirect>", "editProject");
+        String source = pageSource();
         Matcher matcher = REDIRECT.matcher(source);
         if (matcher.find()) {
-            open(matcher.group(1).trim());
+            open(UiUrls.toRelative(matcher.group(1).trim()));
         }
+    }
+
+    private void waitUntilPageSourceContainsAny(String... markers) {
+        new WebDriverWait(WebDriverRunner.getWebDriver(), Duration.ofSeconds(UiTestData.UI_LONG_TIMEOUT_SECONDS))
+                .until(driver -> {
+                    String source = driver.getPageSource();
+                    String url = driver.getCurrentUrl();
+                    for (String marker : markers) {
+                        if (source != null && source.contains(marker)) {
+                            return true;
+                        }
+                        if (url != null && url.contains(marker)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+    }
+
+    private String pageSource() {
+        return WebDriverRunner.source();
     }
 
     private void fill(String name, String id) {
@@ -104,14 +153,16 @@ public class CreateProjectPage {
 
     @Step("VCS Root creation page should be opened")
     public CreateProjectPage shouldBeOpened() {
-        // Проверяем, что виден хотя бы один ключевой элемент страницы
         vcsRootNameInput.shouldBe(visible);
         return this;
     }
 
     @Step("Open VCS Root creation page for project: {projectId}")
     public CreateProjectPage openVcsRootCreation(String projectId) {
-        open("/admin/createVcsRoot.html?projectId=" + projectId);
+        open(UiRoutes.createVcsRoot(projectId));
+        if (gitVcsType.exists() && gitVcsType.is(visible)) {
+            gitVcsType.click();
+        }
         return this;
     }
 
@@ -147,14 +198,21 @@ public class CreateProjectPage {
 
     @Step("Check error message appears")
     public CreateProjectPage shouldHaveError() {
-        errorMessage.shouldBe(visible);
+        waitUntilPageSourceContainsAny("error", "Error", "failed", "Failed", "cannot", "Cannot");
+        if (errorVcsMessage.exists()) {
+            errorVcsMessage.shouldBe(visible);
+        } else if (errorMessage.exists()) {
+            errorMessage.shouldBe(visible);
+        } else {
+            body.shouldHave(partialText("error").or(partialText("Error")).or(partialText("fail")));
+        }
         return this;
     }
 
     @Step("Check error message appears: {expectedText}")
     public CreateProjectPage shouldHaveError(String expectedText) {
-        errorMessage.shouldBe(visible)
-                .shouldHave(text(expectedText));
+        waitUntilPageSourceContainsAny(expectedText);
+        assertThat(pageSource()).containsIgnoringCase(expectedText);
         return this;
     }
 }

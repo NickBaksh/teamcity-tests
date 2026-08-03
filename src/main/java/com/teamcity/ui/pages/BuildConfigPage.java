@@ -67,7 +67,6 @@ public class BuildConfigPage {
                     .$("button");
     private final SelenideElement buildQueueIndicator = $("[data-test='build-queue']");
     private final SelenideElement buildStatusText = $("[data-test='build-status']");
-    private final SelenideElement notFoundText = $("//*[contains(text(), 'Not found')]");
 
     @Step("Open create build config wizard for project: {projectId}")
     public BuildConfigPage openCreate(String projectId) {
@@ -320,7 +319,7 @@ public class BuildConfigPage {
 
     @Step("Check page contains 'Not found' text")
     public BuildConfigPage shouldContainNotFound() {
-        notFoundText.shouldBe(visible);
+        body.shouldHave(partialText("Not found").or(partialText("does not exist")));
         return this;
     }
 

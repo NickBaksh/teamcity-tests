@@ -49,4 +49,9 @@ public final class UiRoutes {
         return "/admin/editRunType.html?id=buildType:" + buildConfigId
                 + "&runnerId=__NEW_RUNNER__&init=1";
     }
+
+    public static String createVcsRoot(String projectId) {
+        // TeamCity 202x removed createVcsRoot.html; classic create form is editVcsRoot.html
+        return "/admin/editVcsRoot.html?action=addVcsRoot&projectId=" + projectId;
+    }
 }
