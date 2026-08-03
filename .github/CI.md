@@ -14,6 +14,9 @@
 1. `build_and_lint` — compile + checkstyle (`-Dcheckstyle.skip=false`)
 2. `api_tests` — seed datadir, TeamCity up, REST ready, smoke, full API, Allure, artifacts
 3. `ui_tests_chrome` / `ui_tests_firefox` — enabled via repo variable `ENABLE_UI_MATRIX=true`
+   - Compose `pull`/`up` must be single-line (YAML `\` continuation breaks service names)
+   - Pre-pulls `selenoid/chrome:126.0` and `selenoid/firefox:127.0` (not compose services)
+   - Browser opens `http://teamcity-server:8111` (docker DNS); API stays on `localhost:8111`
 4. `report_notify` — Telegram always
 
 ## TeamCity seed (option 1)
@@ -68,6 +71,6 @@ Settings → Branches → Protect `main`:
 
 ## Triggers
 - `workflow_dispatch`
-- push: `main`, `tests/**`, `ci/**`, `feature/**`
+- push: `main`, `tests/**`, `ci/**`, `feature/**`, `fix/**`
 - pull_request → `main`
 - ignores markdown/docs-only changes

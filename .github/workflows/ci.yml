@@ -8,6 +8,7 @@ on:
       - "tests/**"
       - "ci/**"
       - "feature/**"
+      - "fix/**"
     paths-ignore:
       - "**/*.md"
       - "docs/**"
@@ -230,11 +231,11 @@ jobs:
           chmod +x mvnw
 
       - name: Pull images
-        run: docker compose -f "${COMPOSE_FILE}" pull \
-          teamcity-server \
-          teamcity-agent \
-          selenoid \
-          selenoid-ui
+        run: |
+          docker compose -f "${COMPOSE_FILE}" pull teamcity-server teamcity-agent selenoid selenoid-ui
+          # Selenoid spawns these as sibling containers — not compose services.
+          docker pull selenoid/chrome:126.0
+          docker pull selenoid/firefox:127.0
 
       - name: Seed TeamCity datadir from release backup
         env:
@@ -248,10 +249,7 @@ jobs:
           chmod -R a+rwx infra/teamcity-agent
 
       - name: Start TeamCity server + Selenoid
-        run: docker compose -f "${COMPOSE_FILE}" up -d \
-          teamcity-server \
-          selenoid \
-          selenoid-ui
+        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server selenoid selenoid-ui
 
       - name: Start backend stack
         run: docker compose -f "${COMPOSE_FILE}" up -d postgres backend
@@ -314,6 +312,7 @@ jobs:
           ./mvnw -B test
           -Denv=ci-host
           -Dbrowser=chrome
+          -Dui.base.url=http://teamcity-server:8111
           -Dexclude.groups=
           -Dgroups=ui
           -Dsurefire.parallel=none
@@ -398,11 +397,11 @@ jobs:
           chmod +x mvnw
 
       - name: Pull images
-        run: docker compose -f "${COMPOSE_FILE}" pull \
-          teamcity-server \
-          teamcity-agent \
-          selenoid \
-          selenoid-ui
+        run: |
+          docker compose -f "${COMPOSE_FILE}" pull teamcity-server teamcity-agent selenoid selenoid-ui
+          # Selenoid spawns these as sibling containers — not compose services.
+          docker pull selenoid/chrome:126.0
+          docker pull selenoid/firefox:127.0
 
       - name: Seed TeamCity datadir from release backup
         env:
@@ -416,10 +415,7 @@ jobs:
           chmod -R a+rwx infra/teamcity-agent
 
       - name: Start TeamCity server + Selenoid
-        run: docker compose -f "${COMPOSE_FILE}" up -d \
-          teamcity-server \
-          selenoid \
-          selenoid-ui
+        run: docker compose -f "${COMPOSE_FILE}" up -d teamcity-server selenoid selenoid-ui
 
       - name: Start backend stack
         run: docker compose -f "${COMPOSE_FILE}" up -d postgres backend
@@ -482,6 +478,7 @@ jobs:
           ./mvnw -B test
           -Denv=ci-host
           -Dbrowser=firefox
+          -Dui.base.url=http://teamcity-server:8111
           -Dexclude.groups=
           -Dgroups=ui
           -Dsurefire.parallel=none
