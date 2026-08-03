@@ -52,7 +52,7 @@ jobs:
         run: |
           docker compose -f "${COMPOSE_FILE}" pull teamcity-server teamcity-agent selenoid selenoid-ui
           docker pull selenoid/chrome:126.0
-          docker pull selenoid/firefox:127.0
+          docker pull selenoid/firefox:125.0
 
       - name: Seed TeamCity datadir from release backup
         env:
