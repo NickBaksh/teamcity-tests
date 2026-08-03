@@ -5,7 +5,7 @@
       "126.0": {
         "image": "selenoid/chrome:126.0",
         "port": "4444",
-        "path": "/wd/hub",
+        "path": "/",
         "env": ["TZ=Europe/Moscow"]
       }
     }

@@ -309,7 +309,7 @@ jobs:
 
       - name: Run UI tests (Chrome)
         env:
-          SELENIDE_REMOTE_URL: http://localhost:4444
+          SELENIDE_REMOTE_URL: http://localhost:4444/wd/hub
         run: >
           ./mvnw -B test
           -Denv=ci-host
@@ -475,7 +475,7 @@ jobs:
 
       - name: Run UI tests (Firefox)
         env:
-          SELENIDE_REMOTE_URL: http://localhost:4444
+          SELENIDE_REMOTE_URL: http://localhost:4444/wd/hub
         run: >
           ./mvnw -B test
           -Denv=ci-host

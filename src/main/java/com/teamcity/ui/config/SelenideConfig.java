@@ -35,14 +35,13 @@ public final class SelenideConfig {
         }
 
         if (selenoidUrl != null && !selenoidUrl.isEmpty() && !"null".equalsIgnoreCase(selenoidUrl)) {
-            // Selenide 7 / Selenium 4 talk to Selenoid at the hub root (/session),
-            // not at the legacy Selenium 3 path (/wd/hub/session).
+            // Classic Selenoid hub endpoint is /wd/hub (not Selenium Grid 4 root).
             String remote = selenoidUrl.trim();
             while (remote.endsWith("/")) {
                 remote = remote.substring(0, remote.length() - 1);
             }
-            if (remote.endsWith("/wd/hub")) {
-                remote = remote.substring(0, remote.length() - "/wd/hub".length());
+            if (!remote.endsWith("/wd/hub")) {
+                remote = remote + "/wd/hub";
             }
             Configuration.remote = remote;
 

@@ -101,7 +101,7 @@ jobs:
 
       - name: Run UI tests (${{ matrix.browser }})
         env:
-          SELENIDE_REMOTE_URL: http://localhost:4444
+          SELENIDE_REMOTE_URL: http://localhost:4444/wd/hub
         run: >
           ./mvnw -B test
           -Denv=ci-host
