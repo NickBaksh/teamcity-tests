@@ -47,6 +47,7 @@ ${SWAGGER_LINE}"
 curl -fsS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
   --data-urlencode "chat_id=${CHAT_ID}" \
   --data-urlencode "text=${TEXT}" \
+  --data-urlencode "disable_web_page_preview=true" \
   >/dev/null
 
 echo "Telegram notification sent (${STATUS})."
