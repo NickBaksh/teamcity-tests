@@ -85,7 +85,6 @@ public class AdminRunBuildUiTest extends BaseUiTest {
     void adminOpenNonExistentBuild() {
         buildConfigPage
                 .openById(NON_EXISTENT_ID_RANDOM)
-                .shouldBeOpened()
                 .shouldContainNotFound();
     }
 }

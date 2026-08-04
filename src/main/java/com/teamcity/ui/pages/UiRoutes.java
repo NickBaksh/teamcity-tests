@@ -2,9 +2,6 @@ package com.teamcity.ui.pages;
 
 import com.teamcity.core.testdata.TestDataValues;
 
-/**
- * Relative UI paths for TeamCity pages used by Page Objects.
- */
 public final class UiRoutes {
 
     private UiRoutes() {
@@ -48,5 +45,32 @@ public final class UiRoutes {
     public static String editRunTypeNew(String buildConfigId) {
         return "/admin/editRunType.html?id=buildType:" + buildConfigId
                 + "&runnerId=__NEW_RUNNER__&init=1";
+    }
+
+    public static String createVcsRoot(String projectId) {
+        String cameFrom = projectVcsRoots(projectId);
+        return "/admin/editVcsRoot.html?action=addVcsRoot"
+                + "&projectId=" + projectId
+                + "&cameFromUrl=" + urlEncode(cameFrom);
+    }
+
+    public static String createGitVcsRoot(String projectId) {
+        String cameFrom = projectVcsRoots(projectId);
+        return "/admin/editVcsRoot.html?action=addVcsRoot"
+                + "&projectId=" + projectId
+                + "&vcsName=jetbrains.git"
+                + "&cameFromUrl=" + urlEncode(cameFrom);
+    }
+
+    public static String projectVcsRoots(String projectId) {
+        return "/admin/editProject.html?projectId=" + projectId + "&tab=projectVcsRoots";
+    }
+
+    public static String projectVcsRootsAlt(String projectId) {
+        return "/admin/editProject.html?projectId=" + projectId + "&tab=vcsRoots";
+    }
+
+    private static String urlEncode(String value) {
+        return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8);
     }
 }

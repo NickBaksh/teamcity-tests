@@ -182,6 +182,7 @@ public abstract class BaseApiTest {
     @Step("Create tracked user from request")
     protected User givenUser(User request) {
         User created = userSteps.createUser(request);
+        created.setPassword(request.getPassword());
         trackUser(created.getUsername());
         return created;
     }
@@ -269,8 +270,6 @@ public abstract class BaseApiTest {
 
     @Step("Get first available agent")
     protected Agent givenAgent() {
-        // Prefer the newest connected agent — backup ghosts (low ids) often stay authorized
-        // and confuse disable/enable while the live docker agent has a higher id.
         return agentSteps.getConnectedAgents().stream()
                 .filter(agent -> Boolean.TRUE.equals(agent.getAuthorized()))
                 .max(java.util.Comparator.comparing(Agent::getId))

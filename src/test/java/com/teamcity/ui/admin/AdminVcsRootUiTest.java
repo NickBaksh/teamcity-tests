@@ -30,20 +30,16 @@ public class AdminVcsRootUiTest extends BaseUiTest {
     @Test
     @Severity(SeverityLevel.NORMAL)
     void adminCannotCreateVcsRootWithInvalidUrl() {
-        String invalidUrl = TestDataValues.VCS_ROOT_URL;
-        String vcsRootName = TestDataValues.VCS_ROOT_RANDOM_NAME;
+        String invalidUrl = "not-a-valid-vcs-url";
 
         createProjectPage
                 .openVcsRootCreation(projectId)
                 .shouldBeOpened()
-                .setVcsRootName(vcsRootName)
                 .setVcsRootUrl(invalidUrl)
                 .clickCreate()
                 .shouldHaveError();
 
-        assertThat(vcsRootSteps.getVcsRootsByProject(projectId))
-                .as("VCS Root should not be created with invalid URL")
-                .noneMatch(vcsRoot -> vcsRootName.equals(vcsRoot.getName()));
+        assertThat(vcsRootSteps.getVcsRootsByProject(projectId)).isEmpty();
     }
 
     @Test
@@ -52,8 +48,7 @@ public class AdminVcsRootUiTest extends BaseUiTest {
         String vcsRootName = "VCS Without Branch";
 
         createProjectPage
-                .openVcsRootCreation(projectId)
-                .shouldBeOpened()
+                .openGitVcsRootCreation(projectId)
                 .setVcsRootName(vcsRootName)
                 .setVcsRootUrl(TestDataValues.VCS_ROOT_URL)
                 .clearBranch()
@@ -61,7 +56,6 @@ public class AdminVcsRootUiTest extends BaseUiTest {
                 .shouldHaveError();
 
         assertThat(vcsRootSteps.getVcsRootsByProject(projectId))
-                .as("VCS Root should not be created without branch")
                 .noneMatch(vcsRoot -> vcsRootName.equals(vcsRoot.getName()));
     }
 }

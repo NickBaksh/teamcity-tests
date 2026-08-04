@@ -52,7 +52,7 @@ public class BuildDetailsPage {
 
     @Step("Open build details page for build #{build.id}")
     public BuildDetailsPage openBuild(Build build) {
-        open(build.getWebUrl());
+        open(UiUrls.toRelative(build.getWebUrl()));
         return shouldBeOpened();
     }
 

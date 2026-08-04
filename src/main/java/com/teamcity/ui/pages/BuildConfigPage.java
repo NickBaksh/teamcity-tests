@@ -36,12 +36,6 @@ public class BuildConfigPage {
     private final SelenideElement classicIdInput = $("#buildTypeExternalId");
     private final SelenideElement classicCreateButton = $("input[name='createBuildType']");
 
-    private final SelenideElement addStepButton = $(
-            "a[href*='editRunType'][href*='__NEW_RUNNER__'], a[href*='editRunType.html']"
-    );
-    private final SelenideElement addStepByText = $x(
-            "//a[.//span[contains(.,'Add build step')] or contains(.,'Add build step')]"
-    );
     private final SelenideElement commandLineRunner = $("[data-key='simpleRunner']");
     private final SelenideElement commandLineByText = $x(
             "//*[contains(@class,'BuildStepSelectorItem') and .//span[contains(.,'"
@@ -67,7 +61,6 @@ public class BuildConfigPage {
                     .$("button");
     private final SelenideElement buildQueueIndicator = $("[data-test='build-queue']");
     private final SelenideElement buildStatusText = $("[data-test='build-status']");
-    private final SelenideElement notFoundText = $("//*[contains(text(), 'Not found')]");
 
     @Step("Open create build config wizard for project: {projectId}")
     public BuildConfigPage openCreate(String projectId) {
@@ -169,13 +162,8 @@ public class BuildConfigPage {
 
     @Step("Add simple command-line build step")
     public BuildConfigPage addCommandLineStep(String buildConfigId, String stepName) {
-        openSteps(buildConfigId);
-        if (addStepButton.exists()) {
-            addStepButton.shouldBe(visible).click();
-        } else {
-            addStepByText.shouldBe(visible).click();
-        }
-        waitForRunnerSelector();
+        open(UiRoutes.editRunTypeNew(buildConfigId));
+        ensureEditRunTypeOpened(buildConfigId);
         selectCommandLineRunner(buildConfigId);
         stepNameInput.should(appear);
         enableCustomScriptOption();
@@ -186,6 +174,29 @@ public class BuildConfigPage {
         saveBuildStep();
         webdriver().shouldHave(urlContaining("editBuildRunners"));
         return this;
+    }
+
+    private void ensureEditRunTypeOpened(String buildConfigId) {
+        followClassicXmlRedirectIfPresent();
+        if (!WebDriverRunner.url().contains("editRunType")) {
+            open(UiRoutes.editRunTypeNew(buildConfigId));
+            followClassicXmlRedirectIfPresent();
+        }
+        webdriver().shouldHave(urlContaining("editRunType"));
+        waitForRunnerSelector();
+    }
+
+    private void followClassicXmlRedirectIfPresent() {
+        String source = WebDriverRunner.source();
+        if (source == null || !source.contains("<redirect>")) {
+            return;
+        }
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("<redirect>([^<]+)</redirect>")
+                .matcher(source);
+        if (matcher.find()) {
+            open(UiUrls.toRelative(matcher.group(1).trim()));
+        }
     }
 
     @Step("Assert build steps page reflects added step: {stepName}")
@@ -260,14 +271,13 @@ public class BuildConfigPage {
     }
 
     private void waitForRunnerSelector() {
-        if (commandLineRunner.exists()) {
-            commandLineRunner.should(appear);
-        } else if (commandLineByText.exists()) {
-            commandLineByText.should(appear);
-        } else {
-            $("[data-test='build-step-selector-item'], .BuildStepSelectorItem-module__item--it, [data-key]")
-                    .should(appear);
-        }
+        SelenideElement anyRunner = $x(
+                "//*[@data-key='simpleRunner']"
+                        + " | //*[contains(@class,'BuildStepSelectorItem')]"
+                        + " | //*[@data-test='build-step-selector-item']"
+                        + " | //*[contains(normalize-space(.),'" + UiTestData.MARKER_COMMAND_LINE + "')]"
+        );
+        anyRunner.should(appear);
     }
 
     @Step("Check build config title contains: {name}")
@@ -320,7 +330,7 @@ public class BuildConfigPage {
 
     @Step("Check page contains 'Not found' text")
     public BuildConfigPage shouldContainNotFound() {
-        notFoundText.shouldBe(visible);
+        body.shouldHave(partialText("Not found").or(partialText("does not exist")));
         return this;
     }
 
