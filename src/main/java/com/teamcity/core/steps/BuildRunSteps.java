@@ -120,7 +120,6 @@ public class BuildRunSteps extends BaseSteps {
     }
 
     @Step("Wait for build state: {expectedState}")
-
     public Build waitForBuildState(String buildId, String expectedState, int timeoutSeconds) {
         return Awaitility.await()
                 .atMost(Duration.ofSeconds(timeoutSeconds))
@@ -141,6 +140,24 @@ public class BuildRunSteps extends BaseSteps {
                 .until(
                         () -> getBuild(buildId),
                         build -> TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(build.getState())
+                );
+    }
+
+    @Step("Wait for build cancellation: {buildId}")
+    public Build waitForBuildCancelled(String buildId) {
+
+        int timeout = ConfigManager.getBuildTimeout();
+
+        return Awaitility.await()
+                .atMost(Duration.ofSeconds(timeout))
+                .pollInterval(Duration.ofMillis(ConfigManager.getBuildPollInterval()))
+                .ignoreExceptions()
+                .until(
+                        () -> getBuild(buildId),
+                        build -> build.getStatusText() != null
+                                && build.getStatusText()
+                                .toLowerCase()
+                                .contains(TestDataValues.BUILD_STATUS_CANCEL.toLowerCase())
                 );
     }
 

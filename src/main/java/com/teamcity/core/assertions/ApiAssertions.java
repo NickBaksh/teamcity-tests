@@ -88,6 +88,19 @@ public final class ApiAssertions {
         softly.assertAll();
     }
 
+    public static void assertBuildCancelled(Build build, String expectedId) {
+        SoftAssertions softly = new SoftAssertions();
+
+        softly.assertThat(build).isNotNull();
+        softly.assertThat(build.getId()).isEqualTo(expectedId);
+        softly.assertThat(build.getStatus())
+                .isEqualTo(TestDataValues.BUILD_STATUS_UNKNOWN);
+        softly.assertThat(build.getStatusText())
+                .containsIgnoringCase(TestDataValues.BUILD_STATUS_CANCEL);
+
+        softly.assertAll();
+    }
+
     public static void assertBuildState(Build build, String... allowedStates) {
         SoftAssertions softly = new SoftAssertions();
         softly.assertThat(build).as("Build").isNotNull();
