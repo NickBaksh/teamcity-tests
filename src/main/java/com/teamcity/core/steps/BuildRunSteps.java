@@ -12,7 +12,6 @@ import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
-import org.awaitility.core.ConditionTimeoutException;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -188,14 +187,14 @@ public class BuildRunSteps extends BaseSteps {
 //        }
 //    }
 
-    private boolean isBuildFinished(String buildId) {
-        return TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(getBuild(buildId).getState());
-    }
+//    private boolean isBuildFinished(String buildId) {
+//        return TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(getBuild(buildId).getState());
+//    }
 
-    private boolean hasResolvedBuildStatus(Build build) {
-        String status = build.getStatus();
-        return status != null
-                && !status.isBlank()
-                && !TestDataValues.BUILD_STATUS_UNKNOWN.equalsIgnoreCase(status);
-    }
+//    private boolean hasResolvedBuildStatus(Build build) {
+//        String status = build.getStatus();
+//        return status != null
+//                && !status.isBlank()
+//                && !TestDataValues.BUILD_STATUS_UNKNOWN.equalsIgnoreCase(status);
+//    }
 }
