@@ -16,10 +16,6 @@ import java.util.List;
 @Slf4j
 public class AgentSteps extends BaseSteps {
 
-//    public AgentSteps(ApiClient client) {
-//        super(client);
-//    }
-
     public AgentSteps(ApiClient client, ResponseValidator validator) {
         super(client, validator);
     }

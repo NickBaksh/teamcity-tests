@@ -11,14 +11,12 @@ import com.teamcity.core.testdata.TestDataValues;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
-import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -119,19 +117,12 @@ public class UserBuildsTest extends BaseApiTest {
 
         userSteps.cancelBuild(build.getId());
 
-        Build cancelled = userSteps.waitForBuildState(
-                build.getId(),
-                TestDataValues.BUILD_STATE_FINISHED,
-                TestDataValues.BUILD_WAIT_TIMEOUT_SECONDS);
+        Build cancelled = userSteps.waitForBuildCancelled(build.getId());
 
-        ApiAssertions.assertBuildFinished(
+        ApiAssertions.assertBuildCancelled(
                 cancelled,
-                build.getId(),
-                TestDataValues.BUILD_STATUS_UNKNOWN
+                build.getId()
         );
-
-        assertThat(cancelled.getStatusText())
-                .containsIgnoringCase(TestDataValues.BUILD_STATUS_CANCEL);
     }
 
     @Test
@@ -157,30 +148,12 @@ public class UserBuildsTest extends BaseApiTest {
 
         secondUserSteps.cancelBuild(build.getId());
 
-        Build cancelled = Awaitility.await()
-                .atMost(Duration.ofSeconds(TestDataValues.BUILD_WAIT_TIMEOUT_SECONDS))
-                .pollInterval(Duration.ofMillis(500))
-                .until(
-                        () -> firstUserSteps.getBuild(build.getId()),
-                        b -> TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(b.getState())
-                                || (TestDataValues.BUILD_STATUS_UNKNOWN.equals(b.getStatus())
-                                && b.getStatusText() != null
-                                && b.getStatusText().contains(TestDataValues.BUILD_STATUS_CANCEL))
-                );
+        Build cancelled = firstUserSteps.waitForBuildCancelled(build.getId());
 
-//        Build cancelled = firstUserSteps.waitForBuildState(
-//                build.getId(),
-//                TestDataValues.BUILD_STATE_FINISHED,
-//                TestDataValues.BUILD_WAIT_TIMEOUT_SECONDS);
-
-        ApiAssertions.assertBuildFinished(
+        ApiAssertions.assertBuildCancelled(
                 cancelled,
-                build.getId(),
-                TestDataValues.BUILD_STATUS_UNKNOWN
+                build.getId()
         );
-
-        assertThat(cancelled.getStatusText())
-                .containsIgnoringCase(TestDataValues.BUILD_STATUS_CANCEL);
     }
 
     @Test
