@@ -48,7 +48,9 @@ public class AdminVcsRootUiTest extends BaseUiTest {
         String vcsRootName = "VCS Without Branch";
 
         createProjectPage
-                .openGitVcsRootCreation(projectId)
+                .openVcsRootCreation(projectId)
+                .selectGitType()
+                .showAdvancedOptions()
                 .setVcsRootName(vcsRootName)
                 .setVcsRootUrl(TestDataValues.VCS_ROOT_URL)
                 .clearBranch()
