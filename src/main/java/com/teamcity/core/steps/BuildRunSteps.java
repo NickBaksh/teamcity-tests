@@ -140,61 +140,27 @@ public class BuildRunSteps extends BaseSteps {
                 .ignoreExceptions()
                 .until(
                         () -> getBuild(buildId),
-                        build -> TestDataValues.BUILD_STATE_FINISHED.equals(build.getState())
+                        build -> TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(build.getState())
                 );
     }
 
     private boolean cancelledByTeamCity(Build build) {
-        return TestDataValues.BUILD_STATUS_UNKNOWN.equals(build.getStatus())
+        return TestDataValues.BUILD_STATUS_UNKNOWN.equalsIgnoreCase(build.getStatus())
                 && build.getStatusText() != null
                 && build.getStatusText().contains("Canceled");
     }
 
     @Step("Run build and wait for successful finish")
     public Build runBuildWithRetry(String buildTypeId) {
-
         Build build = runBuild(buildTypeId);
-
         Build finished = waitForBuildFinish(build.getId());
 
         if (cancelledByTeamCity(finished)) {
             log.warn("Build {} was canceled by TeamCity. Retrying once...", build.getId());
-
             build = runBuild(buildTypeId);
             finished = waitForBuildFinish(build.getId());
         }
 
         return finished;
     }
-
-//    @Step("Wait for build finish: {buildId}")
-//    public Build waitForBuildFinish(String buildId) {
-//        int timeout = ConfigManager.getBuildTimeout();
-//        Awaitility.await()
-//                .atMost(Duration.ofSeconds(timeout))
-//                .pollInterval(Duration.ofMillis(ConfigManager.getBuildPollInterval()))
-//                .until(() -> isBuildFinished(buildId));
-//
-//        // Brief settle only — do not use build.timeout (UNKNOWN can stay permanent on empty configs).
-//        try {
-//            return Awaitility.await()
-//                    .atMost(Duration.ofSeconds(5))
-//                    .pollInterval(Duration.ofMillis(500))
-//                    .until(() -> getBuild(buildId), this::hasResolvedBuildStatus);
-//        } catch (ConditionTimeoutException ex) {
-//            log.warn("Build {} finished but status stayed UNKNOWN after settle wait", buildId);
-//            return getBuild(buildId);
-//        }
-//    }
-
-//    private boolean isBuildFinished(String buildId) {
-//        return TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(getBuild(buildId).getState());
-//    }
-
-//    private boolean hasResolvedBuildStatus(Build build) {
-//        String status = build.getStatus();
-//        return status != null
-//                && !status.isBlank()
-//                && !TestDataValues.BUILD_STATUS_UNKNOWN.equalsIgnoreCase(status);
-//    }
 }

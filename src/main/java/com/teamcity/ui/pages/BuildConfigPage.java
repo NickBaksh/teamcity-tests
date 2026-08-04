@@ -2,6 +2,7 @@ package com.teamcity.ui.pages;
 
 import com.codeborne.selenide.SelenideElement;
 import com.codeborne.selenide.WebDriverRunner;
+import com.teamcity.core.config.ConfigManager;
 import com.teamcity.ui.pages.elements.ConfirmDialog;
 import com.teamcity.ui.testdata.UiTestData;
 import io.qameta.allure.Step;
@@ -302,7 +303,7 @@ public class BuildConfigPage {
     public BuildConfigPage waitForBuildFinished() {
         notificationPopup.shouldHave(
                 text("is finished"),
-                Duration.ofMinutes(2));
+                Duration.ofSeconds(ConfigManager.getBuildTimeout()));
         return this;
     }
 

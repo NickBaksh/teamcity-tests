@@ -63,7 +63,6 @@ jobs:
 
   api_tests:
     name: API tests
-    if: false
     needs: build_and_lint
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -229,8 +228,8 @@ jobs:
 
   ui_tests_chrome:
     name: UI tests (Chrome / Selenoid)
-    needs: build_and_lint
-    if: ${{ needs.build_and_lint.result == 'success' && vars.ENABLE_UI_MATRIX == 'true' }}
+    needs: api_tests
+    if: ${{ needs.api_tests.result == 'success' && vars.ENABLE_UI_MATRIX == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
     environment: ci
@@ -392,8 +391,8 @@ jobs:
 
   ui_tests_firefox:
     name: UI tests (Firefox / Selenoid)
-    needs: build_and_lint
-    if: ${{ needs.build_and_lint.result == 'success' && vars.ENABLE_UI_MATRIX == 'true' }}
+    needs: api_tests
+    if: ${{ needs.api_tests.result == 'success' && vars.ENABLE_UI_MATRIX == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
     environment: ci
