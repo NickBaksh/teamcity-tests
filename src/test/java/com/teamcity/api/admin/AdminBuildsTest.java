@@ -129,7 +129,7 @@ public class AdminBuildsTest extends BaseApiTest {
     }
 
     @Test
-    @Disabled("Flaky on single CI agent: finished status can stay UNKNOWN after agent desync")
+//    @Disabled("Flaky on single CI agent: finished status can stay UNKNOWN after agent desync")
     @Severity(SeverityLevel.NORMAL)
     void shouldGetFinishedBuildStatus() {
         BuildConfig config = givenRunnableBuildConfig(testProjectId);

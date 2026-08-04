@@ -193,6 +193,14 @@ jobs:
           mkdir -p artifacts
           docker compose -f "${COMPOSE_FILE}" logs --no-color > artifacts/docker-compose.log || true
 
+      - name: Swagger Coverage
+        if: always()
+        continue-on-error: true
+        run: |
+          ./mvnw exec:java \
+            -Dexec.mainClass="com.github.viclovsky.swagger.coverage.CommandLine" \
+            -Dexec.args="-s http://localhost:8111/app/rest/swagger.json -i swagger-coverage-output"
+
       - name: Upload API artifacts
         if: always()
         uses: ./.github/actions/upload-ci-artifacts
@@ -204,6 +212,16 @@ jobs:
             target/allure-results/**
             target/site/allure-maven-plugin/**
             artifacts/docker-compose.log
+
+      - name: Upload Swagger Coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swagger-coverage-report
+          path: |
+            swagger-coverage-report.html
+            swagger-coverage.json
+            swagger-coverage-output/**
 
       - name: Stop stack
         if: always()

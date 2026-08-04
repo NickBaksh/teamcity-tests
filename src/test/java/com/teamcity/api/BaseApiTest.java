@@ -309,9 +309,17 @@ public abstract class BaseApiTest {
     protected Build givenFinishedBuild(String buildConfigId) {
         ensureRunnableBuildStep(buildConfigId);
         ensureConnectedAgentsEnabled();
-        Build build = buildRunSteps.runBuild(buildConfigId);
-        return buildRunSteps.waitForBuildFinish(build.getId());
+
+        return buildRunSteps.runBuildWithRetry(buildConfigId);
     }
+
+//    @Step("Run build and wait for finish")
+//    protected Build givenFinishedBuild(String buildConfigId) {
+//        ensureRunnableBuildStep(buildConfigId);
+//        ensureConnectedAgentsEnabled();
+//        Build build = buildRunSteps.runBuild(buildConfigId);
+//        return buildRunSteps.waitForBuildFinish(build.getId());
+//    }
 
     @Step("Ensure connected agents are enabled")
     protected void ensureConnectedAgentsEnabled() {
