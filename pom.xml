@@ -143,6 +143,12 @@
             <artifactId>junit-jupiter-params</artifactId>
             <version>${junit.version}</version>
         </dependency>
+        <!-- Swagger Coverage -->
+        <dependency>
+            <groupId>com.github.viclovsky</groupId>
+            <artifactId>swagger-coverage-commandline</artifactId>
+            <version>1.5.0</version>
+        </dependency>
     </dependencies>
 
     <build>

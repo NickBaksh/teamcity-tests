@@ -12,7 +12,6 @@ import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.parallel.Execution;
@@ -67,13 +66,11 @@ public class UserBuildsTest extends BaseApiTest {
 
         BuildRunSteps userSteps = givenUserBuildRunSteps();
 
-        Build build = userSteps.runBuild(config.getId());
-
-        Build finished = userSteps.waitForBuildFinish(build.getId());
+        Build finished = userSteps.runBuildWithRetry(config.getId());
 
         ApiAssertions.assertBuildFinished(
                 finished,
-                build.getId(),
+                finished.getId(),
                 TestDataValues.BUILD_STATUS_SUCCESS
         );
     }
@@ -86,9 +83,7 @@ public class UserBuildsTest extends BaseApiTest {
 
         BuildRunSteps userSteps = givenUserBuildRunSteps();
 
-        Build build = userSteps.runBuild(config.getId());
-
-        Build finished = userSteps.waitForBuildFinish(build.getId());
+        Build finished = userSteps.runBuildWithRetry(config.getId());
 
         Build details = userSteps.getBuild(finished.getId());
 
@@ -137,7 +132,7 @@ public class UserBuildsTest extends BaseApiTest {
     }
 
     @Test
-    @Disabled("Flaky on single CI agent: cancel from another user can stick in running/Canceled")
+//    @Disabled("Flaky on single CI agent: cancel from another user can stick in running/Canceled")
     @Severity(SeverityLevel.NORMAL)
     void shouldCancelAnotherUserBuild() {
 
@@ -185,9 +180,7 @@ public class UserBuildsTest extends BaseApiTest {
         BuildRunSteps userSteps = givenBuildRunSteps(user);
         BuildRunSteps negativeSteps = givenNegativeBuildRunSteps(user);
 
-        Build build = userSteps.runBuild(config.getId());
-
-        Build finished = userSteps.waitForBuildFinish(build.getId());
+        Build finished = userSteps.runBuildWithRetry(config.getId());
 
         ApiAssertions.assertForbidden(
                 () -> negativeSteps.deleteBuild(finished.getId())
