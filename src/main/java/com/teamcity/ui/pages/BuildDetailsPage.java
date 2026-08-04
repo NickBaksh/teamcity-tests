@@ -2,6 +2,7 @@ package com.teamcity.ui.pages;
 
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.SelenideElement;
+import com.teamcity.core.config.ConfigManager;
 import com.teamcity.core.models.Build;
 import io.qameta.allure.Step;
 
@@ -36,7 +37,7 @@ public class BuildDetailsPage {
 
     @Step("Wait for build to finish")
     public BuildDetailsPage waitForBuildFinished() {
-        buildStatus.shouldHave(text("Finished"), Duration.ofMinutes(3));
+        buildStatus.shouldHave(text("Finished"), Duration.ofSeconds(ConfigManager.getBuildTimeout()));
         return this;
     }
 

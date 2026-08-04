@@ -90,7 +90,7 @@ public class ConfigManager {
     }
 
     public static int getBuildTimeout() {
-        return Integer.parseInt(getParam("build.timeout", "300"));
+        return Integer.parseInt(getParam("build.timeout", "90"));
     }
 
     public static long getBuildPollInterval() {

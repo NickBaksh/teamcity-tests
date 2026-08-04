@@ -12,7 +12,6 @@ import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
-import org.awaitility.core.ConditionTimeoutException;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -134,31 +133,15 @@ public class BuildRunSteps extends BaseSteps {
     @Step("Wait for build finish: {buildId}")
     public Build waitForBuildFinish(String buildId) {
         int timeout = ConfigManager.getBuildTimeout();
-        Awaitility.await()
+        return Awaitility.await()
                 .atMost(Duration.ofSeconds(timeout))
                 .pollInterval(Duration.ofMillis(ConfigManager.getBuildPollInterval()))
-                .until(() -> isBuildFinished(buildId));
-
-        // Brief settle only — do not use build.timeout (UNKNOWN can stay permanent on empty configs).
-        try {
-            return Awaitility.await()
-                    .atMost(Duration.ofSeconds(5))
-                    .pollInterval(Duration.ofMillis(500))
-                    .until(() -> getBuild(buildId), this::hasResolvedBuildStatus);
-        } catch (ConditionTimeoutException ex) {
-            log.warn("Build {} finished but status stayed UNKNOWN after settle wait", buildId);
-            return getBuild(buildId);
-        }
+                .ignoreExceptions()
+                .until(() -> getBuild(buildId), this::isBuildFinished);
     }
 
-    private boolean isBuildFinished(String buildId) {
-        return TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(getBuild(buildId).getState());
-    }
-
-    private boolean hasResolvedBuildStatus(Build build) {
-        String status = build.getStatus();
-        return status != null
-                && !status.isBlank()
-                && !TestDataValues.BUILD_STATUS_UNKNOWN.equalsIgnoreCase(status);
+    private boolean isBuildFinished(Build build) {
+        return build != null
+                && TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(build.getState());
     }
 }
