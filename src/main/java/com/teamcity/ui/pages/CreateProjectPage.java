@@ -30,21 +30,41 @@ public class CreateProjectPage {
             ".error, .errorMessage, [data-test='error'], .ring-error-message"
     );
     private final SelenideElement vcsRootNameInput = $(
-            "[data-test='vcs-root-name-input'], #vcsRootName, [name='vcsRootName'], input[name='name']"
+            "[data-test='vcs-root-name-input'], #vcsRootName, [name='vcsRootName'], "
+                    + "input[name='name']"
     );
-    private final SelenideElement vcsRootUrlInput = $(
-            "[data-test='vcs-root-url-input'], #url, [name='url'], input[name='prop:url'], #repositoryUrl"
+    private final SelenideElement vcsRootUrlInput = $x(
+            "//label[contains(.,'Fetch URL') or contains(.,'Repository URL') "
+                    + "or contains(.,'Fetch url')]/following::input[1]"
+                    + " | //input[contains(@name,'url')]"
+                    + " | //textarea[contains(@name,'url')]"
+                    + " | //input[contains(@placeholder,'URL') or contains(@placeholder,'http') "
+                    + "or contains(@placeholder,'git')]"
+                    + " | //*[@data-test='vcs-root-url-input']//input"
     );
-    private final SelenideElement vcsRootBranchInput = $(
-            "[data-test='vcs-root-branch-input'], #branch, [name='branch'], input[name='prop:branch']"
+    private final SelenideElement vcsRootBranchInput = $x(
+            "//label[contains(.,'Default branch') or contains(.,'Branch')]"
+                    + "/following::input[1]"
+                    + " | //input[contains(@name,'branch')]"
+                    + " | //*[@data-test='vcs-root-branch-input']//input"
     );
-    private final SelenideElement vcsRootCreateButton = $(
-            "[data-test='create-vcs-root-button'], .saveButton, input[name='submitButton'], "
-                    + "input[value='Create'], input[value='Save']"
+    private final SelenideElement vcsRootCreateButton = $x(
+            "//input[@value='Create' or @value='Save' or @name='submitButton' or contains(@class,'saveButton')]"
+                    + " | //button[normalize-space()='Create' or normalize-space()='Save' "
+                    + "or normalize-space()='Create VCS root']"
     );
-    private final SelenideElement gitVcsType = $x(
-            "//a[contains(.,'Git')] | //*[contains(@class,'vcsName') and contains(.,'Git')] "
-                    + "| //input[@value='jetbrains.git']/ancestor::a[1]"
+    private final SelenideElement gitTypeOption = $x(
+            "//*[self::button or self::div or self::li or self::a]"
+                    + "[normalize-space()='Git' or contains(.,'Git') and not(contains(.,'Guess'))]"
+    );
+    private final SelenideElement typeOfVcsControl = $x(
+            "//*[contains(normalize-space(.),'Guess from repository URL')]"
+                    + " | //label[contains(.,'Type of VCS')]/following::*[@data-test='ring-select' or self::button][1]"
+    );
+    private final SelenideElement createVcsRootLink = $x(
+            "//a[contains(.,'Create VCS root') or contains(.,'Create new VCS root')]"
+                    + " | //button[contains(.,'Create VCS root')]"
+                    + " | //a[contains(@href,'editVcsRoot') and contains(@href,'add')]"
     );
     private final SelenideElement errorVcsMessage = $("[data-test='error-message'], .error, .field-error");
     private final SelenideElement body = $("body");
@@ -171,10 +191,26 @@ public class CreateProjectPage {
     @Step("Open VCS Root creation page for project: {projectId}")
     public CreateProjectPage openVcsRootCreation(String projectId) {
         open(UiRoutes.createVcsRoot(projectId));
-        if (gitVcsType.exists() && gitVcsType.is(visible)) {
-            gitVcsType.click();
+        if (!vcsRootNameInput.exists() || !vcsRootNameInput.is(visible)) {
+            open(UiRoutes.projectVcsRoots(projectId));
+            createVcsRootLink.shouldBe(visible).click();
         }
+        ensureGitTypeSelected();
         return this;
+    }
+
+    private void ensureGitTypeSelected() {
+        if (vcsRootUrlInput.exists() && vcsRootUrlInput.is(visible)) {
+            return;
+        }
+        if (typeOfVcsControl.exists() && typeOfVcsControl.is(visible)) {
+            typeOfVcsControl.click();
+            if (gitTypeOption.exists()) {
+                gitTypeOption.shouldBe(visible).click();
+            }
+        } else if (gitTypeOption.exists() && gitTypeOption.is(visible)) {
+            gitTypeOption.click();
+        }
     }
 
     @Step("Set VCS Root name: {name}")

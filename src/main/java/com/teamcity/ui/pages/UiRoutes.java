@@ -51,7 +51,13 @@ public final class UiRoutes {
     }
 
     public static String createVcsRoot(String projectId) {
-        // TeamCity 202x removed createVcsRoot.html; classic create form is editVcsRoot.html
-        return "/admin/editVcsRoot.html?action=addVcsRoot&projectId=" + projectId;
+        // Explicit Git avoids "Guess from URL" JSP include that breaks in TC 2026.1.1
+        // (bean parentProject not found within scope).
+        return "/admin/editVcsRoot.html?action=addVcsRoot&projectId=" + projectId
+                + "&vcsName=jetbrains.git";
+    }
+
+    public static String projectVcsRoots(String projectId) {
+        return "/admin/editProject.html?projectId=" + projectId + "&tab=vcsRoots";
     }
 }

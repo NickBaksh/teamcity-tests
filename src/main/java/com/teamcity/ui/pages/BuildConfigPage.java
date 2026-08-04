@@ -41,6 +41,9 @@ public class BuildConfigPage {
     );
     private final SelenideElement addStepByText = $x(
             "//a[.//span[contains(.,'Add build step')] or contains(.,'Add build step')]"
+                    + " | //button[contains(.,'Add build step')]"
+                    + " | //*[@role='button' and contains(.,'Add build step')]"
+                    + " | //a[contains(@href,'editRunType')]"
     );
     private final SelenideElement commandLineRunner = $("[data-key='simpleRunner']");
     private final SelenideElement commandLineByText = $x(
@@ -169,10 +172,12 @@ public class BuildConfigPage {
     @Step("Add simple command-line build step")
     public BuildConfigPage addCommandLineStep(String buildConfigId, String stepName) {
         openSteps(buildConfigId);
-        if (addStepButton.exists()) {
-            addStepButton.shouldBe(visible).click();
+        if (addStepButton.exists() && addStepButton.is(visible)) {
+            addStepButton.click();
+        } else if (addStepByText.exists() && addStepByText.is(visible)) {
+            addStepByText.click();
         } else {
-            addStepByText.shouldBe(visible).click();
+            open(UiRoutes.editRunTypeNew(buildConfigId));
         }
         waitForRunnerSelector();
         selectCommandLineRunner(buildConfigId);

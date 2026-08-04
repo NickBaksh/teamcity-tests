@@ -6,18 +6,18 @@ import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
 import io.qameta.allure.Step;
 
-import static com.codeborne.selenide.Condition.*;
-import static com.codeborne.selenide.Selenide.*;
+import static com.codeborne.selenide.Condition.disappear;
+import static com.codeborne.selenide.Condition.enabled;
+import static com.codeborne.selenide.Condition.text;
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.$$;
+import static com.codeborne.selenide.Selenide.open;
 
 public class AgentsPage {
-    private final SelenideElement pageTitle = $("h1");
     private final ElementsCollection agents = $$("[data-test='agent']");
     private final SelenideElement allAgentsTab =
             $("[data-test='ring-link'][data-test-selected='true']");
-    private final SelenideElement disableDialog = $(
-            "[data-test='ring-dialog'], .ring-dialog, .modalDialog"
-    );
-    private final SelenideElement disableButton = $$("button").findBy(text("Disable"));
 
     @Step("Open agents page")
     public AgentsPage openPage() {
@@ -46,21 +46,21 @@ public class AgentsPage {
     public AgentsPage disableAgent(String agentName) {
         agents.findBy(text(agentName))
                 .$("[data-test='ring-toggle']")
+                .shouldBe(visible)
                 .click();
-
         return this;
     }
 
     @Step("Confirm disabling agent")
     public AgentsPage confirmDisableAgent() {
-        SelenideElement confirm = disableDialog.exists()
-                ? disableDialog.$$("button").findBy(text("Disable"))
-                : disableButton;
+        // Confirm dialog can render below the fold; do not scope to a possibly-empty dialog root.
+        SelenideElement confirm = $$("button")
+                .filter(visible)
+                .findBy(text("Disable"))
+                .shouldBe(visible, enabled);
         confirm.scrollIntoView("{block: 'center'}")
-                .shouldBe(visible, enabled)
                 .click(ClickOptions.usingJavaScript());
         confirm.should(disappear);
-
         return this;
     }
 }
