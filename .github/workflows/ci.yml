@@ -229,8 +229,10 @@ jobs:
   deploy_swagger_coverage:
     name: Deploy Swagger Coverage to GitHub Pages
     needs: api_tests
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+#    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    outputs:
+      pages_url: ${{ steps.deployment.outputs.page_url }}
     permissions:
       contents: read
       pages: write
@@ -613,6 +615,7 @@ jobs:
       - api_tests
       - ui_tests_chrome
       - ui_tests_firefox
+      - deploy_swagger_coverage
     if: always()
     runs-on: ubuntu-latest
     steps:
