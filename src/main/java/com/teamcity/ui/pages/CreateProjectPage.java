@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 import static com.codeborne.selenide.Condition.partialText;
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.$$x;
 import static com.codeborne.selenide.Selenide.$x;
 import static com.codeborne.selenide.Selenide.executeJavaScript;
 import static com.codeborne.selenide.Selenide.open;
@@ -259,21 +260,46 @@ public class CreateProjectPage {
     @Step("Click create VCS Root button")
     public CreateProjectPage clickCreate() {
         Boolean clicked = executeJavaScript(
-                "const nodes = [...document.querySelectorAll('button, [role=\"button\"]')];"
-                        + "const btn = nodes.find(n => {"
-                        + "  const t = (n.innerText || n.textContent || '').replace(/\\s+/g, ' ').trim();"
-                        + "  if (t !== 'Create' && t !== 'Save') return false;"
+                "const isVisible = (n) => {"
                         + "  const style = window.getComputedStyle(n);"
                         + "  return style && style.visibility !== 'hidden' && style.display !== 'none'"
                         + "    && n.getClientRects().length > 0;"
-                        + "});"
+                        + "};"
+                        + "const nodes = [...document.querySelectorAll("
+                        + "  'button, [role=\"button\"], input[type=\"button\"], input[type=\"submit\"]'"
+                        + ")];"
+                        + "const matches = (n, label) => {"
+                        + "  const text = (n.innerText || n.textContent || '').replace(/\\s+/g, ' ').trim();"
+                        + "  const value = (n.value || '').replace(/\\s+/g, ' ').trim();"
+                        + "  return text === label || value === label;"
+                        + "};"
+                        + "const createBtn = nodes.find(n => matches(n, 'Create') && isVisible(n));"
+                        + "const saveBtn = nodes.find(n => matches(n, 'Save') && isVisible(n));"
+                        + "const btn = createBtn || saveBtn;"
                         + "if (!btn) return false;"
                         + "btn.click();"
                         + "return true;"
         );
-        assertThat(clicked)
-                .as("Visible Create/Save button should be present on VCS root form")
-                .isTrue();
+        if (!Boolean.TRUE.equals(clicked)) {
+            var creates = $$x(
+                    "//button[normalize-space()='Create']"
+                            + " | //*[@role='button'][normalize-space()='Create']"
+                            + " | //input[(@type='button' or @type='submit') and @value='Create']"
+            ).filter(visible);
+            if (!creates.isEmpty()) {
+                creates.first().click();
+                return this;
+            }
+            var saves = $$x(
+                    "//button[normalize-space()='Save']"
+                            + " | //*[@role='button'][normalize-space()='Save']"
+                            + " | //input[(@type='button' or @type='submit') and @value='Save']"
+            ).filter(visible);
+            assertThat(saves.size())
+                    .as("Visible Create/Save control should be present on VCS root form")
+                    .isGreaterThan(0);
+            saves.first().click();
+        }
         return this;
     }
 
