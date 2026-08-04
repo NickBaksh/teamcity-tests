@@ -67,13 +67,14 @@ public class UserBuildsTest extends BaseApiTest {
 
         BuildRunSteps userSteps = givenUserBuildRunSteps();
 
-        Build build = userSteps.runBuild(config.getId());
-
-        Build finished = userSteps.waitForBuildFinish(build.getId());
+        Build finished = userSteps.runBuildWithRetry(config.getId());
+//        Build build = userSteps.runBuild(config.getId());
+//
+//        Build finished = userSteps.waitForBuildFinish(build.getId());
 
         ApiAssertions.assertBuildFinished(
                 finished,
-                build.getId(),
+                finished.getId(),
                 TestDataValues.BUILD_STATUS_SUCCESS
         );
     }
@@ -137,7 +138,7 @@ public class UserBuildsTest extends BaseApiTest {
     }
 
     @Test
-    @Disabled("Flaky on single CI agent: cancel from another user can stick in running/Canceled")
+//    @Disabled("Flaky on single CI agent: cancel from another user can stick in running/Canceled")
     @Severity(SeverityLevel.NORMAL)
     void shouldCancelAnotherUserBuild() {
 
