@@ -54,6 +54,14 @@ public final class UiRoutes {
                 + "&cameFromUrl=" + urlEncode(cameFrom);
     }
 
+    public static String createGitVcsRoot(String projectId) {
+        String cameFrom = projectVcsRoots(projectId);
+        return "/admin/editVcsRoot.html?action=addVcsRoot"
+                + "&projectId=" + projectId
+                + "&vcsName=jetbrains.git"
+                + "&cameFromUrl=" + urlEncode(cameFrom);
+    }
+
     public static String projectVcsRoots(String projectId) {
         return "/admin/editProject.html?projectId=" + projectId + "&tab=projectVcsRoots";
     }

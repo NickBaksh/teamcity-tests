@@ -10,10 +10,13 @@ import java.time.Duration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.codeborne.selenide.Condition.exactText;
 import static com.codeborne.selenide.Condition.partialText;
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.$$;
 import static com.codeborne.selenide.Selenide.$x;
+import static com.codeborne.selenide.Selenide.executeJavaScript;
 import static com.codeborne.selenide.Selenide.open;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,16 +44,15 @@ public class CreateProjectPage {
                     + "/following::input[1]"
                     + " | //input[contains(@name,'branch')]"
     );
-    private final SelenideElement vcsRootCreateButton = $x(
-            "//button[normalize-space()='Create' or normalize-space()='Save']"
-                    + " | //input[@value='Create' or @value='Save' or @name='submitButton']"
-    );
     private final SelenideElement gitTypeOption = $x(
-            "//*[self::button or self::div or self::li or self::span or self::a][normalize-space()='Git']"
+            "//li[@data-title='Git']"
+                    + " | //*[@data-test='ring-list-item-label' and normalize-space()='Git']"
+                    + " | //*[@role='option' and normalize-space()='Git']"
     );
     private final SelenideElement typeOfVcsControl = $x(
-            "//button[contains(.,'Guess from repository URL') or contains(.,'Git')]"
-                    + " | //*[@data-test='ring-select'][contains(.,'Guess') or contains(.,'Git')]"
+            "//label[contains(.,'Type of VCS')]/following::button[1]"
+                    + " | //button[contains(.,'Guess from repository URL')]"
+                    + " | //*[@data-test='ring-select'][contains(.,'Guess')]"
     );
     private final SelenideElement showAdvancedOptions = $x(
             "//*[self::a or self::button or self::span][contains(.,'Show advanced options')]"
@@ -199,6 +201,21 @@ public class CreateProjectPage {
         return this;
     }
 
+    @Step("Open Git VCS Root creation page for project: {projectId}")
+    public CreateProjectPage openGitVcsRootCreation(String projectId) {
+        open(UiRoutes.editProject(projectId));
+        open(UiRoutes.projectVcsRoots(projectId));
+        open(UiRoutes.createGitVcsRoot(projectId));
+        showAdvancedOptions();
+        if (!(vcsRootNameInput.exists() && vcsRootNameInput.is(visible))) {
+            openVcsRootCreation(projectId);
+            selectGitType();
+            showAdvancedOptions();
+        }
+        vcsRootNameInput.shouldBe(visible);
+        return this;
+    }
+
     @Step("Reveal advanced VCS root fields")
     public CreateProjectPage showAdvancedOptions() {
         if (showAdvancedOptions.exists() && showAdvancedOptions.is(visible)) {
@@ -209,12 +226,11 @@ public class CreateProjectPage {
 
     @Step("Select Git VCS type")
     public CreateProjectPage selectGitType() {
-        if (typeOfVcsControl.exists() && typeOfVcsControl.is(visible)) {
-            typeOfVcsControl.click();
+        typeOfVcsControl.shouldBe(visible).click();
+        if (!(gitTypeOption.exists() && gitTypeOption.is(visible))) {
+            executeJavaScript("arguments[0].click();", typeOfVcsControl);
         }
-        if (gitTypeOption.exists()) {
-            gitTypeOption.shouldBe(visible).click();
-        }
+        gitTypeOption.shouldBe(visible).click();
         return this;
     }
 
@@ -223,6 +239,7 @@ public class CreateProjectPage {
         showAdvancedOptions();
         if (!(vcsRootNameInput.exists() && vcsRootNameInput.is(visible))) {
             selectGitType();
+            showAdvancedOptions();
         }
         vcsRootNameInput.shouldBe(visible).setValue(name);
         return this;
@@ -248,13 +265,25 @@ public class CreateProjectPage {
             selectGitType();
             showAdvancedOptions();
         }
-        vcsRootBranchInput.shouldBe(visible).clear();
+        vcsRootBranchInput.shouldBe(visible).setValue("");
         return this;
     }
 
     @Step("Click create VCS Root button")
     public CreateProjectPage clickCreate() {
-        vcsRootCreateButton.shouldBe(visible).click();
+        SelenideElement createBtn = $$("button").filter(visible).findBy(exactText("Create"));
+        if (createBtn.exists()) {
+            createBtn.click();
+            return this;
+        }
+        SelenideElement saveBtn = $$("button").filter(visible).findBy(exactText("Save"));
+        if (saveBtn.exists()) {
+            saveBtn.click();
+            return this;
+        }
+        $x("//input[(@value='Create' or @value='Save') and not(@type='hidden')]")
+                .shouldBe(visible)
+                .click();
         return this;
     }
 
