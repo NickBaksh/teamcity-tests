@@ -10,7 +10,6 @@ import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -102,12 +101,11 @@ public class VcsRootsTest extends BaseApiTest {
 
     @Test
     @Severity(SeverityLevel.NORMAL)
-    @Disabled
     void shouldUpdateVcsRoot() {
 
         VcsRoot createdVcsRoot = givenVcsRoot(testProjectId);
 
-        String newName = TestDataValues.VCS_ROOT_RANDOM_NAME;
+        String newName = "Updated VCS Root_" + System.currentTimeMillis();
         String newUrl = TestDataValues.VCS_ROOT_URL;
 
         VcsRootUpdateRequest updateRequest = VcsRootUpdateRequest.builder()
