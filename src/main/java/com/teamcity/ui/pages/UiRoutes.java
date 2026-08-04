@@ -2,9 +2,6 @@ package com.teamcity.ui.pages;
 
 import com.teamcity.core.testdata.TestDataValues;
 
-/**
- * Relative UI paths for TeamCity pages used by Page Objects.
- */
 public final class UiRoutes {
 
     private UiRoutes() {
@@ -51,8 +48,6 @@ public final class UiRoutes {
     }
 
     public static String createVcsRoot(String projectId) {
-        // Do not pass vcsName here: preselecting Git via query param breaks properties
-        // rendering in TC 2026.1.1 (bean project not found → no Fetch URL field).
         String cameFrom = projectVcsRoots(projectId);
         return "/admin/editVcsRoot.html?action=addVcsRoot"
                 + "&projectId=" + projectId

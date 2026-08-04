@@ -35,7 +35,6 @@ public final class SelenideConfig {
         }
 
         if (selenoidUrl != null && !selenoidUrl.isEmpty() && !"null".equalsIgnoreCase(selenoidUrl)) {
-            // Classic Selenoid hub endpoint is /wd/hub (not Selenium Grid 4 root).
             String remote = selenoidUrl.trim();
             while (remote.endsWith("/")) {
                 remote = remote.substring(0, remote.length() - 1);

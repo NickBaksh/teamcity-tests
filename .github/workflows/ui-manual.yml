@@ -1,4 +1,3 @@
-# Manual UI matrix (Chrome / Firefox via Selenoid on the host runner).
 name: UI Tests (Manual)
 
 on:

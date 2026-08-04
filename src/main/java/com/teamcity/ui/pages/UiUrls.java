@@ -2,10 +2,6 @@ package com.teamcity.ui.pages;
 
 import java.net.URI;
 
-/**
- * Converts TeamCity API absolute webUrls (often {@code http://localhost:8111/...})
- * into browser-reachable relative paths for Selenide {@code Configuration.baseUrl}.
- */
 public final class UiUrls {
 
     private UiUrls() {

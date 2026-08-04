@@ -29,39 +29,31 @@ public class CreateProjectPage {
     private final SelenideElement errorMessage = $(
             ".error, .errorMessage, [data-test='error'], .ring-error-message"
     );
-    private final SelenideElement vcsRootNameInput = $(
-            "[data-test='vcs-root-name-input'], #vcsRootName, [name='vcsRootName'], "
-                    + "input[name='name']"
-    );
+    private final SelenideElement vcsRootNameInput = $("#vcsRootName, [name='vcsRootName']");
     private final SelenideElement vcsRootUrlInput = $x(
-            "//label[contains(.,'Fetch URL') or contains(.,'Repository URL') "
-                    + "or contains(.,'Fetch url')]/following::input[1]"
+            "//*[contains(normalize-space(.),'Repository URL') or contains(normalize-space(.),'Fetch URL')]"
+                    + "/following::input[1]"
                     + " | //input[contains(@name,'url')]"
                     + " | //textarea[contains(@name,'url')]"
-                    + " | //input[contains(@placeholder,'URL') or contains(@placeholder,'http') "
-                    + "or contains(@placeholder,'git')]"
-                    + " | //*[@data-test='vcs-root-url-input']//input"
     );
     private final SelenideElement vcsRootBranchInput = $x(
-            "//label[contains(.,'Default branch') or contains(.,'Branch')]"
+            "//*[contains(normalize-space(.),'Default branch') or contains(normalize-space(.),'Branch')]"
                     + "/following::input[1]"
                     + " | //input[contains(@name,'branch')]"
-                    + " | //*[@data-test='vcs-root-branch-input']//input"
     );
     private final SelenideElement vcsRootCreateButton = $x(
-            "//input[@value='Create' or @value='Save' or @name='submitButton' or contains(@class,'saveButton')]"
-                    + " | //button[normalize-space()='Create' or normalize-space()='Save' "
-                    + "or normalize-space()='Create VCS root']"
+            "//button[normalize-space()='Create' or normalize-space()='Save']"
+                    + " | //input[@value='Create' or @value='Save' or @name='submitButton']"
     );
     private final SelenideElement gitTypeOption = $x(
-            "//a[contains(@href,'jetbrains.git') or contains(@onclick,'jetbrains.git')]"
-                    + " | //*[contains(@class,'vcsName') and contains(.,'Git')]"
-                    + " | //*[self::button or self::div or self::li or self::span or self::a]"
-                    + "[normalize-space()='Git']"
+            "//*[self::button or self::div or self::li or self::span or self::a][normalize-space()='Git']"
     );
     private final SelenideElement typeOfVcsControl = $x(
-            "//*[contains(normalize-space(.),'Guess from repository URL')]"
-                    + " | //label[contains(.,'Type of VCS')]/following::*[@data-test='ring-select' or self::button][1]"
+            "//button[contains(.,'Guess from repository URL') or contains(.,'Git')]"
+                    + " | //*[@data-test='ring-select'][contains(.,'Guess') or contains(.,'Git')]"
+    );
+    private final SelenideElement showAdvancedOptions = $x(
+            "//*[self::a or self::button or self::span][contains(.,'Show advanced options')]"
     );
     private final SelenideElement createVcsRootLink = $x(
             "//a[contains(@href,'addVcsRoot') or contains(@href,'action=addVcsRoot')]"
@@ -187,14 +179,12 @@ public class CreateProjectPage {
 
     @Step("VCS Root creation page should be opened")
     public CreateProjectPage shouldBeOpened() {
-        vcsRootNameInput.shouldBe(visible);
         vcsRootUrlInput.shouldBe(visible);
         return this;
     }
 
     @Step("Open VCS Root creation page for project: {projectId}")
     public CreateProjectPage openVcsRootCreation(String projectId) {
-        // Warm project admin context — required for Git properties beans in TC 2026.1.1.
         open(UiRoutes.editProject(projectId));
         open(UiRoutes.projectVcsRoots(projectId));
         if (!(createVcsRootLink.exists() && createVcsRootLink.is(visible))) {
@@ -205,29 +195,35 @@ public class CreateProjectPage {
         } else {
             open(UiRoutes.createVcsRoot(projectId));
         }
-        ensureGitTypeSelected();
-        if (!(vcsRootUrlInput.exists() && vcsRootUrlInput.is(visible))) {
-            open(UiRoutes.createVcsRoot(projectId));
-            ensureGitTypeSelected();
-        }
         vcsRootUrlInput.shouldBe(visible);
         return this;
     }
 
-    private void ensureGitTypeSelected() {
-        if (vcsRootUrlInput.exists() && vcsRootUrlInput.is(visible)) {
-            return;
+    @Step("Reveal advanced VCS root fields")
+    public CreateProjectPage showAdvancedOptions() {
+        if (showAdvancedOptions.exists() && showAdvancedOptions.is(visible)) {
+            showAdvancedOptions.click();
         }
+        return this;
+    }
+
+    @Step("Select Git VCS type")
+    public CreateProjectPage selectGitType() {
         if (typeOfVcsControl.exists() && typeOfVcsControl.is(visible)) {
             typeOfVcsControl.click();
         }
         if (gitTypeOption.exists()) {
             gitTypeOption.shouldBe(visible).click();
         }
+        return this;
     }
 
     @Step("Set VCS Root name: {name}")
     public CreateProjectPage setVcsRootName(String name) {
+        showAdvancedOptions();
+        if (!(vcsRootNameInput.exists() && vcsRootNameInput.is(visible))) {
+            selectGitType();
+        }
         vcsRootNameInput.shouldBe(visible).setValue(name);
         return this;
     }
@@ -240,12 +236,18 @@ public class CreateProjectPage {
 
     @Step("Set VCS Root branch: {branch}")
     public CreateProjectPage setVcsRootBranch(String branch) {
+        showAdvancedOptions();
         vcsRootBranchInput.shouldBe(visible).setValue(branch);
         return this;
     }
 
     @Step("Clear VCS Root branch")
     public CreateProjectPage clearBranch() {
+        showAdvancedOptions();
+        if (!(vcsRootBranchInput.exists() && vcsRootBranchInput.is(visible))) {
+            selectGitType();
+            showAdvancedOptions();
+        }
         vcsRootBranchInput.shouldBe(visible).clear();
         return this;
     }
@@ -258,13 +260,14 @@ public class CreateProjectPage {
 
     @Step("Check error message appears")
     public CreateProjectPage shouldHaveError() {
-        waitUntilPageSourceContainsAny("error", "Error", "failed", "Failed", "cannot", "Cannot");
+        waitUntilPageSourceContainsAny("error", "Error", "failed", "Failed", "cannot", "Cannot", "Unable");
         if (errorVcsMessage.exists()) {
             errorVcsMessage.shouldBe(visible);
         } else if (errorMessage.exists()) {
             errorMessage.shouldBe(visible);
         } else {
-            body.shouldHave(partialText("error").or(partialText("Error")).or(partialText("fail")));
+            body.shouldHave(partialText("error").or(partialText("Error")).or(partialText("fail"))
+                    .or(partialText("Unable")).or(partialText("cannot")));
         }
         return this;
     }

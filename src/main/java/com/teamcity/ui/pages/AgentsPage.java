@@ -53,7 +53,6 @@ public class AgentsPage {
 
     @Step("Confirm disabling agent")
     public AgentsPage confirmDisableAgent() {
-        // Confirm dialog can render below the fold; do not scope to a possibly-empty dialog root.
         SelenideElement confirm = $$("button")
                 .filter(visible)
                 .findBy(text("Disable"))
