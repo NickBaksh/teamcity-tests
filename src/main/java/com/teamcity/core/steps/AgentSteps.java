@@ -10,17 +10,15 @@ import com.teamcity.core.models.dto.EnabledInfo;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
-import org.awaitility.Awaitility;
 
-import java.time.Duration;
 import java.util.List;
 
 @Slf4j
 public class AgentSteps extends BaseSteps {
 
-    public AgentSteps(ApiClient client) {
-        super(client);
-    }
+//    public AgentSteps(ApiClient client) {
+//        super(client);
+//    }
 
     public AgentSteps(ApiClient client, ResponseValidator validator) {
         super(client, validator);
@@ -112,22 +110,5 @@ public class AgentSteps extends BaseSteps {
         log.info("Agent {} authorized", agentId);
 
         return authorized;
-    }
-
-    @Step("Wait until all agents are ready")
-    public void waitForAgentsReady() {
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(30))
-                .pollInterval(Duration.ofSeconds(1))
-                .until(() -> {
-                    Agents agents = getAllAgents();
-
-                    return agents.getAgent() != null
-                            && !agents.getAgent().isEmpty()
-                            && agents.getAgent().stream().allMatch(agent ->
-                            Boolean.TRUE.equals(agent.getConnected())
-                                    && Boolean.TRUE.equals(agent.getAuthorized())
-                                    && Boolean.TRUE.equals(agent.getEnabled()));
-                });
     }
 }
