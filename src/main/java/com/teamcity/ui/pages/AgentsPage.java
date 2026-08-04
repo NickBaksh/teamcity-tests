@@ -1,19 +1,23 @@
 package com.teamcity.ui.pages;
 
+import com.codeborne.selenide.ClickOptions;
 import com.codeborne.selenide.CollectionCondition;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
 import io.qameta.allure.Step;
 
-import static com.codeborne.selenide.Condition.*;
-import static com.codeborne.selenide.Selenide.*;
+import static com.codeborne.selenide.Condition.disappear;
+import static com.codeborne.selenide.Condition.enabled;
+import static com.codeborne.selenide.Condition.text;
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.$$;
+import static com.codeborne.selenide.Selenide.open;
 
 public class AgentsPage {
-    private final SelenideElement pageTitle = $("h1");
     private final ElementsCollection agents = $$("[data-test='agent']");
     private final SelenideElement allAgentsTab =
             $("[data-test='ring-link'][data-test-selected='true']");
-    private final SelenideElement disableButton = $$("button").findBy(text("Disable"));
 
     @Step("Open agents page")
     public AgentsPage openPage() {
@@ -42,17 +46,20 @@ public class AgentsPage {
     public AgentsPage disableAgent(String agentName) {
         agents.findBy(text(agentName))
                 .$("[data-test='ring-toggle']")
+                .shouldBe(visible)
                 .click();
-
         return this;
     }
 
     @Step("Confirm disabling agent")
     public AgentsPage confirmDisableAgent() {
-        disableButton.shouldBe(enabled)
-                .click();
-        disableButton.should(disappear);
-
+        SelenideElement confirm = $$("button")
+                .filter(visible)
+                .findBy(text("Disable"))
+                .shouldBe(visible, enabled);
+        confirm.scrollIntoView("{block: 'center'}")
+                .click(ClickOptions.usingJavaScript());
+        confirm.should(disappear);
         return this;
     }
 }

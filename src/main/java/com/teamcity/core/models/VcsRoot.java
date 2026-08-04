@@ -33,4 +33,23 @@ public class VcsRoot {
     public String getProjectName() {
         return project != null ? project.getName() : null;
     }
+
+    /** Prefer top-level url; fall back to properties.url (TeamCity GET shape). */
+    public String getUrl() {
+        if (url != null && !url.isBlank()) {
+            return url;
+        }
+        return propertyValue("url");
+    }
+
+    public String propertyValue(String propertyName) {
+        if (properties == null || properties.getProperty() == null) {
+            return null;
+        }
+        return properties.getProperty().stream()
+                .filter(property -> propertyName.equals(property.getName()))
+                .map(Property::getValue)
+                .findFirst()
+                .orElse(null);
+    }
 }

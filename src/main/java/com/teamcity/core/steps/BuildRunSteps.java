@@ -139,7 +139,7 @@ public class BuildRunSteps extends BaseSteps {
                 .ignoreExceptions()
                 .until(
                         () -> getBuild(buildId),
-                        build -> TestDataValues.BUILD_STATE_FINISHED.equals(build.getState())
+                        build -> TestDataValues.BUILD_STATE_FINISHED.equalsIgnoreCase(build.getState())
                 );
     }
 
@@ -162,21 +162,18 @@ public class BuildRunSteps extends BaseSteps {
     }
 
     private boolean cancelledByTeamCity(Build build) {
-        return TestDataValues.BUILD_STATUS_UNKNOWN.equals(build.getStatus())
+        return TestDataValues.BUILD_STATUS_UNKNOWN.equalsIgnoreCase(build.getStatus())
                 && build.getStatusText() != null
                 && build.getStatusText().contains("Canceled");
     }
 
     @Step("Run build and wait for successful finish")
     public Build runBuildWithRetry(String buildTypeId) {
-
         Build build = runBuild(buildTypeId);
-
         Build finished = waitForBuildFinish(build.getId());
 
         if (cancelledByTeamCity(finished)) {
             log.warn("Build {} was canceled by TeamCity. Retrying once...", build.getId());
-
             build = runBuild(buildTypeId);
             finished = waitForBuildFinish(build.getId());
         }

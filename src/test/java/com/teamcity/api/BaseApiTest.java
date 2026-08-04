@@ -182,6 +182,7 @@ public abstract class BaseApiTest {
     @Step("Create tracked user from request")
     protected User givenUser(User request) {
         User created = userSteps.createUser(request);
+        created.setPassword(request.getPassword());
         trackUser(created.getUsername());
         return created;
     }
@@ -269,8 +270,6 @@ public abstract class BaseApiTest {
 
     @Step("Get first available agent")
     protected Agent givenAgent() {
-        // Prefer the newest connected agent — backup ghosts (low ids) often stay authorized
-        // and confuse disable/enable while the live docker agent has a higher id.
         return agentSteps.getConnectedAgents().stream()
                 .filter(agent -> Boolean.TRUE.equals(agent.getAuthorized()))
                 .max(java.util.Comparator.comparing(Agent::getId))
@@ -314,19 +313,19 @@ public abstract class BaseApiTest {
         return buildRunSteps.runBuildWithRetry(buildConfigId);
     }
 
-//    @Step("Run build and wait for finish")
-//    protected Build givenFinishedBuild(String buildConfigId) {
-//        ensureRunnableBuildStep(buildConfigId);
-//        ensureConnectedAgentsEnabled();
-//        Build build = buildRunSteps.runBuild(buildConfigId);
-//        return buildRunSteps.waitForBuildFinish(build.getId());
-//    }
-
-    @Step("Ensure connected agents are enabled")
+    @Step("Ensure connected agents are authorized and enabled")
     protected void ensureConnectedAgentsEnabled() {
-        agentSteps.getConnectedAgents().forEach(agent -> {
+        List<Agent> connected = agentSteps.getConnectedAgents();
+        if (connected.isEmpty()) {
+            throw new IllegalStateException("No connected TeamCity agents available for build");
+        }
+        connected.forEach(agent -> {
+            String agentId = String.valueOf(agent.getId());
+            if (!Boolean.TRUE.equals(agent.getAuthorized())) {
+                agentSteps.authorizeAgent(agentId);
+            }
             if (!Boolean.TRUE.equals(agent.getEnabled())) {
-                agentSteps.enableAgent(String.valueOf(agent.getId()));
+                agentSteps.enableAgent(agentId);
             }
         });
     }
@@ -338,7 +337,20 @@ public abstract class BaseApiTest {
 
     @Step("Run finished NBank build")
     protected Build givenFinishedNBankBuild() {
-        Build finished = givenFinishedBuild(givenNBankBuildConfig().getId());
+        String buildConfigId = givenNBankBuildConfig().getId();
+        Build finished = null;
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            finished = givenFinishedBuild(buildConfigId);
+            if (TestDataValues.BUILD_STATUS_SUCCESS.equalsIgnoreCase(finished.getStatus())) {
+                return finished;
+            }
+            log.warn(
+                    "NBank build {} status='{}' (attempt {}/3), retrying",
+                    finished.getId(),
+                    finished.getStatus(),
+                    attempt
+            );
+        }
         ApiAssertions.assertBuildFinished(
                 finished,
                 finished.getId(),

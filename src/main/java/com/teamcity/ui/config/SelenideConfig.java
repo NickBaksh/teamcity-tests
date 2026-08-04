@@ -35,16 +35,19 @@ public final class SelenideConfig {
         }
 
         if (selenoidUrl != null && !selenoidUrl.isEmpty() && !"null".equalsIgnoreCase(selenoidUrl)) {
-            if (selenoidUrl.endsWith("/wd/hub")) {
-                Configuration.remote = selenoidUrl;
-            } else {
-                Configuration.remote = selenoidUrl + "/wd/hub";
+            String remote = selenoidUrl.trim();
+            while (remote.endsWith("/")) {
+                remote = remote.substring(0, remote.length() - 1);
             }
+            if (!remote.endsWith("/wd/hub")) {
+                remote = remote + "/wd/hub";
+            }
+            Configuration.remote = remote;
 
             DesiredCapabilities capabilities = getDesiredCapabilities();
             Configuration.browserCapabilities = capabilities;
 
-            System.out.println("Using Selenoid at: " + selenoidUrl);
+            System.out.println("Using Selenoid at: " + remote);
             System.out.println("Browser: " + ConfigManager.getBrowser());
             System.out.println("Headless: " + ConfigManager.isHeadless());
         } else {

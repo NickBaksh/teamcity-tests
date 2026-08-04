@@ -5,16 +5,16 @@
       "126.0": {
         "image": "selenoid/chrome:126.0",
         "port": "4444",
-        "path": "/wd/hub",
+        "path": "/",
         "env": ["TZ=Europe/Moscow"]
       }
     }
   },
   "firefox": {
-    "default": "127.0",
+    "default": "125.0",
     "versions": {
-      "127.0": {
-        "image": "selenoid/firefox:127.0",
+      "125.0": {
+        "image": "selenoid/firefox:125.0",
         "port": "4444",
         "path": "/wd/hub",
         "env": ["TZ=Europe/Moscow"]
