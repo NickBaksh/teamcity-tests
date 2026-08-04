@@ -8,6 +8,7 @@ import io.restassured.filter.log.RequestLoggingFilter;
 import io.restassured.filter.log.ResponseLoggingFilter;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
+import com.github.viclovsky.swagger.coverage.SwaggerCoverageRestAssured;
 
 public final class RequestSpecs {
 
@@ -45,6 +46,7 @@ public final class RequestSpecs {
                 .setRelaxedHTTPSValidation()
                 .addFilter(new RequestLoggingFilter())
                 .addFilter(new ResponseLoggingFilter())
-                .addFilter(new AllureRestAssured());
+                .addFilter(new AllureRestAssured())
+                .addFilter(new SwaggerCoverageRestAssured());
     }
 }
