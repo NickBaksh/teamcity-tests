@@ -90,27 +90,38 @@ public class CreateProjectPage {
     @Step("Assert empty project name validation error")
     public CreateProjectPage shouldShowEmptyNameError() {
         String source = errorText();
-        assertThat(source)
+        assertThat(containsIgnoreCaseAny(source,
+                UiTestData.ERROR_EMPTY_PROJECT_NAME_CODE,
+                UiTestData.ERROR_EMPTY,
+                UiTestData.ERROR_PROJECT_NAME_EMPTY_TEXT))
                 .as("Empty project name validation")
-                .satisfiesAnyOf(
-                        s -> assertThat(s).containsIgnoringCase(UiTestData.ERROR_EMPTY_PROJECT_NAME_CODE),
-                        s -> assertThat(s).containsIgnoringCase(UiTestData.ERROR_EMPTY),
-                        s -> assertThat(s).containsIgnoringCase(UiTestData.ERROR_PROJECT_NAME_EMPTY_TEXT)
-                );
+                .isTrue();
         return this;
     }
 
     @Step("Assert duplicate project id validation error")
     public CreateProjectPage shouldShowDuplicateIdError() {
         String source = errorText();
-        assertThat(source)
+        assertThat(containsIgnoreCaseAny(source,
+                UiTestData.ERROR_DUPLICATE_PROJECT_ID_CODE,
+                UiTestData.ERROR_ALREADY_USED,
+                UiTestData.ERROR_PROJECT_ID_USED_TEXT))
                 .as("Duplicate project id validation")
-                .satisfiesAnyOf(
-                        s -> assertThat(s).containsIgnoringCase(UiTestData.ERROR_DUPLICATE_PROJECT_ID_CODE),
-                        s -> assertThat(s).containsIgnoringCase(UiTestData.ERROR_ALREADY_USED),
-                        s -> assertThat(s).containsIgnoringCase(UiTestData.ERROR_PROJECT_ID_USED_TEXT)
-                );
+                .isTrue();
         return this;
+    }
+
+    private static boolean containsIgnoreCaseAny(String source, String... markers) {
+        if (source == null) {
+            return false;
+        }
+        String lower = source.toLowerCase();
+        for (String marker : markers) {
+            if (marker != null && lower.contains(marker.toLowerCase())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void followClassicXmlRedirectIfPresent() {
