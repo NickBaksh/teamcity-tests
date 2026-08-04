@@ -120,7 +120,6 @@ public class BuildRunSteps extends BaseSteps {
     }
 
     @Step("Wait for build state: {expectedState}")
-
     public Build waitForBuildState(String buildId, String expectedState, int timeoutSeconds) {
         return Awaitility.await()
                 .atMost(Duration.ofSeconds(timeoutSeconds))
