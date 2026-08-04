@@ -54,17 +54,20 @@ public class CreateProjectPage {
                     + "or normalize-space()='Create VCS root']"
     );
     private final SelenideElement gitTypeOption = $x(
-            "//*[self::button or self::div or self::li or self::a]"
-                    + "[normalize-space()='Git' or contains(.,'Git') and not(contains(.,'Guess'))]"
+            "//a[contains(@href,'jetbrains.git') or contains(@onclick,'jetbrains.git')]"
+                    + " | //*[contains(@class,'vcsName') and contains(.,'Git')]"
+                    + " | //*[self::button or self::div or self::li or self::span or self::a]"
+                    + "[normalize-space()='Git']"
     );
     private final SelenideElement typeOfVcsControl = $x(
             "//*[contains(normalize-space(.),'Guess from repository URL')]"
                     + " | //label[contains(.,'Type of VCS')]/following::*[@data-test='ring-select' or self::button][1]"
     );
     private final SelenideElement createVcsRootLink = $x(
-            "//a[contains(.,'Create VCS root') or contains(.,'Create new VCS root')]"
-                    + " | //button[contains(.,'Create VCS root')]"
-                    + " | //a[contains(@href,'editVcsRoot') and contains(@href,'add')]"
+            "//a[contains(@href,'addVcsRoot') or contains(@href,'action=addVcsRoot')]"
+                    + " | //a[contains(.,'Create VCS root') or contains(.,'Create new VCS root') "
+                    + "or contains(.,'New VCS root')]"
+                    + " | //button[contains(.,'Create VCS root') or contains(.,'New VCS root')]"
     );
     private final SelenideElement errorVcsMessage = $("[data-test='error-message'], .error, .field-error");
     private final SelenideElement body = $("body");
@@ -185,17 +188,29 @@ public class CreateProjectPage {
     @Step("VCS Root creation page should be opened")
     public CreateProjectPage shouldBeOpened() {
         vcsRootNameInput.shouldBe(visible);
+        vcsRootUrlInput.shouldBe(visible);
         return this;
     }
 
     @Step("Open VCS Root creation page for project: {projectId}")
     public CreateProjectPage openVcsRootCreation(String projectId) {
-        open(UiRoutes.createVcsRoot(projectId));
-        if (!vcsRootNameInput.exists() || !vcsRootNameInput.is(visible)) {
-            open(UiRoutes.projectVcsRoots(projectId));
-            createVcsRootLink.shouldBe(visible).click();
+        // Warm project admin context — required for Git properties beans in TC 2026.1.1.
+        open(UiRoutes.editProject(projectId));
+        open(UiRoutes.projectVcsRoots(projectId));
+        if (!(createVcsRootLink.exists() && createVcsRootLink.is(visible))) {
+            open(UiRoutes.projectVcsRootsAlt(projectId));
+        }
+        if (createVcsRootLink.exists() && createVcsRootLink.is(visible)) {
+            createVcsRootLink.click();
+        } else {
+            open(UiRoutes.createVcsRoot(projectId));
         }
         ensureGitTypeSelected();
+        if (!(vcsRootUrlInput.exists() && vcsRootUrlInput.is(visible))) {
+            open(UiRoutes.createVcsRoot(projectId));
+            ensureGitTypeSelected();
+        }
+        vcsRootUrlInput.shouldBe(visible);
         return this;
     }
 
@@ -205,11 +220,9 @@ public class CreateProjectPage {
         }
         if (typeOfVcsControl.exists() && typeOfVcsControl.is(visible)) {
             typeOfVcsControl.click();
-            if (gitTypeOption.exists()) {
-                gitTypeOption.shouldBe(visible).click();
-            }
-        } else if (gitTypeOption.exists() && gitTypeOption.is(visible)) {
-            gitTypeOption.click();
+        }
+        if (gitTypeOption.exists()) {
+            gitTypeOption.shouldBe(visible).click();
         }
     }
 

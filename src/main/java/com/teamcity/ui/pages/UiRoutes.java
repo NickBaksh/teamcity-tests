@@ -51,13 +51,23 @@ public final class UiRoutes {
     }
 
     public static String createVcsRoot(String projectId) {
-        // Explicit Git avoids "Guess from URL" JSP include that breaks in TC 2026.1.1
-        // (bean parentProject not found within scope).
-        return "/admin/editVcsRoot.html?action=addVcsRoot&projectId=" + projectId
-                + "&vcsName=jetbrains.git";
+        // Do not pass vcsName here: preselecting Git via query param breaks properties
+        // rendering in TC 2026.1.1 (bean project not found → no Fetch URL field).
+        String cameFrom = projectVcsRoots(projectId);
+        return "/admin/editVcsRoot.html?action=addVcsRoot"
+                + "&projectId=" + projectId
+                + "&cameFromUrl=" + urlEncode(cameFrom);
     }
 
     public static String projectVcsRoots(String projectId) {
+        return "/admin/editProject.html?projectId=" + projectId + "&tab=projectVcsRoots";
+    }
+
+    public static String projectVcsRootsAlt(String projectId) {
         return "/admin/editProject.html?projectId=" + projectId + "&tab=vcsRoots";
+    }
+
+    private static String urlEncode(String value) {
+        return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8);
     }
 }

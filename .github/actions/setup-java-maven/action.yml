@@ -1,5 +1,5 @@
 name: Setup Java + Maven cache
-description: Checkout-ready Java 21 with Maven dependency cache
+description: Java 21 with Maven dependency cache, wrapper dist cache, and warm-up retries
 
 inputs:
   java-version:
@@ -16,3 +16,31 @@ runs:
         distribution: temurin
         java-version: ${{ inputs.java-version }}
         cache: maven
+
+    - name: Cache Maven Wrapper distribution
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/wrapper
+        key: maven-wrapper-${{ runner.os }}-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
+        restore-keys: |
+          maven-wrapper-${{ runner.os }}-
+
+    - name: Make Maven wrapper executable
+      shell: bash
+      run: chmod +x mvnw
+
+    - name: Warm up Maven Wrapper
+      shell: bash
+      run: |
+        set +e
+        for attempt in 1 2 3 4 5; do
+          ./mvnw -B -v
+          status=$?
+          if [ "${status}" -eq 0 ]; then
+            exit 0
+          fi
+          echo "mvnw warm-up failed (attempt ${attempt}/5, exit=${status}); retrying..."
+          sleep $((attempt * 5))
+        done
+        echo "::error::Failed to download/bootstrap Maven via mvnw after 5 attempts"
+        exit 1
