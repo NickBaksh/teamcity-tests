@@ -104,8 +104,26 @@ public class VcsRootSteps extends BaseSteps {
 
     @Step("Update VCS Root: {vcsRootId}")
     public VcsRoot updateVcsRoot(String vcsRootId, VcsRootUpdateRequest request) {
-        Response response = client.post(Endpoint.VCS_ROOT.format(vcsRootId), request);
-        return validator.validate(response, VcsRoot.class);
+        // TeamCity updates VCS roots via field/property PUTs (text/plain), not POST JSON body.
+        if (request.getName() != null) {
+            Response nameResponse = client.putText(
+                    Endpoint.VCS_ROOT_NAME.format(vcsRootId),
+                    request.getName());
+            validator.validateStatus(nameResponse);
+        }
+        if (request.getUrl() != null) {
+            Response urlResponse = client.putText(
+                    Endpoint.VCS_ROOT_PROPERTY.format(vcsRootId, "url"),
+                    request.getUrl());
+            validator.validateStatus(urlResponse);
+        }
+        if (request.getBranch() != null) {
+            Response branchResponse = client.putText(
+                    Endpoint.VCS_ROOT_PROPERTY.format(vcsRootId, "branch"),
+                    request.getBranch());
+            validator.validateStatus(branchResponse);
+        }
+        return getVcsRoot(vcsRootId);
     }
 
     @Step("Update VCS Root: {vcsRootId} with name: {newName}")
