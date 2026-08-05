@@ -229,7 +229,7 @@ jobs:
   deploy_swagger_coverage:
     name: Deploy Swagger Coverage to GitHub Pages
     needs: api_tests
-#    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    #    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
       pages_url: ${{ steps.deployment.outputs.page_url }}
@@ -287,6 +287,18 @@ jobs:
           echo "✅ Structure prepared:"
           ls -la _site/
           ls -la _site/swagger/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   ui_tests_chrome:
     name: UI tests (Chrome / Selenoid)
