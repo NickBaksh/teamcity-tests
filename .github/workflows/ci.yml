@@ -226,6 +226,80 @@ jobs:
         if: always()
         run: docker compose -f "${COMPOSE_FILE}" down -v
 
+  deploy_swagger_coverage:
+    name: Deploy Swagger Coverage to GitHub Pages
+    needs: api_tests
+    #    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      pages_url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download swagger-coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: swagger-coverage-report
+          path: swagger-coverage-report
+
+      - name: Prepare for GitHub Pages
+        run: |
+          mkdir -p _site/swagger
+
+          cp -r swagger-coverage-report/* _site/swagger/
+
+          cat > _site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <meta http-equiv="refresh" content="0; url=https://github.com/NickBaksh/teamcity-tests">
+              <title>Redirecting to README</title>
+            </head>
+            <body>
+              <p>Redirecting to <a href="https://github.com/NickBaksh/teamcity-tests">README</a>...</p>
+            </body>
+          </html>
+          EOF
+
+          cat > _site/swagger/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <meta http-equiv="refresh" content="0; url=swagger-coverage-report.html">
+              <title>Swagger Coverage Report</title>
+            </head>
+            <body>
+              <p>Redirecting to <a href="swagger-coverage-report.html">Swagger Coverage Report</a>...</p>
+            </body>
+          </html>
+          EOF
+
+          echo "✅ Structure prepared:"
+          ls -la _site/
+          ls -la _site/swagger/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
   ui_tests_chrome:
     name: UI tests (Chrome / Selenoid)
     needs: api_tests
@@ -555,6 +629,7 @@ jobs:
       - api_tests
       - ui_tests_chrome
       - ui_tests_firefox
+      - deploy_swagger_coverage
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -590,6 +665,7 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
+          SWAGGER_COVERAGE_URL: ${{ needs.deploy_swagger_coverage.outputs.pages_url }}
         run: |
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           EXTRA="build=${{ needs.build_and_lint.result }}; api=${{ needs.api_tests.result }}; ui-chrome=${{ needs.ui_tests_chrome.result }}; ui-firefox=${{ needs.ui_tests_firefox.result }}

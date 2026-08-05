@@ -16,6 +16,13 @@
 
 ---
 
+## 📊 Отчеты и дашборды
+
+| Отчет | Ссылка |
+|-------|--------|
+| 📋 **Swagger Coverage** | [Посмотреть отчет](https://nickbaksh.github.io/teamcity-tests/swagger/) |
+| 🔄 **Последний запуск CI** | [GitHub Actions](https://github.com/NickBaksh/teamcity-tests/actions) |
+
 ## 🏗️ Архитектура (5 слоёв)
 
 | Слой | Назначение | Пример |
