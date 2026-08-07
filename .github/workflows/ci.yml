@@ -176,16 +176,6 @@ jobs:
           echo "EOF" >> "$GITHUB_OUTPUT"
           echo "${TEXT}"
 
-      - name: Generate Allure report
-        if: always()
-        continue-on-error: true
-        run: |
-          if [[ -d target/allure-results ]] && find target/allure-results -type f | grep -q .; then
-            ./mvnw -B allure:report
-          else
-            echo "No allure-results — skip report generation"
-          fi
-
       - name: Collect docker logs
         if: always()
         run: |
@@ -200,18 +190,6 @@ jobs:
             -Dexec.mainClass="com.github.viclovsky.swagger.coverage.CommandLine" \
             -Dexec.args="-s http://localhost:8111/app/rest/swagger.json -i swagger-coverage-output"
 
-      - name: Upload API artifacts
-        if: always()
-        uses: ./.github/actions/upload-ci-artifacts
-        with:
-          name: api-artifacts
-          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
-          path: |
-            target/surefire-reports/**
-            target/allure-results/**
-            target/site/allure-maven-plugin/**
-            artifacts/docker-compose.log
-
       - name: Upload Swagger Coverage
         if: always()
         uses: actions/upload-artifact@v4
@@ -222,132 +200,28 @@ jobs:
             swagger-coverage.json
             swagger-coverage-output/**
 
-      - name: Upload Allure Report
+      - name: Upload API Allure Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report
+          name: allure-results-api
           path: |
-            target/site/allure-maven-plugin/**
+            target/allure-results/**
+
+      - name: Upload API artifacts
+        if: always()
+        uses: ./.github/actions/upload-ci-artifacts
+        with:
+          name: api-artifacts
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+          path: |
+            target/surefire-reports/**
+            target/allure-results/**
+            artifacts/docker-compose.log
 
       - name: Stop stack
         if: always()
         run: docker compose -f "${COMPOSE_FILE}" down -v
-
-  deploy_reports:
-    name: Deploy Reports to GitHub Pages
-    needs: api_tests
-#    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    outputs:
-      pages_url: ${{ steps.deployment.outputs.page_url }}
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download Swagger Coverage artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: swagger-coverage-report
-          path: swagger-coverage-report
-        continue-on-error: true
-
-      - name: Download Allure Report artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: allure-report
-          path: allure-report
-        continue-on-error: true
-
-      - name: Prepare for GitHub Pages
-        run: |
-          mkdir -p _site/swagger
-          mkdir -p _site/allure
-
-          # Копируем Swagger Coverage, если есть
-          if [ -d "swagger-coverage-report" ] && [ "$(ls -A swagger-coverage-report)" ]; then
-            cp -r swagger-coverage-report/* _site/swagger/
-            echo "✅ Swagger Coverage copied"
-          else
-            echo "⚠️ Swagger Coverage not found"
-          fi
-
-          # Копируем Allure Report, если есть
-          if [ -d "allure-report" ] && [ "$(ls -A allure-report)" ]; then
-            cp -r allure-report/* _site/allure/
-            echo "✅ Allure Report copied"
-          else
-            echo "⚠️ Allure Report not found"
-          fi
-
-          # Создаем index.html в корне (редирект на README)
-          cat > _site/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <meta http-equiv="refresh" content="0; url=https://github.com/NickBaksh/teamcity-tests">
-              <title>Redirecting to README</title>
-            </head>
-            <body>
-              <p>Redirecting to <a href="https://github.com/NickBaksh/teamcity-tests">README</a>...</p>
-            </body>
-          </html>
-          EOF
-
-          # Создаем index.html в папке swagger (редирект на отчет)
-          cat > _site/swagger/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <meta http-equiv="refresh" content="0; url=swagger-coverage-report.html">
-              <title>Swagger Coverage Report</title>
-            </head>
-            <body>
-              <p>Redirecting to <a href="swagger-coverage-report.html">Swagger Coverage Report</a>...</p>
-            </body>
-          </html>
-          EOF
-
-          # Создаем index.html в папке allure (редирект на отчет)
-          cat > _site/allure/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <meta http-equiv="refresh" content="0; url=./">
-              <title>Allure Report</title>
-            </head>
-            <body>
-              <p>Redirecting to <a href="./">Allure Report</a>...</p>
-            </body>
-          </html>
-          EOF
-
-          echo "✅ Structure prepared:"
-          ls -la _site/
-          ls -la _site/swagger/ 2>/dev/null || echo "No swagger folder"
-          ls -la _site/allure/ 2>/dev/null || echo "No allure folder"
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
 
   ui_tests_chrome:
     name: UI tests (Chrome / Selenoid)
@@ -508,11 +382,11 @@ jobs:
             artifacts/selenoid/**
             build/reports/tests/**
 
-      - name: Upload Chrome Allure Report
+      - name: Upload Chrome Allure Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report-chrome
+          name: allure-results-chrome
           path: |
             target/allure-results-chrome/**
 
@@ -675,17 +549,208 @@ jobs:
             artifacts/selenoid/**
             build/reports/tests/**
 
-      - name: Upload Firefox Allure Report
+      - name: Upload Firefox Allure Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report-firefox
+          name: allure-results-firefox
           path: |
             target/allure-results-firefox/**
 
       - name: Stop stack
         if: always()
         run: docker compose -f "${COMPOSE_FILE}" down -v
+
+  generate_allure_report:
+    name: Generate Allure Report
+    needs:
+      - api_tests
+      - ui_tests_chrome
+      - ui_tests_firefox
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java + Maven
+        uses: ./.github/actions/setup-java-maven
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Download API Allure results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-api
+          path: target/allure-results-api
+        continue-on-error: true
+
+      - name: Download Chrome UI Allure results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-chrome
+          path: target/allure-results-chrome
+        continue-on-error: true
+
+      - name: Download Firefox UI Allure results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-firefox
+          path: target/allure-results-firefox
+        continue-on-error: true
+
+      - name: Merge Allure results
+        run: |
+          mkdir -p target/allure-results
+          
+          # Копируем API результаты
+          if [ -d "target/allure-results-api" ] && [ "$(ls -A target/allure-results-api)" ]; then
+            cp -r target/allure-results-api/* target/allure-results/
+            echo "✅ API results copied: $(ls -la target/allure-results-api | wc -l) files"
+          else
+            echo "⚠️ No API results found"
+          fi
+          
+          # Копируем Chrome результаты
+          if [ -d "target/allure-results-chrome" ] && [ "$(ls -A target/allure-results-chrome)" ]; then
+            cp -r target/allure-results-chrome/* target/allure-results/
+            echo "✅ Chrome UI results copied: $(ls -la target/allure-results-chrome | wc -l) files"
+          else
+            echo "⚠️ No Chrome UI results found"
+          fi
+          
+          # Копируем Firefox результаты
+          if [ -d "target/allure-results-firefox" ] && [ "$(ls -A target/allure-results-firefox)" ]; then
+            cp -r target/allure-results-firefox/* target/allure-results/
+            echo "✅ Firefox UI results copied: $(ls -la target/allure-results-firefox | wc -l) files"
+          else
+            echo "⚠️ No Firefox UI results found"
+          fi
+          
+          echo "✅ Total results: $(find target/allure-results -name '*.json' | wc -l) test files"
+
+      - name: Generate Allure report
+        run: |
+          if [[ -d target/allure-results ]] && find target/allure-results -type f | grep -q .; then
+            ./mvnw -B allure:report
+            echo "✅ Allure report generated with $(find target/allure-results -name '*.json' | wc -l) test results"
+            ls -la target/site/allure-maven-plugin/ | head -20
+          else
+            echo "No allure-results — skip report generation"
+          fi
+
+      - name: Upload Allure Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: |
+            target/site/allure-maven-plugin/**
+
+  deploy_reports:
+    name: Deploy Reports to GitHub Pages
+    needs:
+      - api_tests
+      - generate_allure_report
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      pages_url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Swagger Coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: swagger-coverage-report
+          path: swagger-coverage-report
+        continue-on-error: true
+
+      - name: Download Allure Report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report
+        continue-on-error: true
+
+      - name: Prepare for GitHub Pages
+        run: |
+          mkdir -p _site/swagger
+          mkdir -p _site/allure
+
+          # Копируем Swagger Coverage, если есть
+          if [ -d "swagger-coverage-report" ] && [ "$(ls -A swagger-coverage-report)" ]; then
+            cp -r swagger-coverage-report/* _site/swagger/
+            echo "✅ Swagger Coverage copied"
+          else
+            echo "⚠️ Swagger Coverage not found"
+          fi
+
+          # Копируем Allure Report, если есть
+          if [ -d "allure-report" ] && [ "$(ls -A allure-report)" ]; then
+            cp -r allure-report/* _site/allure/
+            echo "✅ Allure Report copied"
+          else
+            echo "⚠️ Allure Report not found"
+          fi
+
+          # Создаем index.html в корне (редирект на README)
+          cat > _site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <meta http-equiv="refresh" content="0; url=https://github.com/NickBaksh/teamcity-tests">
+              <title>Redirecting to README</title>
+            </head>
+            <body>
+              <p>Redirecting to <a href="https://github.com/NickBaksh/teamcity-tests">README</a>...</p>
+            </body>
+          </html>
+          EOF
+
+          # Создаем index.html в папке swagger (редирект на отчет)
+          cat > _site/swagger/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <meta http-equiv="refresh" content="0; url=swagger-coverage-report.html">
+              <title>Swagger Coverage Report</title>
+            </head>
+            <body>
+              <p>Redirecting to <a href="swagger-coverage-report.html">Swagger Coverage Report</a>...</p>
+            </body>
+          </html>
+          EOF
+
+          # НЕ создаем index.html для allure — используем существующий из отчета
+          # Allure report уже содержит свой index.html в _site/allure/
+
+          echo "✅ Structure prepared:"
+          ls -la _site/
+          ls -la _site/swagger/ 2>/dev/null || echo "No swagger folder"
+          ls -la _site/allure/ 2>/dev/null || echo "No allure folder"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   report_notify:
     name: Telegram notify
@@ -694,6 +759,7 @@ jobs:
       - api_tests
       - ui_tests_chrome
       - ui_tests_firefox
+      - generate_allure_report
       - deploy_reports
     if: always()
     runs-on: ubuntu-latest
