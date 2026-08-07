@@ -27,12 +27,11 @@ BRANCH="${GITHUB_REF_NAME:-unknown}"
 SHA="${GITHUB_SHA:-unknown}"
 SHORT_SHA="$(echo "${SHA}" | cut -c1-7)"
 
-SWAGGER_URL="${SWAGGER_COVERAGE_URL:-}"
-if [[ -n "${SWAGGER_URL}" ]]; then
-  SWAGGER_LINE="swagger: ${SWAGGER_URL}swagger/"
-else
-  SWAGGER_LINE=""
-fi
+SWAGGER_URL="${SWAGGER_COVERAGE_URL:-https://nickbaksh.github.io/teamcity-tests}"
+SWAGGER_LINE="swagger report: ${SWAGGER_URL}/swagger/"
+
+ALLURE_URL="${ALLURE_REPORT_URL:-https://nickbaksh.github.io/teamcity-tests}"
+ALLURE_LINE="allure report: ${ALLURE_URL}/allure/"
 
 TEXT="${MARK} CI ${STATUS}
 repo: ${REPO}
@@ -42,7 +41,8 @@ actor: ${ACTOR}
 commit: ${SHORT_SHA}
 run: ${RUN_URL}
 ${EXTRA}
-${SWAGGER_LINE}"
+${SWAGGER_LINE}
+${ALLURE_LINE}"
 
 curl -fsS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
   --data-urlencode "chat_id=${CHAT_ID}" \
