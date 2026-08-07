@@ -234,10 +234,10 @@ jobs:
         if: always()
         run: docker compose -f "${COMPOSE_FILE}" down -v
 
-  deploy_swagger_coverage:
-    name: Deploy Swagger Coverage to GitHub Pages
+  deploy_reports:
+    name: Deploy Reports to GitHub Pages
     needs: api_tests
-    #    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+#    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
       pages_url: ${{ steps.deployment.outputs.page_url }}
@@ -252,18 +252,42 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download swagger-coverage artifact
+      - name: Download Swagger Coverage artifact
         uses: actions/download-artifact@v4
         with:
           name: swagger-coverage-report
           path: swagger-coverage-report
+        continue-on-error: true
+
+      - name: Download Allure Report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report
+        continue-on-error: true
 
       - name: Prepare for GitHub Pages
         run: |
           mkdir -p _site/swagger
+          mkdir -p _site/allure
 
-          cp -r swagger-coverage-report/* _site/swagger/
+          # Копируем Swagger Coverage, если есть
+          if [ -d "swagger-coverage-report" ] && [ "$(ls -A swagger-coverage-report)" ]; then
+            cp -r swagger-coverage-report/* _site/swagger/
+            echo "✅ Swagger Coverage copied"
+          else
+            echo "⚠️ Swagger Coverage not found"
+          fi
 
+          # Копируем Allure Report, если есть
+          if [ -d "allure-report" ] && [ "$(ls -A allure-report)" ]; then
+            cp -r allure-report/* _site/allure/
+            echo "✅ Allure Report copied"
+          else
+            echo "⚠️ Allure Report not found"
+          fi
+
+          # Создаем index.html в корне (редирект на README)
           cat > _site/index.html << 'EOF'
           <!DOCTYPE html>
           <html>
@@ -278,6 +302,7 @@ jobs:
           </html>
           EOF
 
+          # Создаем index.html в папке swagger (редирект на отчет)
           cat > _site/swagger/index.html << 'EOF'
           <!DOCTYPE html>
           <html>
@@ -292,62 +317,7 @@ jobs:
           </html>
           EOF
 
-          echo "✅ Structure prepared:"
-          ls -la _site/
-          ls -la _site/swagger/
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-  deploy_allure_report:
-    name: Deploy Allure Report to GitHub Pages
-    needs: api_tests
-    #    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download Allure Report artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: allure-report
-          path: allure-report
-        continue-on-error: true
-
-      - name: Check if Allure report exists
-        id: check_allure
-        run: |
-          if [ -d "allure-report" ] && [ "$(ls -A allure-report)" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "✅ Allure report found"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "⚠️ Allure report not found, skipping deployment"
-          fi
-
-      - name: Prepare Allure for GitHub Pages
-        if: steps.check_allure.outputs.exists == 'true'
-        run: |
-          mkdir -p _site/allure
-          cp -r allure-report/* _site/allure/
-
+          # Создаем index.html в папке allure (редирект на отчет)
           cat > _site/allure/index.html << 'EOF'
           <!DOCTYPE html>
           <html>
@@ -362,21 +332,20 @@ jobs:
           </html>
           EOF
 
-          echo "✅ Allure report prepared for GitHub Pages:"
-          ls -la _site/allure/ | head -20
+          echo "✅ Structure prepared:"
+          ls -la _site/
+          ls -la _site/swagger/ 2>/dev/null || echo "No swagger folder"
+          ls -la _site/allure/ 2>/dev/null || echo "No allure folder"
 
       - name: Setup Pages
-        if: steps.check_allure.outputs.exists == 'true'
         uses: actions/configure-pages@v4
 
       - name: Upload Pages artifact
-        if: steps.check_allure.outputs.exists == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
       - name: Deploy to GitHub Pages
-        if: steps.check_allure.outputs.exists == 'true'
         id: deployment
         uses: actions/deploy-pages@v4
 
@@ -725,8 +694,7 @@ jobs:
       - api_tests
       - ui_tests_chrome
       - ui_tests_firefox
-      - deploy_swagger_coverage
-      - deploy_allure_report
+      - deploy_reports
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -762,8 +730,8 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
-          SWAGGER_COVERAGE_URL: ${{ needs.deploy_swagger_coverage.outputs.pages_url }}
-          ALLURE_REPORT_URL: ${{ needs.deploy_allure_report.outputs.pages_url }}
+          SWAGGER_COVERAGE_URL: ${{ needs.deploy_reports.outputs.pages_url }}
+          ALLURE_REPORT_URL: ${{ needs.deploy_reports.outputs.pages_url }}
         run: |
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           EXTRA="build=${{ needs.build_and_lint.result }}; api=${{ needs.api_tests.result }}; ui-chrome=${{ needs.ui_tests_chrome.result }}; ui-firefox=${{ needs.ui_tests_firefox.result }}
